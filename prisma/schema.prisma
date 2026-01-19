@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  role          UserRole  @default(HOST)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+  events   Event[]
+
+  @@map("users")
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Event {
+  id                String      @id @default(cuid())
+  hostId            String
+  title             String
+  description       String?     @db.Text
+  slug              String      @unique
+  startDateTime     DateTime
+  endDateTime       DateTime?
+  locationName      String
+  address           String
+  city              String
+  state             String
+  zip               String
+  ticketPriceCents  Int
+  capacity          Int
+  salesCutoffHours  Int         @default(48)
+  refundPolicyText  String?     @db.Text
+  canvasImageUrl    String?
+  canvasId          String?
+  status            EventStatus @default(DRAFT)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  host     User      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+  canvas   Canvas?   @relation(fields: [canvasId], references: [id])
+
+  @@index([hostId])
+  @@index([status])
+  @@index([startDateTime])
+  @@map("events")
+}
+
+model Booking {
+  id                      String        @id @default(cuid())
+  eventId                 String
+  stripeCheckoutSessionId String?       @unique
+  stripePaymentIntentId   String?
+  purchaserName           String
+  purchaserEmail          String
+  quantity                Int
+  amountPaidCents         Int
+  status                  BookingStatus @default(PENDING)
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([purchaserEmail])
+  @@map("bookings")
+}
+
+model Canvas {
+  id        String   @id @default(cuid())
+  name      String
+  imageUrl  String
+  tags      String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events Event[]
+
+  @@map("canvases")
+}
+
+enum UserRole {
+  HOST
+  ADMIN
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  ENDED
+  CANCELED
+}
+
+enum BookingStatus {
+  PENDING
+  PAID
+  REFUNDED
+  CANCELED
+}

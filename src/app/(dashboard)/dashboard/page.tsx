@@ -78,7 +78,7 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+            <CardTitle className="text-sm font-medium">Tickets Sold</CardTitle>
             <Ticket className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -155,7 +155,7 @@ export default async function DashboardPage() {
         {/* Recent Bookings */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recent Bookings</CardTitle>
+            <CardTitle>Recent Ticket Purchases</CardTitle>
             <Link href="/dashboard/bookings">
               <Button variant="outline" size="sm">View All</Button>
             </Link>
@@ -163,7 +163,7 @@ export default async function DashboardPage() {
           <CardContent>
             {recentBookings.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">No bookings yet</p>
+                <p className="text-muted-foreground">No ticket sales yet</p>
               </div>
             ) : (
               <div className="space-y-4">

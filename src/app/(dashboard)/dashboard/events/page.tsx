@@ -110,20 +110,27 @@ export default async function EventsPage() {
                   </div>
 
                   <div className="flex items-center gap-2 mt-4">
-                    <Link href={`/dashboard/events/${event.id}`}>
-                      <Button variant="outline" size="sm">
-                        Manage
-                      </Button>
-                    </Link>
-                    {event.status === "PUBLISHED" && (
-                      <Link href={`/e/${event.slug}`} target="_blank">
-                        <Button variant="ghost" size="sm">
-                          <ExternalLink className="w-4 h-4 mr-1" />
-                          View Public Page
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
+  {event.status === "CANCELED" ? (
+    <Button variant="outline" size="sm" disabled className="opacity-60">
+      Manage
+    </Button>
+  ) : (
+    <Link href={`/dashboard/events/${event.id}`}>
+      <Button variant="outline" size="sm">
+        Manage
+      </Button>
+    </Link>
+  )}
+
+  {event.status === "PUBLISHED" && (
+    <Link href={`/e/${event.slug}`} target="_blank">
+      <Button variant="ghost" size="sm">
+        <ExternalLink className="w-4 h-4 mr-1" />
+        View Public Page
+      </Button>
+    </Link>
+  )}
+</div>
                 </div>
               </div>
             </Card>

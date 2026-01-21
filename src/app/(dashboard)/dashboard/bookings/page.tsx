@@ -47,7 +47,7 @@ export default async function BookingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-bold">Bookings</h1>
+        <h1 className="font-display text-3xl font-bold">Tickets</h1>
         <p className="text-muted-foreground mt-1">View and manage all ticket bookings</p>
       </div>
 
@@ -70,15 +70,6 @@ export default async function BookingsPage() {
             <div className="text-2xl font-bold">{totalTickets}</div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{bookings.length}</div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Bookings List */}
@@ -86,9 +77,9 @@ export default async function BookingsPage() {
         <Card>
           <CardContent className="py-16 text-center">
             <Ticket className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-xl font-semibold mb-2">No bookings yet</h2>
+            <h2 className="text-xl font-semibold mb-2">No sales yet</h2>
             <p className="text-muted-foreground mb-6">
-              Bookings will appear here once guests purchase tickets
+              Tickets will appear here once guests checkout
             </p>
             <Link href="/dashboard/events/new">
               <span className="text-primary hover:underline">Create an event</span>

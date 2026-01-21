@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MoreHorizontal, Eye, Check, X, Loader2 } from "lucide-react";
+import { MoreHorizontal, Eye, Check, X, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -30,7 +30,9 @@ interface Event {
 export function EventActions({ event }: { event: Event }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const handleStatusChange = async (status: "PUBLISHED" | "CANCELED") => {
     setIsLoading(true);
@@ -41,10 +43,8 @@ export function EventActions({ event }: { event: Event }) {
         body: JSON.stringify({ status }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to update event");
-      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to update event");
 
       toast({
         title: status === "PUBLISHED" ? "Event published!" : "Event canceled",
@@ -67,14 +67,48 @@ export function EventActions({ event }: { event: Event }) {
     }
   };
 
+  const handleDeleteDraft = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/events/${event.id}`, { method: "DELETE" });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to delete draft");
+
+      toast({
+        title: "Draft deleted",
+        description: "The draft has been removed.",
+      });
+
+      // If you delete from the detail screen, send them back.
+      router.push("/dashboard/events");
+      router.refresh();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
+  // If canceled/ended, you said the 3 dots should show nothing (you verified this)
+  if (event.status === "CANCELED" || event.status === "ENDED") {
+    return null;
+  }
+
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" aria-label="Event actions">
             <MoreHorizontal className="w-4 h-4" />
           </Button>
         </DropdownMenuTrigger>
+
         <DropdownMenuContent align="end">
           {event.status === "PUBLISHED" && (
             <DropdownMenuItem asChild>
@@ -86,37 +120,53 @@ export function EventActions({ event }: { event: Event }) {
           )}
 
           {event.status === "DRAFT" && (
-            <DropdownMenuItem onClick={() => handleStatusChange("PUBLISHED")}>
-              <Check className="w-4 h-4 mr-2" />
-              Publish Event
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuItem onClick={() => handleStatusChange("PUBLISHED")} disabled={isLoading}>
+                <Check className="w-4 h-4 mr-2" />
+                Publish Event
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem
+                onClick={() => setShowDeleteDialog(true)}
+                className="text-destructive"
+                disabled={isLoading}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Draft
+              </DropdownMenuItem>
+            </>
           )}
 
-          <DropdownMenuSeparator />
-
-          {event.status !== "CANCELED" && (
-            <DropdownMenuItem
-              onClick={() => setShowCancelDialog(true)}
-              className="text-destructive"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Cancel Event
-            </DropdownMenuItem>
+          {event.status === "PUBLISHED" && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setShowCancelDialog(true)}
+                className="text-destructive"
+                disabled={isLoading}
+              >
+                <X className="w-4 h-4 mr-2" />
+                Cancel Event
+              </DropdownMenuItem>
+            </>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* Cancel dialog (published only) */}
       <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Cancel Event</DialogTitle>
             <DialogDescription>
-              Are you sure you want to cancel this event? Guests will need to be
-              refunded manually. This action cannot be undone.
+              Are you sure you want to cancel this event? Guests will need to be refunded manually.
+              This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCancelDialog(false)}>
+            <Button variant="outline" onClick={() => setShowCancelDialog(false)} disabled={isLoading}>
               Keep Event
             </Button>
             <Button
@@ -131,6 +181,33 @@ export function EventActions({ event }: { event: Event }) {
                 </>
               ) : (
                 "Cancel Event"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete draft dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Draft</DialogTitle>
+            <DialogDescription>
+              This will permanently delete this draft. You can’t undo this.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)} disabled={isLoading}>
+              Keep Draft
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteDraft} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Draft"
               )}
             </Button>
           </DialogFooter>

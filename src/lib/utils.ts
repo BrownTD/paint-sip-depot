@@ -1,51 +1,76 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs))
 }
 
-export function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 50);
-}
-
-export function formatDate(date: Date | string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
+export function formatDate(
+  input: Date | string | number | null | undefined,
+  options: Intl.DateTimeFormatOptions = {
+    month: "short",
     day: "numeric",
-  }).format(new Date(date));
+    year: "numeric",
+  },
+  locale: string = "en-US"
+): string {
+  if (!input) return "";
+
+  const d = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(d.getTime())) return "";
+
+  return new Intl.DateTimeFormat(locale, options).format(d);
 }
 
-export function formatTime(date: Date | string): string {
-  return new Intl.DateTimeFormat("en-US", {
+export function formatTime(
+  input: Date | string | number | null | undefined,
+  options: Intl.DateTimeFormatOptions = {
     hour: "numeric",
     minute: "2-digit",
-    hour12: true,
-  }).format(new Date(date));
+  },
+  locale: string = "en-US"
+): string {
+  if (!input) return "";
+
+  const d = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(d.getTime())) return "";
+
+  return new Intl.DateTimeFormat(locale, options).format(d);
 }
 
-export function formatDateTime(date: Date | string): string {
-  return `${formatDate(date)} at ${formatTime(date)}`;
-}
-
-export function isSalesCutoffPassed(eventDate: Date | string, cutoffHours: number): boolean {
-  const eventTime = new Date(eventDate).getTime();
-  const cutoffTime = eventTime - cutoffHours * 60 * 60 * 1000;
-  return Date.now() >= cutoffTime;
-}
-
-export function getCutoffDate(eventDate: Date | string, cutoffHours: number): Date {
-  const eventTime = new Date(eventDate).getTime();
-  return new Date(eventTime - cutoffHours * 60 * 60 * 1000);
+export function generateSlug(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    // remove apostrophes
+    .replace(/['’]/g, "")
+    // replace non-alphanumeric with dashes
+    .replace(/[^a-z0-9]+/g, "-")
+    // collapse multiple dashes
+    .replace(/-+/g, "-")
+    // trim dashes from ends
+    .replace(/^-|-$/g, "");
 }
 
 export function getAbsoluteUrl(path: string): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  return `${baseUrl}${path}`;
+  const base =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXTAUTH_URL ||
+    "http://localhost:3000";
+
+  const normalizedBase = base.replace(/\/+$/, "");
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  return `${normalizedBase}${normalizedPath}`;
+}
+
+export function getCutoffDate(startDateTime: Date, salesCutoffHours: number): Date {
+  const cutoff = new Date(startDateTime);
+  cutoff.setHours(cutoff.getHours() - salesCutoffHours);
+  return cutoff;
+}
+
+export function isSalesCutoffPassed(startDateTime: Date, salesCutoffHours: number): boolean {
+  const cutoff = getCutoffDate(startDateTime, salesCutoffHours);
+  return new Date() >= cutoff;
 }

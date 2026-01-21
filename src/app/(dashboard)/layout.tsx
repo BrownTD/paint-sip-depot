@@ -1,19 +1,37 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { Palette, LayoutDashboard, Calendar, Ticket, Image, Plus, Menu } from "lucide-react";
+import {
+  Palette,
+  LayoutDashboard,
+  Calendar,
+  Ticket,
+  Image,
+  Plus,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/sign-out-button";
+import { DashboardMobileNav } from "@/components/dashboard/mobile-nav";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/events", label: "Events", icon: Calendar },
-  { href: "/dashboard/bookings", label: "Bookings", icon: Ticket },
-  { href: "/dashboard/calendar", label: "Calendar", icon: Calendar },
-  { href: "/dashboard/canvases", label: "Canvas Catalog", icon: Image },
-];
+  { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
+  { href: "/dashboard/events", label: "Events", icon: "calendar" },
+  { href: "/dashboard/bookings", label: "Tickets", icon: "ticket" },
+  { href: "/dashboard/calendar", label: "Calendar", icon: "calendar" },
+] as const;
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+const iconMap = {
+  dashboard: LayoutDashboard,
+  calendar: Calendar,
+  ticket: Ticket,
+  image: Image,
+} as const;
+
+export default async function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const session = await auth();
 
   if (!session?.user) {
@@ -22,7 +40,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="min-h-screen bg-muted/30">
-      {/* Sidebar */}
+      {/* Sidebar (desktop only) */}
       <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r bg-card hidden lg:block">
         <div className="flex h-full flex-col">
           <div className="flex h-16 items-center gap-2 border-b px-6">
@@ -33,16 +51,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
 
           <nav className="flex-1 space-y-1 p-4">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const Icon = iconMap[item.icon];
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
 
           <div className="p-4 border-t">
@@ -58,12 +79,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <span className="text-sm font-medium text-primary">
-                  {session.user.name?.[0] || session.user.email?.[0] || "U"}
+                  {session.user.name?.[0] ||
+                    session.user.email?.[0] ||
+                    "U"}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{session.user.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{session.user.email}</p>
+                <p className="text-sm font-medium truncate">
+                  {session.user.name}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {session.user.email}
+                </p>
               </div>
               <SignOutButton />
             </div>
@@ -79,9 +106,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
           <span className="font-display font-bold">Paint & Sip</span>
         </Link>
-        <Button variant="ghost" size="icon">
-          <Menu className="w-5 h-5" />
-        </Button>
+
+        <DashboardMobileNav
+          navItems={navItems}
+          user={{ name: session.user.name, email: session.user.email }}
+        />
       </header>
 
       <main className="lg:pl-64 pt-16 lg:pt-0">

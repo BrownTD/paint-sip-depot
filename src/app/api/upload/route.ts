@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     }
 
     const filename = `canvas-${session.user.id}-${Date.now()}.${file.name.split(".").pop()}`;
-    const blob = await put(filename, file, { access: "public" });
+    const blob = await put(filename, file);
 
     return NextResponse.json({ url: blob.url });
   } catch (error) {

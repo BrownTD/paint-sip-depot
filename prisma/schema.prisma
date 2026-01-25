@@ -9,16 +9,19 @@ datasource db {
 }
 
 model User {
-  id                     String                 @id @default(cuid())
-  name                   String?
-  email                  String                 @unique
-  emailVerified          DateTime?
-  image                  String?
-  passwordHash           String?
-  role                   UserRole               @default(HOST)
-  createdAt              DateTime               @default(now())
-  updatedAt              DateTime               @updatedAt
-  stripeAccountId        String?                @unique
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  role          UserRole  @default(HOST)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Stripe Connect fields
+  stripeAccountId        String?
   stripeDetailsSubmitted Boolean                @default(false)
   stripeChargesEnabled   Boolean                @default(false)
   stripePayoutsEnabled   Boolean                @default(false)
@@ -26,10 +29,25 @@ model User {
   stripeRequirements     Json?
   stripeDisabledReason   String?
   stripeLastSyncedAt     DateTime?
-  accounts               Account[]
-  events                 Event[]
-  sessions               Session[]
 
+  // Org host / payout gating
+  hostTypeRequested HostTypeRequested @default(INDIVIDUAL)
+  orgApprovalStatus OrgApprovalStatus @default(NONE)
+  payoutMode        PayoutMode        @default(PLATFORM)
+
+  // Optional org metadata (used when requesting org payouts)
+  orgName     String?
+  orgWebsite  String?
+  orgCity     String?
+  orgState    String?
+  orgProofUrl String?
+
+  // Relations
+  accounts Account[]
+  events   Event[]
+  sessions Session[]
+
+  @@index([stripeAccountId])
   @@map("users")
 }
 
@@ -38,16 +56,19 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  refresh_token String?
+  access_token  String?
+  expires_at    Int?
+  token_type    String?
+  scope         String?
+  id_token      String?
+  session_state String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([provider, providerAccountId])
   @@map("accounts")
@@ -57,9 +78,11 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
@@ -74,30 +97,37 @@ model VerificationToken {
 }
 
 model Event {
-  id               String      @id @default(cuid())
-  hostId           String
-  title            String
-  description      String?
-  slug             String      @unique
-  startDateTime    DateTime
-  endDateTime      DateTime?
-  locationName     String
-  address          String
-  city             String
-  state            String
-  zip              String
+  id          String  @id @default(cuid())
+  hostId      String
+  title       String
+  description String?
+  slug        String  @unique
+
+  startDateTime DateTime
+  endDateTime   DateTime?
+
+  locationName String
+  address      String
+  city         String
+  state        String
+  zip          String
+
   ticketPriceCents Int
   capacity         Int
-  salesCutoffHours Int         @default(48)
+  salesCutoffHours Int     @default(48)
   refundPolicyText String?
-  canvasImageUrl   String?
-  canvasId         String?
-  status           EventStatus @default(DRAFT)
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  bookings         Booking[]
-  canvas           Canvas?     @relation(fields: [canvasId], references: [id])
-  host             User        @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  canvasImageUrl String?
+  canvasId       String?
+
+  status    EventStatus @default(DRAFT)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  bookings Booking[]
+
+  canvas Canvas? @relation(fields: [canvasId], references: [id])
+  host   User    @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
   @@index([hostId])
   @@index([status])
@@ -106,18 +136,22 @@ model Event {
 }
 
 model Booking {
-  id                      String        @id @default(cuid())
+  id String @id @default(cuid())
+
   eventId                 String
-  stripeCheckoutSessionId String?       @unique
+  stripeCheckoutSessionId String? @unique
   stripePaymentIntentId   String?
-  purchaserName           String
-  purchaserEmail          String
-  quantity                Int
-  amountPaidCents         Int
-  status                  BookingStatus @default(PENDING)
-  createdAt               DateTime      @default(now())
-  updatedAt               DateTime      @updatedAt
-  event                   Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  purchaserName   String
+  purchaserEmail  String
+  quantity        Int
+  amountPaidCents Int
+
+  status    BookingStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([eventId])
   @@index([purchaserEmail])
@@ -125,13 +159,15 @@ model Booking {
 }
 
 model Canvas {
-  id        String   @id @default(cuid())
-  name      String
-  imageUrl  String
-  tags      String[]
+  id       String   @id @default(cuid())
+  name     String
+  imageUrl String
+  tags     String[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  events    Event[]
+
+  events Event[]
 
   @@map("canvases")
 }
@@ -160,4 +196,22 @@ enum StripeOnboardingStatus {
   IN_PROGRESS
   COMPLETE
   RESTRICTED
+}
+
+// Host payout gating enums (NEW)
+enum HostTypeRequested {
+  INDIVIDUAL
+  ORG
+}
+
+enum OrgApprovalStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PayoutMode {
+  PLATFORM
+  HOST
 }

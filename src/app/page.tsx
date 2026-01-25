@@ -1,28 +1,13 @@
 import Link from "next/link";
-import Image from "next/image";
-import { Palette, Calendar, Users, CreditCard, Wine, Sparkles } from "lucide-react";
+import { Sparkles, Users, CreditCard, ShieldCheck, Building2, User, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { prisma } from "@/lib/prisma";
-import { formatAmountForDisplay } from "@/lib/money";
-import { formatDate, formatTime } from "@/lib/utils";
 import { Brand } from "@/components/Brand";
+import { HostTypeToggleSection } from "@/components/home/HostTypeToggleSection";
 
-async function getUpcomingEvents() {
-  const events = await prisma.event.findMany({
-    where: { status: "PUBLISHED", startDateTime: { gt: new Date() } },
-    include: {
-      host: { select: { name: true } },
-      _count: { select: { bookings: { where: { status: "PAID" } } } },
-    },
-    orderBy: { startDateTime: "asc" },
-    take: 6,
-  });
-  return events;
-}
+// ✅ No Prisma on homepage now (no events listing)
+// ✅ No /events navigation
 
-export default async function HomePage() {
-  const events = await getUpcomingEvents();
-
+export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Navigation */}
@@ -30,9 +15,12 @@ export default async function HomePage() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Brand href="/" className="gap-2" />
           <div className="flex items-center gap-4">
-            <Link href="/events" className="text-sm font-medium hover:text-primary transition-colors">
-              Browse Events
-            </Link>
+            <a
+              href="#host-types"
+              className="text-sm font-medium hover:text-primary transition-colors"
+            >
+              How hosting works
+            </a>
             <Link href="/login">
               <Button variant="outline" size="sm">Host Login</Button>
             </Link>
@@ -55,20 +43,27 @@ export default async function HomePage() {
             <Sparkles className="w-4 h-4" />
             Create unforgettable experiences
           </div>
+
           <h1 className="font-display text-5xl md:text-7xl font-bold mb-6 leading-tight">
             Where Art Meets <span className="text-primary">Celebration</span>
           </h1>
+
           <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Host stunning paint and sip events with ease. Manage bookings, sell tickets, 
-            and create memorable artistic experiences for your guests.
+            Host stunning paint and sip events with ease. Manage ticketing, confirmations,
+            and payouts—without building your own payment stack.
           </p>
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/signup">
               <Button size="lg" className="text-lg px-8 py-6">Start Hosting Events</Button>
             </Link>
-            <Link href="/events">
-              <Button size="lg" variant="outline" className="text-lg px-8 py-6">Browse Upcoming Events</Button>
-            </Link>
+
+            {/* Anchor CTA replaces Browse Upcoming Events */}
+            <a href="#host-types">
+              <Button size="lg" variant="outline" className="text-lg px-8 py-6">
+                Understand host types
+              </Button>
+            </a>
           </div>
         </div>
       </section>
@@ -80,15 +75,15 @@ export default async function HomePage() {
             Everything You Need to Host
           </h2>
           <p className="text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
-            From event creation to ticket sales, we handle the details so you can focus on creating art.
+            You bring the vibe. We handle ticketing, checkout, confirmations, and the payout logic behind the scenes.
           </p>
-          
+
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { icon: Calendar, title: "Easy Event Creation", description: "Set up your paint and sip events in minutes with our intuitive dashboard." },
-              { icon: CreditCard, title: "Secure Payments", description: "Accept payments seamlessly through Stripe with automatic ticket management." },
-              { icon: Users, title: "Guest Management", description: "Track attendees, manage capacity, and communicate with your guests effortlessly." },
-              { icon: Wine, title: "Canvas Catalog", description: "Choose from our curated catalog of painting templates or upload your own." },
+              { icon: Users, title: "Simple Host Dashboard", description: "Create events fast, manage bookings, and stay organized." },
+              { icon: CreditCard, title: "Secure Checkout", description: "Stripe-powered payments with automatic tracking and confirmation." },
+              { icon: ShieldCheck, title: "Fraud-aware Payouts", description: "Organization payouts are gated behind review + onboarding." },
+              { icon: BadgeCheck, title: "Two Host Modes", description: "Individuals can host easily. Organizations can request payouts." },
             ].map((feature, i) => (
               <div key={i} className="bg-card p-6 rounded-2xl border shadow-sm hover:shadow-md transition-shadow">
                 <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
@@ -102,62 +97,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Upcoming Events Section */}
-      {events.length > 0 && (
-        <section className="py-20 px-4">
-          <div className="container mx-auto">
-            <div className="flex items-center justify-between mb-12">
-              <div>
-                <h2 className="font-display text-3xl md:text-4xl font-bold mb-2">Upcoming Events</h2>
-                <p className="text-muted-foreground">Join a paint and sip event near you</p>
-              </div>
-              <Link href="/events">
-                <Button variant="outline">View All Events</Button>
-              </Link>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {events.map((event) => (
-                <Link key={event.id} href={`/e/${event.slug}`}>
-                  <article className="group bg-card rounded-2xl border overflow-hidden hover:shadow-lg transition-all duration-300">
-                    <div className="aspect-[4/3] relative overflow-hidden bg-muted">
-                      {event.canvasImageUrl ? (
-                        <Image
-                          src={event.canvasImageUrl}
-                          alt={event.title}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Palette className="w-16 h-16 text-muted-foreground/30" />
-                        </div>
-                      )}
-                      <div className="absolute top-4 right-4 bg-background/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
-                        {formatAmountForDisplay(event.ticketPriceCents)}
-                      </div>
-                    </div>
-                    <div className="p-5">
-                      <h3 className="font-display text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
-                        {event.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {formatDate(event.startDateTime)} at {formatTime(event.startDateTime)}
-                      </p>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">{event.city}, {event.state}</span>
-                        <span className="text-primary font-medium">
-                          {event.capacity - event._count.bookings} spots left
-                        </span>
-                      </div>
-                    </div>
-                  </article>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      {/* Host Types Section (Anchor target) */}
+      <HostTypeToggleSection />
 
       {/* CTA Section */}
       <section className="py-20 px-4">
@@ -168,8 +109,7 @@ export default async function HomePage() {
                 Ready to Host Your First Event?
               </h2>
               <p className="text-white/80 text-lg mb-8 max-w-xl mx-auto">
-                Join hundreds of hosts creating amazing paint and sip experiences. 
-                Get started in minutes with our easy-to-use platform.
+                Create your host account and start sharing event links with your audience.
               </p>
               <Link href="/signup">
                 <Button size="lg" variant="secondary" className="text-lg px-8 py-6">

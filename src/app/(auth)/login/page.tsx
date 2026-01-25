@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -46,8 +47,14 @@ export default function LoginPage() {
         <div className="text-center">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
             <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-              <Palette className="w-7 h-7 text-white" />
-            </div>
+  <Image
+    src="/logo.svg"
+    alt="Logo"
+    width={48}
+    height={48}
+    priority
+  />
+</div>
           </Link>
           <h1 className="font-display text-3xl font-bold">Welcome back</h1>
           <p className="text-muted-foreground mt-2">Sign in to your host account</p>

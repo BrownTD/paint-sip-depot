@@ -115,7 +115,16 @@ export function EventEditForm({
     canvasImageUrl: initialData?.canvasImageUrl ?? "",
     canvasId: initialData?.canvasId ?? "",
   });
+
 const [errors, setErrors] = useState<Record<string, string>>({});
+const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
+const [previewObjectUrl, setPreviewObjectUrl] = useState<string | null>(null);
+
+useEffect(() => {
+  return () => {
+    if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+  };
+}, [previewObjectUrl]);
 
 const setFieldError = (field: string, message: string) =>
   setErrors((prev) => ({ ...prev, [field]: message }));
@@ -163,37 +172,49 @@ const clearFieldError = (field: string) =>
     setImagePreview(canvas.imageUrl);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    setIsUploading(true);
-    const uploadData = new FormData();
-    uploadData.append("file", file);
+  // optional: keep client-side type/size checks too
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  if (!allowedTypes.includes(file.type)) {
+    toast({
+      title: "Invalid file type",
+      description: "Please upload a JPG, PNG, WEBP, or GIF.",
+      variant: "destructive",
+    });
+    return;
+  }
 
-    try {
-      const res = await fetch("/api/upload", { method: "POST", body: uploadData });
-      if (!res.ok) throw new Error("Upload failed");
+  const maxSize = 5 * 1024 * 1024;
+  if (file.size > maxSize) {
+    toast({
+      title: "File too large",
+      description: "Maximum size is 5MB.",
+      variant: "destructive",
+    });
+    return;
+  }
 
-      const data = await res.json();
-      setFormData((prev) => ({
-        ...prev,
-        canvasImageUrl: data.url,
-        canvasId: "", // clear catalog selection if uploading custom
-      }));
-      setImagePreview(data.url);
-      setSelectedCanvas("");
-      toast({ title: "Image uploaded successfully" });
-    } catch {
-      toast({
-        title: "Upload failed",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
+  // clear catalog selection since we're using a custom upload
+  setSelectedCanvas("");
+  setFormData((prev) => ({
+    ...prev,
+    canvasId: "",
+    canvasImageUrl: "", // clear old uploaded URL; we'll set it after upload on submit
+  }));
+
+  setPendingImageFile(file);
+
+  // preview locally immediately (no upload yet)
+  if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+  const url = URL.createObjectURL(file);
+  setPreviewObjectUrl(url);
+  setImagePreview(url);
+
+  toast({ title: "Image selected", description: "Will upload when you save/publish." });
+};
 
   function normalizeWholeDollar(value: string) {
     // keep only digits, no decimals
@@ -249,6 +270,36 @@ if (isTooSoon) {
         capacity: capacityInt,
         salesCutoffHours: parseInt(formData.salesCutoffHours, 10),
       };
+
+      // Upload image only when saving/publishing
+if (pendingImageFile) {
+  setIsUploading(true);
+
+  const uploadData = new FormData();
+  uploadData.append("file", pendingImageFile);
+
+  const uploadRes = await fetch("/api/upload", {
+    method: "POST",
+    body: uploadData,
+  });
+
+  if (!uploadRes.ok) {
+    setIsUploading(false);
+    throw new Error("Image upload failed. Please try again.");
+  }
+
+  const uploadJson = await uploadRes.json();
+
+  payload.canvasImageUrl = uploadJson.url;
+  payload.canvasId = undefined; // ensure not using catalog image
+
+  // update UI state
+  setPendingImageFile(null);
+  setFormData((prev) => ({ ...prev, canvasImageUrl: uploadJson.url }));
+  setImagePreview(uploadJson.url);
+
+  setIsUploading(false);
+}
 
       if (!ticketPriceLocked) {
         payload.ticketPriceCents = priceWhole * 100;

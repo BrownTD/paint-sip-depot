@@ -22,6 +22,8 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { SignOutButton } from "@/components/sign-out-button";
+import { Brand } from "@/components/Brand";
+
 
 export type MobileNavItem = {
   href: string;
@@ -56,12 +58,9 @@ export function DashboardMobileNav({
       <SheetContent side="left" className="w-72 p-0">
         <div className="flex h-full flex-col">
           <SheetHeader className="border-b p-4">
-            <SheetTitle className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <Palette className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-display font-bold">Paint & Sip</span>
-            </SheetTitle>
+            <SheetTitle>
+  <Brand />
+</SheetTitle>
           </SheetHeader>
 
           <nav className="flex-1 space-y-1 p-3">

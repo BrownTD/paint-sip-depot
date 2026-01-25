@@ -6,6 +6,7 @@ import { Calendar, DollarSign, Ticket, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { StripeGate } from "./StripeGate";
 
 async function getDashboardStats(hostId: string) {
   const [totalEvents, publishedEvents, totalBookings, revenueResult] = await Promise.all([
@@ -55,6 +56,7 @@ export default async function DashboardPage() {
   ]);
 
   return (
+    <StripeGate>
     <div className="space-y-8">
       <div>
         <h1 className="font-display text-3xl font-bold">
@@ -185,5 +187,6 @@ export default async function DashboardPage() {
         </Card>
       </div>
     </div>
+    </StripeGate>
   );
 }

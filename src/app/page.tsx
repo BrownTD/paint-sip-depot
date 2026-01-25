@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
 import { formatAmountForDisplay } from "@/lib/money";
 import { formatDate, formatTime } from "@/lib/utils";
+import { Brand } from "@/components/Brand";
 
 async function getUpcomingEvents() {
   const events = await prisma.event.findMany({
@@ -27,12 +28,7 @@ export default async function HomePage() {
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-              <Palette className="w-6 h-6 text-white" />
-            </div>
-            <span className="font-display text-xl font-bold">Paint & Sip Depot</span>
-          </Link>
+          <Brand href="/" className="gap-2" />
           <div className="flex items-center gap-4">
             <Link href="/events" className="text-sm font-medium hover:text-primary transition-colors">
               Browse Events
@@ -189,12 +185,7 @@ export default async function HomePage() {
       <footer className="border-t py-12 px-4">
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <Palette className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-display font-bold">Paint & Sip Depot</span>
-            </div>
+            <Brand href="/" size="sm" />
             <p className="text-sm text-muted-foreground">
               © {new Date().getFullYear()} Paint & Sip Depot. All rights reserved.
             </p>

@@ -65,10 +65,10 @@ const config: Config = {
   		},
   		fontFamily: {
   			sans: [
-  				'var(--font-geist-sans)'
+  				"var(--font-sans)", "system-ui", "sans-serif"
   			],
   			display: [
-  				'var(--font-playfair)'
+  				"var(--font-display)", "sans-serif"
   			]
   		},
   		keyframes: {

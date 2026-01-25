@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/sign-out-button";
 import { DashboardMobileNav } from "@/components/dashboard/mobile-nav";
+import { StripeGate } from "@/app/(dashboard)/dashboard/StripeGate";
+import { Brand } from "@/components/Brand";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
@@ -43,12 +45,9 @@ export default async function DashboardLayout({
       {/* Sidebar (desktop only) */}
       <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r bg-card hidden lg:block">
         <div className="flex h-full flex-col">
-          <div className="flex h-16 items-center gap-2 border-b px-6">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Palette className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-display font-bold">Paint & Sip</span>
-          </div>
+          <div className="flex h-16 items-center border-b px-6">
+  <Brand />
+</div>
 
           <nav className="flex-1 space-y-1 p-4">
             {navItems.map((item) => {
@@ -100,12 +99,7 @@ export default async function DashboardLayout({
 
       {/* Mobile header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-40 h-16 border-b bg-card flex items-center justify-between px-4">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <Palette className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-display font-bold">Paint & Sip</span>
-        </Link>
+        <Brand size="sm" />
 
         <DashboardMobileNav
           navItems={navItems}
@@ -114,7 +108,9 @@ export default async function DashboardLayout({
       </header>
 
       <main className="lg:pl-64 pt-16 lg:pt-0">
-        <div className="p-6 lg:p-8">{children}</div>
+        <div className="p-6 lg:p-8">
+          <StripeGate>{children}</StripeGate>
+          </div>
       </main>
     </div>
   );

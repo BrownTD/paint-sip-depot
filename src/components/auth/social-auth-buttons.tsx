@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { getProviders, signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,11 @@ export function SocialAuthButtons({
           disabled={disabled}
           onClick={() => handleSocialSignIn("google")}
         >
-          {disabled ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          {disabled ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Image src="/googleLogo.png" alt="Google" width={16} height={16} className="mr-2" />
+          )}
           Continue with Google
         </Button>
       ) : null}

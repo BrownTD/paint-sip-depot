@@ -33,6 +33,8 @@ const FIXED_TICKET_PRICE_DOLLARS = "35";
 const FIXED_TICKET_PRICE_CENTS = 3500;
 const FIXED_REFUND_POLICY =
   "Full refunds available up to 72 hours before the event. 50% refund between 72-48 hours. No refunds within 48 hours of the event.";
+const DEFAULT_EVENT_DESCRIPTION =
+  "Join us for a fun creative Paint & Sip experience! Each guest will receive a pre-drawn canvas design, making it easy for anyone to paint — no experience required. Simply follow the outlines, add your own colors, and enjoy the creative process.\n\nAll painting supplies are included. Bring friends, enjoy the atmosphere, and leave with a finished canvas you'll be proud of!";
 
 type Mode = "create" | "edit";
 
@@ -117,7 +119,7 @@ export function EventEditForm({
 
   const [formData, setFormData] = useState<EventEditFormInitialData>({
     title: initialData?.title ?? "",
-    description: initialData?.description ?? "",
+    description: initialData?.description ?? DEFAULT_EVENT_DESCRIPTION,
     startDate: initialData?.startDate ?? "",
     startTime: initialData?.startTime ?? "",
     endTime: initialData?.endTime ?? "",

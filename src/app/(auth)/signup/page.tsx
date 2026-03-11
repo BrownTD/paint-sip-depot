@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
 
@@ -17,8 +16,6 @@ import { toast } from "@/components/ui/use-toast";
 export default function SignUpPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [isDemoLoading, setIsDemoLoading] = useState(false);
-  const [demoStatus, setDemoStatus] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -70,46 +67,6 @@ export default function SignUpPage() {
     }
   };
 
-  const handleDemoAccess = async () => {
-    setIsDemoLoading(true);
-    setDemoStatus("Preparing demo account...");
-
-    try {
-      const bootstrap = await fetch("/api/auth/demo", { method: "POST" });
-      const bootstrapData = await bootstrap.json().catch(() => null);
-
-      if (!bootstrap.ok) {
-        throw new Error(bootstrapData?.error || "Failed to prepare demo account");
-      }
-
-      setDemoStatus("Signing into demo dashboard...");
-
-      const result = await signIn("credentials", {
-        email: bootstrapData?.email || "demo@paintsip.com",
-        password: bootstrapData?.password || "demo123",
-        redirect: false,
-      });
-
-      if (result?.error) {
-        throw new Error("Could not sign in to the demo account.");
-      }
-
-      setDemoStatus("Redirecting to dashboard...");
-      window.location.assign("/dashboard");
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Could not sign in to the demo account.";
-      setDemoStatus(null);
-      toast({
-        title: "Demo unavailable",
-        description: message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsDemoLoading(false);
-    }
-  };
-
   return (
     <div className="flex min-h-[100svh] items-center justify-center bg-muted/30 px-4 py-4">
       <div className="w-full max-w-md space-y-4">
@@ -130,7 +87,7 @@ export default function SignUpPage() {
           </CardHeader>
 
           <CardContent className="px-6 pb-6">
-            <SocialAuthButtons disabled={isLoading || isDemoLoading} />
+            <SocialAuthButtons disabled={isLoading} />
 
             <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
               <div className="h-px flex-1 bg-border" />
@@ -204,27 +161,6 @@ export default function SignUpPage() {
                 )}
               </Button>
             </form>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              disabled={isLoading || isDemoLoading}
-              onClick={handleDemoAccess}
-            >
-              {isDemoLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Entering demo...
-                </>
-              ) : (
-                "Try Demo Account"
-              )}
-            </Button>
-
-            {demoStatus ? (
-              <p className="mt-3 text-center text-sm text-muted-foreground">{demoStatus}</p>
-            ) : null}
 
             <p className="mt-5 text-center text-sm text-muted-foreground">
               Already have an account?{" "}

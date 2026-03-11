@@ -4,10 +4,11 @@ import { auth } from "@/lib/auth";
 import { getPaidTicketQuantity } from "@/lib/booking";
 import { getCanvasGallerySections } from "@/lib/canvas-gallery";
 import { prisma } from "@/lib/prisma";
-import { ArrowLeft } from "lucide-react";
+import { AlertTriangle, ArrowLeft } from "lucide-react";
 import { EventActions } from "@/components/event-actions";
 import { EventEditForm } from "@/components/events/event-edit-form";
 import { EventShareCard } from "@/components/dashboard/event-share-card";
+import { Card, CardContent } from "@/components/ui/card";
 
 async function getEvent(eventId: string, hostId: string) {
   return prisma.event.findFirst({
@@ -59,37 +60,51 @@ export default async function EventDetailPage({
 
       <EventShareCard eventCode={event.eventCode ?? null} visibility={event.visibility} />
 
-      {/* Edit form (Manage = Edit) */}
-      <EventEditForm
-        mode="edit"
-        eventId={event.id}
-        ticketsSold={ticketsSold}
-        backHref="/dashboard/events"
-        showBackLink={false}
-        titleText="Edit Event"
-        subtitleText="Update your event details and save changes"
-        canvasSections={canvasSections}
-        initialStatus={event.status}
-        initialData={{
-          title: event.title ?? "",
-          description: event.description ?? "",
-          startDate: isoToDate(event.startDateTime),
-          startTime: isoToTime(event.startDateTime),
-          endTime: isoToTime(event.endDateTime ?? null),
-          locationName: event.locationName ?? "",
-          address: event.address ?? "",
-          city: event.city ?? "",
-          state: event.state ?? "",
-          zip: event.zip ?? "",
-          visibility: event.visibility ?? "PUBLIC",
-          eventFormat: event.eventFormat ?? "IN_PERSON",
-          ticketPrice: String(Math.round((event.ticketPriceCents ?? 0) / 100)),
-          capacity: String(event.capacity ?? 0),
-          refundPolicyText: event.refundPolicyText ?? "",
-          canvasImageUrl: event.canvasImageUrl ?? "",
-          canvasName: event.canvasName ?? "",
-        }}
-      />
+      {event.status === "CANCELED" ? (
+        <Card className="border-destructive/25 bg-destructive/5">
+          <CardContent className="flex items-start gap-3 p-6">
+            <AlertTriangle className="mt-0.5 h-5 w-5 text-destructive" />
+            <div className="space-y-2">
+              <h2 className="font-display text-2xl font-semibold">Event Canceled</h2>
+              <p className="text-sm text-muted-foreground">
+                This event has been canceled and can no longer be edited or published on public
+                pages.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <EventEditForm
+          mode="edit"
+          eventId={event.id}
+          ticketsSold={ticketsSold}
+          backHref="/dashboard/events"
+          showBackLink={false}
+          titleText="Edit Event"
+          subtitleText="Update your event details and save changes"
+          canvasSections={canvasSections}
+          initialStatus={event.status}
+          initialData={{
+            title: event.title ?? "",
+            description: event.description ?? "",
+            startDate: isoToDate(event.startDateTime),
+            startTime: isoToTime(event.startDateTime),
+            endTime: isoToTime(event.endDateTime ?? null),
+            locationName: event.locationName ?? "",
+            address: event.address ?? "",
+            city: event.city ?? "",
+            state: event.state ?? "",
+            zip: event.zip ?? "",
+            visibility: event.visibility ?? "PUBLIC",
+            eventFormat: event.eventFormat ?? "IN_PERSON",
+            ticketPrice: String(Math.round((event.ticketPriceCents ?? 0) / 100)),
+            capacity: String(event.capacity ?? 0),
+            refundPolicyText: event.refundPolicyText ?? "",
+            canvasImageUrl: event.canvasImageUrl ?? "",
+            canvasName: event.canvasName ?? "",
+          }}
+        />
+      )}
     </div>
   );
 }

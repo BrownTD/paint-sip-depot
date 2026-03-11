@@ -81,7 +81,7 @@ export default async function EventPage({
 
   const code = typeof sp?.code === "string" ? sp.code.toUpperCase() : null;
 
-  if (!event || event.status === "DRAFT") {
+  if (!event || event.status !== "PUBLISHED") {
     notFound();
   }
 
@@ -92,7 +92,7 @@ export default async function EventPage({
   const isCutoff = areBookingsClosed(event.startDateTime);
   const cutoffDate = getBookingCutoffDate(event.startDateTime);
   const isPastEvent = new Date(event.startDateTime) < new Date();
-  const isCanceled = event.status === "CANCELED";
+  const isCanceled = false;
   const isSoldOut = spotsRemaining <= 0;
 
   const canBook = !isCutoff && !isPastEvent && !isCanceled && !isSoldOut;

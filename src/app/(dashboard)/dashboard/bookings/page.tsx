@@ -32,6 +32,15 @@ const statusColors = {
   CANCELED: "destructive",
 } as const;
 
+const statusLabels = {
+  PENDING: "Processing",
+  RESERVED: "Checkout in progress",
+  PAID: "Paid",
+  REFUNDED: "Refunded by admin",
+  EXPIRED: "Checkout expired",
+  CANCELED: "Canceled",
+} as const;
+
 export default async function BookingsPage() {
   const session = await auth();
   if (!session?.user?.id) return null;
@@ -135,7 +144,7 @@ export default async function BookingsPage() {
                       </td>
                       <td className="py-3 px-4">
                         <Badge variant={statusColors[booking.status]}>
-                          {booking.status.toLowerCase()}
+                          {statusLabels[booking.status]}
                         </Badge>
                       </td>
                     </tr>

@@ -84,7 +84,6 @@ export default async function EventDetailPage({
           eventFormat: event.eventFormat ?? "IN_PERSON",
           ticketPrice: String(Math.round((event.ticketPriceCents ?? 0) / 100)),
           capacity: String(event.capacity ?? 0),
-          salesCutoffHours: String(event.salesCutoffHours ?? "48"),
           refundPolicyText: event.refundPolicyText ?? "",
           canvasImageUrl: event.canvasImageUrl ?? "",
           canvasId: event.canvasId ?? "",

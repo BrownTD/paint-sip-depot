@@ -53,7 +53,6 @@ export type EventEditFormInitialData = {
   zip: string;
   ticketPrice: string; // whole dollars as string
   capacity: string;
-  salesCutoffHours: "48" | "72" | string;
   refundPolicyText: string;
   canvasImageUrl: string;
   canvasId?: string; // optional, for catalog selection
@@ -112,7 +111,6 @@ export function EventEditForm({
     zip: initialData?.zip ?? "",
     ticketPrice: initialData?.ticketPrice ?? "30",
     capacity: initialData?.capacity ?? "50",
-    salesCutoffHours: initialData?.salesCutoffHours ?? "48",
     refundPolicyText:
       initialData?.refundPolicyText ??
       "Full refunds available up to 72 hours before the event. 50% refund between 72-48 hours. No refunds within 48 hours of the event.",
@@ -272,7 +270,7 @@ if (isTooSoon) {
         startDateTime: startDateTime.toISOString(),
         endDateTime: endDateTime.toISOString(),
         capacity: capacityInt,
-        salesCutoffHours: parseInt(formData.salesCutoffHours, 10),
+        salesCutoffHours: 168,
         address: formData.eventFormat === "VIRTUAL" ? "" : formData.address,
         city: formData.eventFormat === "VIRTUAL" ? "" : formData.city,
         state: formData.eventFormat === "VIRTUAL" ? "" : formData.state,
@@ -729,20 +727,8 @@ router.refresh();
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="salesCutoffHours">Sales Cutoff (hours before event)</Label>
-                <Select
-                  value={formData.salesCutoffHours}
-                  onValueChange={(value) => setFormData({ ...formData, salesCutoffHours: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="48">48 hours</SelectItem>
-                    <SelectItem value="72">72 hours</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="rounded-2xl border border-dashed bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+                Bookings close automatically 7 days before the event start time.
               </div>
             </CardContent>
           </Card>

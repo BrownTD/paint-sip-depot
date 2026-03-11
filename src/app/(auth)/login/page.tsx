@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { getSession } from "next-auth/react";
 import { Palette, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +32,8 @@ export default function LoginPage() {
       if (result?.error) {
         toast({ title: "Error", description: "Invalid email or password", variant: "destructive" });
       } else {
-        router.push("/dashboard");
+        const session = await getSession();
+        router.push(session?.user?.role === "ADMIN" ? "/admin/orders" : "/dashboard");
         router.refresh();
       }
     } catch {

@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
-import { ArrowLeft, Loader2, Upload, X } from "lucide-react";
+import { ArrowLeft, Images, Loader2, Upload, X } from "lucide-react";
 
+import type { CanvasGalleryItem, CanvasGallerySection } from "@/lib/canvas-gallery";
+import { CanvasGalleryDialog } from "@/components/events/canvas-gallery-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,14 +20,6 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
-import { Separator } from "@/components/ui/separator";
-
-interface Canvas {
-  id: string;
-  name: string;
-  imageUrl: string;
-  tags: string[];
-}
 
 const US_STATES = [
   "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
@@ -35,6 +28,11 @@ const US_STATES = [
   "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
   "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
 ] as const;
+
+const FIXED_TICKET_PRICE_DOLLARS = "35";
+const FIXED_TICKET_PRICE_CENTS = 3500;
+const FIXED_REFUND_POLICY =
+  "Full refunds available up to 72 hours before the event. 50% refund between 72-48 hours. No refunds within 48 hours of the event.";
 
 type Mode = "create" | "edit";
 
@@ -55,7 +53,7 @@ export type EventEditFormInitialData = {
   capacity: string;
   refundPolicyText: string;
   canvasImageUrl: string;
-  canvasId?: string; // optional, for catalog selection
+  canvasName?: string;
 };
 
 function isoToDate(iso?: string | null) {
@@ -76,6 +74,7 @@ export function EventEditForm({
   titleText,
   subtitleText,
   initialData,
+  canvasSections,
   initialStatus, // "DRAFT" | "PUBLISHED" etc (optional, used for button labels)
 }: {
   mode: Mode;
@@ -86,14 +85,34 @@ export function EventEditForm({
   titleText: string; // e.g. "Create New Event" or "Edit Event"
   subtitleText?: string;
   initialData?: Partial<EventEditFormInitialData>;
+  canvasSections: CanvasGallerySection[];
   initialStatus?: string;
 }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-
-  const [canvases, setCanvases] = useState<Canvas[]>([]);
-  const [selectedCanvas, setSelectedCanvas] = useState<string>(initialData?.canvasId || "");
+  const previewCanvases = useMemo(
+    () => canvasSections.flatMap((section) => section.items).slice(0, 5),
+    [canvasSections]
+  );
+  const canvasLookup = useMemo(() => {
+    const entries = canvasSections.flatMap((section) => section.items.map((item) => [item.id, item] as const));
+    return new Map(entries);
+  }, [canvasSections]);
+  const initialSelectedCanvasId = useMemo(() => {
+    return (
+      canvasSections
+        .flatMap((section) => section.items)
+        .find(
+          (item) =>
+            item.imageUrl === initialData?.canvasImageUrl ||
+            (initialData?.canvasName && item.name === initialData.canvasName)
+        )?.id ?? ""
+    );
+  }, [canvasSections, initialData?.canvasImageUrl, initialData?.canvasName]);
+  const [selectedCanvas, setSelectedCanvas] = useState<string>(initialSelectedCanvasId);
+  const [pendingCanvasId, setPendingCanvasId] = useState<string>(initialSelectedCanvasId);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState<string>(initialData?.canvasImageUrl || "");
 
   const [formData, setFormData] = useState<EventEditFormInitialData>({
@@ -109,13 +128,11 @@ export function EventEditForm({
     city: initialData?.city ?? "",
     state: initialData?.state ?? "",
     zip: initialData?.zip ?? "",
-    ticketPrice: initialData?.ticketPrice ?? "30",
+    ticketPrice: FIXED_TICKET_PRICE_DOLLARS,
     capacity: initialData?.capacity ?? "50",
-    refundPolicyText:
-      initialData?.refundPolicyText ??
-      "Full refunds available up to 72 hours before the event. 50% refund between 72-48 hours. No refunds within 48 hours of the event.",
+    refundPolicyText: FIXED_REFUND_POLICY,
     canvasImageUrl: initialData?.canvasImageUrl ?? "",
-    canvasId: initialData?.canvasId ?? "",
+    canvasName: initialData?.canvasName ?? "",
   });
 
 const [errors, setErrors] = useState<Record<string, string>>({});
@@ -151,27 +168,49 @@ const clearFieldError = (field: string) =>
     return Math.max(1, ticketsSold);
   }, [ticketsSold]);
 
-  const ticketPriceLocked = useMemo(() => ticketsSold > 0, [ticketsSold]);
+  const openCanvasGallery = (canvasId?: string) => {
+    setPendingCanvasId(canvasId || selectedCanvas || initialSelectedCanvasId);
+    setIsGalleryOpen(true);
+  };
 
-  useEffect(() => {
-    fetch("/api/canvases")
-      .then((res) => res.json())
-      .then((data) => setCanvases(data.canvases || []))
-      .catch(console.error);
-  }, []);
+  const handleCanvasPreviewClick = (canvasId: string) => {
+    setPendingCanvasId(canvasId);
+    setIsGalleryOpen(true);
+  };
 
-  const handleCanvasSelect = (canvasId: string) => {
-    setSelectedCanvas(canvasId);
-    const canvas = canvases.find((c) => c.id === canvasId);
+  const handleCanvasSelectionChange = (canvas: CanvasGalleryItem) => {
+    setPendingCanvasId(canvas.id);
+  };
+
+  const handleConfirmCanvas = () => {
+    const canvas = canvasLookup.get(pendingCanvasId);
     if (!canvas) return;
 
+    setSelectedCanvas(canvas.id);
     setFormData((prev) => ({
       ...prev,
       title: prev.title || canvas.name,
       canvasImageUrl: canvas.imageUrl,
-      canvasId: canvas.id,
+      canvasName: canvas.name,
     }));
     setImagePreview(canvas.imageUrl);
+    setPendingImageFile(null);
+    if (previewObjectUrl) {
+      URL.revokeObjectURL(previewObjectUrl);
+      setPreviewObjectUrl(null);
+    }
+    setIsGalleryOpen(false);
+  };
+
+  const handleRemoveCanvasSelection = () => {
+    setSelectedCanvas("");
+    setPendingCanvasId("");
+    setImagePreview("");
+    setFormData((prev) => ({
+      ...prev,
+      canvasImageUrl: "",
+      canvasName: "",
+    }));
   };
 
 const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -201,10 +240,11 @@ const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
 
   // clear catalog selection since we're using a custom upload
   setSelectedCanvas("");
+  setPendingCanvasId("");
   setFormData((prev) => ({
     ...prev,
-    canvasId: "",
     canvasImageUrl: "", // clear old uploaded URL; we'll set it after upload on submit
+    canvasName: "",
   }));
 
   setPendingImageFile(file);
@@ -217,13 +257,6 @@ const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
 
   toast({ title: "Image selected", description: "Will upload when you save/publish." });
 };
-
-  function normalizeWholeDollar(value: string) {
-    // keep only digits, no decimals
-    const digits = value.replace(/[^\d]/g, "");
-    if (digits === "") return "";
-    return String(parseInt(digits, 10));
-  }
 
   const handleSubmit = async (e: React.FormEvent, action?: "draft" | "publish") => {
     e.preventDefault();
@@ -259,16 +292,11 @@ if (isTooSoon) {
         throw new Error(`Capacity cannot be less than tickets sold (${minCapacity}).`);
       }
 
-      // whole-dollar price
-      const priceWhole = parseInt(formData.ticketPrice, 10);
-      if (!ticketPriceLocked && (Number.isNaN(priceWhole) || priceWhole < 0)) {
-        throw new Error("Ticket price must be a valid whole number.");
-      }
-
       const payload: any = {
         ...formData,
         startDateTime: startDateTime.toISOString(),
         endDateTime: endDateTime.toISOString(),
+        ticketPriceCents: FIXED_TICKET_PRICE_CENTS,
         capacity: capacityInt,
         salesCutoffHours: 168,
         address: formData.eventFormat === "VIRTUAL" ? "" : formData.address,
@@ -297,27 +325,19 @@ if (pendingImageFile) {
   const uploadJson = await uploadRes.json();
 
   payload.canvasImageUrl = uploadJson.url;
-  payload.canvasId = undefined; // ensure not using catalog image
+  payload.canvasName = "";
 
   // update UI state
   setPendingImageFile(null);
-  setFormData((prev) => ({ ...prev, canvasImageUrl: uploadJson.url }));
+  setFormData((prev) => ({ ...prev, canvasImageUrl: uploadJson.url, canvasName: "" }));
   setImagePreview(uploadJson.url);
 
   setIsUploading(false);
 }
 
-      if (!ticketPriceLocked) {
-        payload.ticketPriceCents = priceWhole * 100;
-      }
-
       // only on create do we set status via action buttons
       if (mode === "create") {
         payload.status = action === "publish" ? "PUBLISHED" : "DRAFT";
-        payload.canvasId = selectedCanvas || undefined;
-      } else {
-        // edit mode
-        payload.canvasId = formData.canvasId || undefined;
       }
 
       const url = mode === "create" ? "/api/events" : `/api/events/${eventId}`;
@@ -385,12 +405,6 @@ router.refresh();
           {subtitleText ? (
             <p className="text-muted-foreground mt-1">{subtitleText}</p>
           ) : null}
-          {mode === "edit" && ticketsSold > 0 ? (
-            <p className="text-xs text-muted-foreground mt-2">
-              Ticket price is locked because {ticketsSold} ticket(s) have been purchased.
-            </p>
-            
-          ) : null}
         </div>
 
         <form className="space-y-6" onSubmit={(e) => handleSubmit(e, mode === "create" ? "draft" : undefined)}>
@@ -399,74 +413,123 @@ router.refresh();
             <CardHeader>
               <CardTitle>Canvas</CardTitle>
               <CardDescription>
-                Select a canvas from the catalog or upload your own image
+                Browse the canvas gallery or upload your own image
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {canvases.length > 0 && (
-                <div>
-                  <Label>Select from Catalog</Label>
-                  <div className="grid grid-cols-3 md:grid-cols-5 gap-3 mt-2">
-                    {canvases.map((canvas) => (
-                      <button
-                        key={canvas.id}
-                        type="button"
-                        onClick={() => handleCanvasSelect(canvas.id)}
-                        className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                          selectedCanvas === canvas.id
-                            ? "border-primary ring-2 ring-primary/20"
-                            : "border-transparent hover:border-muted-foreground/30"
-                        }`}
-                      >
-                        <Image src={canvas.imageUrl} alt={canvas.name} fill className="object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <Separator />
-
-              <div>
-                <Label>Or Upload Custom Image</Label>
-                <div className="mt-2">
-                  {imagePreview && !selectedCanvas ? (
-                    <div className="relative w-48 aspect-square rounded-lg overflow-hidden border">
-                      <Image src={imagePreview} alt="Preview" fill className="object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setImagePreview("");
-                          setFormData((prev) => ({ ...prev, canvasImageUrl: "", canvasId: "" }));
-                        }}
-                        className="absolute top-2 right-2 bg-background/80 rounded-full p-1"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center w-48 aspect-square border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleImageUpload}
-                        disabled={isUploading}
+              {selectedCanvas && formData.canvasImageUrl ? (
+                <div className="space-y-3">
+                  <Label>Selected Canvas</Label>
+                  <div className="max-w-[180px] rounded-2xl border p-3 sm:max-w-[220px]">
+                    <div className="flex aspect-[4/5] items-center justify-center rounded-xl bg-muted/40 p-2 sm:p-3">
+                      <img
+                        src={formData.canvasImageUrl}
+                        alt={formData.canvasName || "Selected canvas"}
+                        className="h-full w-full object-contain"
                       />
-                      {isUploading ? (
-                        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-                      ) : (
-                        <>
-                          <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-                          <span className="text-sm text-muted-foreground">Upload image</span>
-                        </>
-                      )}
-                    </label>
-                  )}
+                    </div>
+                    <p className="mt-3 text-sm font-medium">{formData.canvasName || "Selected canvas"}</p>
+                  </div>
+                  <Button type="button" variant="outline" onClick={handleRemoveCanvasSelection}>
+                    Remove
+                  </Button>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <Label>Preview Canvases</Label>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Preview a few options, then open the full gallery to confirm your choice.
+                        </p>
+                      </div>
+                      <Button type="button" variant="outline" onClick={() => openCanvasGallery()}>
+                        <Images className="mr-2 h-4 w-4" />
+                        View More
+                      </Button>
+                    </div>
+
+                    {previewCanvases.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-5">
+                        {previewCanvases.map((canvas) => {
+                          const isSelected = selectedCanvas === canvas.id;
+
+                          return (
+                            <button
+                              key={canvas.id}
+                              type="button"
+                              onClick={() => handleCanvasPreviewClick(canvas.id)}
+                              className={`rounded-2xl border p-2 text-left transition sm:p-3 ${
+                                isSelected
+                                  ? "border-primary ring-2 ring-primary/20"
+                                  : "border-border hover:border-primary/40"
+                              }`}
+                            >
+                              <div className="flex aspect-[4/5] items-center justify-center rounded-xl bg-muted/40 p-2">
+                                <img src={canvas.imageUrl} alt={canvas.name} className="h-full w-full object-contain" />
+                              </div>
+                              <p className="mt-2 line-clamp-2 text-xs font-medium sm:mt-3 sm:text-sm">{canvas.name}</p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Coming Soon</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label>Or Upload Custom Image</Label>
+                    <div className="mt-2">
+                      {imagePreview && !selectedCanvas ? (
+                        <div className="relative flex w-32 aspect-square items-center justify-center rounded-lg border bg-muted/40 p-2 sm:w-40 sm:p-3">
+                          <img src={imagePreview} alt="Preview" className="h-full w-full object-contain" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setImagePreview("");
+                              setFormData((prev) => ({ ...prev, canvasImageUrl: "", canvasName: "" }));
+                            }}
+                            className="absolute top-2 right-2 bg-background/80 rounded-full p-1"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="flex aspect-square w-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors hover:border-primary/50 sm:w-40">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleImageUpload}
+                            disabled={isUploading}
+                          />
+                          {isUploading ? (
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground sm:h-8 sm:w-8" />
+                          ) : (
+                            <>
+                              <Upload className="mb-2 h-6 w-6 text-muted-foreground sm:h-8 sm:w-8" />
+                              <span className="text-center text-xs text-muted-foreground sm:text-sm">Upload image</span>
+                            </>
+                          )}
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
+
+          <CanvasGalleryDialog
+            open={isGalleryOpen}
+            onOpenChange={setIsGalleryOpen}
+            sections={canvasSections}
+            pendingCanvasId={pendingCanvasId}
+            onSelect={handleCanvasSelectionChange}
+            onConfirm={handleConfirmCanvas}
+          />
 
           {/* Event Details */}
           <Card>
@@ -691,21 +754,10 @@ router.refresh();
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="ticketPrice">Ticket Price ($)</Label>
-                  <Input
-                    id="ticketPrice"
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    placeholder="30"
-                    value={formData.ticketPrice}
-                    onChange={(e) => {
-                      const next = normalizeWholeDollar(e.target.value);
-                      setFormData({ ...formData, ticketPrice: next });
-                    }}
-                    disabled={ticketPriceLocked}
-                    aria-disabled={ticketPriceLocked}
-                  />
+                  <Label>Ticket Price</Label>
+                  <div className="rounded-xl border bg-muted/30 px-3 py-2 text-sm font-medium">
+                    $35 per ticket
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -737,14 +789,11 @@ router.refresh();
           <Card>
             <CardHeader>
               <CardTitle>Refund Policy</CardTitle>
-              <CardDescription>This will be displayed to guests during checkout</CardDescription>
             </CardHeader>
             <CardContent>
-              <Textarea
-                value={formData.refundPolicyText}
-                onChange={(e) => setFormData({ ...formData, refundPolicyText: e.target.value })}
-                rows={3}
-              />
+              <div className="rounded-xl border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+                {FIXED_REFUND_POLICY}
+              </div>
             </CardContent>
           </Card>
 {Object.keys(errors).length > 0 ? (

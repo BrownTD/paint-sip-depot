@@ -97,7 +97,7 @@ model Event {
   refundPolicyText String?
 
   canvasImageUrl String?
-  canvasId       String?
+  canvasName     String?
 
   status    EventStatus @default(DRAFT)
   createdAt DateTime    @default(now())
@@ -105,7 +105,6 @@ model Event {
 
   bookings Booking[]
 
-  canvas Canvas? @relation(fields: [canvasId], references: [id])
   host   User    @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
   @@index([hostId])
@@ -138,20 +137,6 @@ model Booking {
   @@index([purchaserEmail])
   @@index([eventId, status, reservationExpiresAt])
   @@map("bookings")
-}
-
-model Canvas {
-  id       String   @id @default(cuid())
-  name     String
-  imageUrl String
-  tags     String[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  events Event[]
-
-  @@map("canvases")
 }
 
 enum UserRole {

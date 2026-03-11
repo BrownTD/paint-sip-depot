@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { getPaidTicketQuantity } from "@/lib/booking";
+import { getCanvasGallerySections } from "@/lib/canvas-gallery";
 import { prisma } from "@/lib/prisma";
 import { ArrowLeft } from "lucide-react";
 import { EventActions } from "@/components/event-actions";
@@ -10,9 +12,6 @@ import { EventShareCard } from "@/components/dashboard/event-share-card";
 async function getEvent(eventId: string, hostId: string) {
   return prisma.event.findFirst({
     where: { id: eventId, hostId },
-    include: {
-      _count: { select: { bookings: { where: { status: "PAID" } } } },
-    },
   });
 }
 
@@ -41,7 +40,8 @@ export default async function EventDetailPage({
   const event = await getEvent(eventId, session.user.id);
   if (!event) notFound();
 
-  const ticketsSold = event._count.bookings;
+  const ticketsSold = await getPaidTicketQuantity(prisma, event.id);
+  const canvasSections = await getCanvasGallerySections();
 
   return (
     <div className="space-y-6">
@@ -68,6 +68,7 @@ export default async function EventDetailPage({
         showBackLink={false}
         titleText="Edit Event"
         subtitleText="Update your event details and save changes"
+        canvasSections={canvasSections}
         initialStatus={event.status}
         initialData={{
           title: event.title ?? "",
@@ -86,7 +87,7 @@ export default async function EventDetailPage({
           capacity: String(event.capacity ?? 0),
           refundPolicyText: event.refundPolicyText ?? "",
           canvasImageUrl: event.canvasImageUrl ?? "",
-          canvasId: event.canvasId ?? "",
+          canvasName: event.canvasName ?? "",
         }}
       />
     </div>

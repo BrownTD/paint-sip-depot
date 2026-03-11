@@ -1,33 +1,47 @@
 import { auth } from "@/lib/auth";
+import { getPaidTicketQuantitiesForEvents } from "@/lib/booking";
 import { prisma } from "@/lib/prisma";
 import { formatAmountForDisplay } from "@/lib/money";
 import { formatDate } from "@/lib/utils";
+import { redirect } from "next/navigation";
 import { Calendar, Ticket } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 async function getDashboardStats(hostId: string) {
-  const [totalEvents, publishedEvents, totalBookings] = await Promise.all([
+  const [totalEvents, publishedEvents, paidTickets] = await Promise.all([
     prisma.event.count({ where: { hostId } }),
     prisma.event.count({ where: { hostId, status: "PUBLISHED" } }),
-    prisma.booking.count({ where: { event: { hostId }, status: "PAID" } }),
+    prisma.booking.aggregate({
+      where: { event: { hostId }, status: "PAID" },
+      _sum: { quantity: true },
+    }),
   ]);
 
   return {
     totalEvents,
     publishedEvents,
-    totalBookings,
+    totalBookings: paidTickets._sum.quantity ?? 0,
   };
 }
 
 async function getUpcomingEvents(hostId: string) {
-  return prisma.event.findMany({
+  const events = await prisma.event.findMany({
     where: { hostId, startDateTime: { gt: new Date() }, status: { in: ["PUBLISHED", "DRAFT"] } },
-    include: { _count: { select: { bookings: { where: { status: "PAID" } } } } },
     orderBy: { startDateTime: "asc" },
     take: 5,
   });
+
+  const paidByEventId = await getPaidTicketQuantitiesForEvents(
+    prisma,
+    events.map((event) => event.id)
+  );
+
+  return events.map((event) => ({
+    ...event,
+    ticketsSold: paidByEventId.get(event.id) ?? 0,
+  }));
 }
 
 async function getRecentBookings(hostId: string) {
@@ -42,6 +56,9 @@ async function getRecentBookings(hostId: string) {
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) return null;
+  if (session.user.role === "ADMIN") {
+    redirect("/admin/orders");
+  }
 
   const [stats, upcomingEvents, recentBookings] = await Promise.all([
     getDashboardStats(session.user.id),
@@ -113,7 +130,7 @@ export default async function DashboardPage() {
                       <p className="text-sm text-muted-foreground">{formatDate(event.startDateTime)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium">{event._count.bookings} / {event.capacity}</p>
+                      <p className="text-sm font-medium">{event.ticketsSold} / {event.capacity}</p>
                       <p className="text-xs text-muted-foreground">guests</p>
                     </div>
                   </Link>

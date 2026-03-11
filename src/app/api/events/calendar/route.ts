@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { getPaidTicketQuantitiesForEvents } from "@/lib/booking";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -20,10 +21,14 @@ export async function GET() {
         status: true,
         city: true,
         capacity: true,
-        _count: { select: { bookings: { where: { status: "PAID" } } } },
       },
       orderBy: { startDateTime: "asc" },
     });
+
+    const paidByEventId = await getPaidTicketQuantitiesForEvents(
+      prisma,
+      events.map((event) => event.id)
+    );
 
     const formattedEvents = events.map((event) => ({
       id: event.id,
@@ -31,7 +36,7 @@ export async function GET() {
       startDateTime: event.startDateTime.toISOString(),
       status: event.status,
       city: event.city,
-      ticketsSold: event._count.bookings,
+      ticketsSold: paidByEventId.get(event.id) ?? 0,
       capacity: event.capacity,
     }));
 

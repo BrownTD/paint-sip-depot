@@ -6,6 +6,7 @@ const discoveryEventSelect = {
   title: true,
   description: true,
   canvasImageUrl: true,
+  canvasName: true,
   locationName: true,
   city: true,
   state: true,
@@ -14,7 +15,6 @@ const discoveryEventSelect = {
   ticketPriceCents: true,
   startDateTime: true,
   host: { select: { name: true } },
-  canvas: { select: { name: true } },
   _count: { select: { bookings: { where: { status: "PAID" } } } },
 } as const;
 

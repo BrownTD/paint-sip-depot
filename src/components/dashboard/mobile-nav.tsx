@@ -42,10 +42,14 @@ export function DashboardMobileNav({
   navItems,
   user,
   newEventHref = "/dashboard/events/new",
+  ctaLabel = "New Event",
+  showCta = true,
 }: {
   navItems: readonly MobileNavItem[];
   user: { name?: string | null; email?: string | null };
   newEventHref?: string;
+  ctaLabel?: string;
+  showCta?: boolean;
 }) {
   return (
     <Sheet>
@@ -80,16 +84,18 @@ export function DashboardMobileNav({
   })}
 </nav>
 
-          <div className="p-3 border-t">
-  <SheetClose asChild>
-    <Link href={newEventHref}>
-      <Button className="w-full">
-        <Plus className="w-4 h-4 mr-2" />
-        New Event
-      </Button>
-    </Link>
-  </SheetClose>
-</div>
+          {showCta ? (
+            <div className="p-3 border-t">
+              <SheetClose asChild>
+                <Link href={newEventHref}>
+                  <Button className="w-full">
+                    <Plus className="w-4 h-4 mr-2" />
+                    {ctaLabel}
+                  </Button>
+                </Link>
+              </SheetClose>
+            </div>
+          ) : null}
 
           <div className="border-t p-3">
             <div className="flex items-center gap-3">

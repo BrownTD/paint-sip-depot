@@ -18,7 +18,7 @@ type UpcomingEventsSectionProps = {
     ticketPriceCents: number;
     startDateTime: Date;
     host: { name: string | null };
-    canvas: { name: string } | null;
+    canvasName: string | null;
   }>;
 };
 

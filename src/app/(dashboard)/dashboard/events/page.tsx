@@ -1,9 +1,9 @@
 import { auth } from "@/lib/auth";
+import { getPaidTicketQuantitiesForEvents } from "@/lib/booking";
 import { prisma } from "@/lib/prisma";
 import { formatAmountForDisplay } from "@/lib/money";
 import { formatDate, formatTime } from "@/lib/utils";
 import Link from "next/link";
-import Image from "next/image";
 import { Plus, Calendar, MapPin, Users, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,11 +11,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EventCodeCopyButton } from "@/components/dashboard/event-code-copy-button";
 
 async function getHostEvents(hostId: string) {
-  return prisma.event.findMany({
+  const events = await prisma.event.findMany({
     where: { hostId },
-    include: { _count: { select: { bookings: { where: { status: "PAID" } } } } },
     orderBy: { startDateTime: "desc" },
   });
+
+  const paidByEventId = await getPaidTicketQuantitiesForEvents(
+    prisma,
+    events.map((event) => event.id)
+  );
+
+  return events.map((event) => ({
+    ...event,
+    ticketsSold: paidByEventId.get(event.id) ?? 0,
+  }));
 }
 
 const statusColors = {
@@ -66,11 +75,10 @@ export default async function EventsPage() {
               <div className="flex flex-col md:flex-row">
                 <div className="relative w-full md:w-48 h-32 md:h-auto bg-muted shrink-0">
                   {event.canvasImageUrl ? (
-                    <Image
+                    <img
                       src={event.canvasImageUrl}
                       alt={event.title}
-                      fill
-                      className="object-cover"
+                      className="h-full w-full object-cover"
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -122,7 +130,7 @@ export default async function EventsPage() {
                       </p>
                       <p className="text-sm text-muted-foreground">
                         <Users className="w-3 h-3 inline mr-1" />
-                        {event._count.bookings} / {event.capacity}
+                        {event.ticketsSold} / {event.capacity}
                       </p>
                     </div>
                   </div>

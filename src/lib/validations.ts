@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+const canvasImageUrlSchema = z.union([
+  z.string().url(),
+  z.string().regex(/^\/canvas-options\/.+/, "Canvas image must come from canvas-options"),
+  z.literal(""),
+]);
+
 export const signUpSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
@@ -29,8 +35,8 @@ export const eventSchema = z.object({
   capacity: z.coerce.number().int().min(1).max(1000),
   salesCutoffHours: z.coerce.number().int().min(0).max(168).default(48),
   refundPolicyText: z.string().max(1000).optional(),
-  canvasImageUrl: z.string().url().optional().or(z.literal("")),
-  canvasId: z.string().optional(),
+  canvasImageUrl: canvasImageUrlSchema.optional(),
+  canvasName: z.string().max(120).optional().or(z.literal("")),
 }).superRefine((data, ctx) => {
   if (data.endDateTime && data.endDateTime <= data.startDateTime) {
     ctx.addIssue({
@@ -79,16 +85,7 @@ export const bookingSchema = z.object({
   purchaserEmail: z.string().email("Valid email required"),
 });
 
-export const canvasImportSchema = z.array(
-  z.object({
-    name: z.string().min(1),
-    imageUrl: z.string().url(),
-    tags: z.array(z.string()).default([]),
-  })
-);
-
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type SignInInput = z.infer<typeof signInSchema>;
 export type EventInput = z.infer<typeof eventSchema>;
 export type BookingInput = z.infer<typeof bookingSchema>;
-export type CanvasImportInput = z.infer<typeof canvasImportSchema>;

@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { areBookingsClosed, getBookingCutoffDate, getRemainingTickets } from "@/lib/booking";
 import { formatAmountForDisplay } from "@/lib/money";
@@ -122,12 +121,10 @@ export default async function EventPage({
             <Card className="overflow-hidden border-border/70 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
               <div className="relative aspect-[16/7] bg-muted">
                 {event.canvasImageUrl ? (
-                  <Image
+                  <img
                     src={event.canvasImageUrl}
                     alt={event.title}
-                    fill
-                    className="object-cover opacity-35 blur-[1px]"
-                    priority
+                    className="h-full w-full object-cover opacity-35 blur-[1px]"
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -188,12 +185,10 @@ export default async function EventPage({
               <div className="space-y-6 lg:col-span-2">
                 <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-muted">
                   {event.canvasImageUrl ? (
-                    <Image
+                    <img
                       src={event.canvasImageUrl}
                       alt={event.title}
-                      fill
-                      className="object-cover"
-                      priority
+                      className="h-full w-full object-cover"
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">

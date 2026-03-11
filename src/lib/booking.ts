@@ -66,6 +66,26 @@ export async function getPaidTicketQuantity(prisma: PrismaLike, eventId: string)
   return paid._sum?.quantity ?? 0;
 }
 
+export async function getPaidTicketQuantitiesForEvents(
+  prisma: PrismaLike,
+  eventIds: string[],
+) {
+  if (eventIds.length === 0) {
+    return new Map<string, number>();
+  }
+
+  const grouped = await prisma.booking.groupBy({
+    by: ["eventId"],
+    where: {
+      eventId: { in: eventIds },
+      status: BOOKING_STATUS.paid,
+    },
+    _sum: { quantity: true },
+  });
+
+  return new Map(grouped.map((row) => [row.eventId, row._sum.quantity ?? 0]));
+}
+
 export async function getRemainingTickets(
   prisma: PrismaLike,
   eventId: string,

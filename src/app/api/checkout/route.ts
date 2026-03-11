@@ -24,6 +24,12 @@ const BOOKING_STATUS = {
   reserved: "RESERVED",
 } as const;
 
+function getCheckoutImageUrl(imageUrl: string | null) {
+  if (!imageUrl) return null;
+  if (imageUrl.startsWith("/")) return getAbsoluteUrl(imageUrl);
+  return imageUrl;
+}
+
 async function reserveBookingForCheckout({
   eventId,
   quantity,
@@ -150,7 +156,9 @@ export async function POST(request: Request) {
               product_data: {
                 name: event.title,
                 description: `${quantity} ticket${quantity > 1 ? "s" : ""} for ${event.title}`,
-                images: event.canvasImageUrl ? [event.canvasImageUrl] : [],
+                images: getCheckoutImageUrl(event.canvasImageUrl)
+                  ? [getCheckoutImageUrl(event.canvasImageUrl)!]
+                  : [],
               },
               unit_amount: event.ticketPriceCents,
             },

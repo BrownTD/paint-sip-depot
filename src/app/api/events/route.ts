@@ -5,6 +5,10 @@ import { eventSchema } from "@/lib/validations";
 import { generateRandomSlug } from "@/lib/utils";
 import { resolveEventCodeForVisibility } from "@/lib/event-discovery";
 
+const FIXED_TICKET_PRICE_CENTS = 3500;
+const FIXED_REFUND_POLICY =
+  "Full refunds available up to 72 hours before the event. 50% refund between 72-48 hours. No refunds within 48 hours of the event.";
+
 async function generateUniqueEventSlug() {
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const slug = generateRandomSlug();
@@ -83,12 +87,12 @@ export async function POST(request: Request) {
         zip: parsed.data.zip || null,
         visibility: parsed.data.visibility,
         eventFormat: parsed.data.eventFormat,
-        ticketPriceCents: parsed.data.ticketPriceCents,
+        ticketPriceCents: FIXED_TICKET_PRICE_CENTS,
         capacity: parsed.data.capacity,
         salesCutoffHours: parsed.data.salesCutoffHours,
-        refundPolicyText: parsed.data.refundPolicyText || null,
+        refundPolicyText: FIXED_REFUND_POLICY,
         canvasImageUrl: parsed.data.canvasImageUrl || null,
-        canvasId: body.canvasId || null,
+        canvasName: parsed.data.canvasName || null,
         status: body.status || "DRAFT",
       },
     });

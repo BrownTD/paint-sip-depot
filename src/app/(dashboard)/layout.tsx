@@ -14,7 +14,7 @@ import { SignOutButton } from "@/components/sign-out-button";
 import { DashboardMobileNav } from "@/components/dashboard/mobile-nav";
 import { Brand } from "@/components/Brand";
 
-const navItems = [
+const baseNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
   { href: "/dashboard/events", label: "Events", icon: "calendar" },
   { href: "/dashboard/bookings", label: "Tickets", icon: "ticket" },
@@ -38,6 +38,13 @@ export default async function DashboardLayout({
   if (!session?.user) {
     redirect("/login");
   }
+
+  const navItems = [
+    ...baseNavItems,
+    ...(session.user.role === "ADMIN"
+      ? [{ href: "/admin/orders", label: "Admin Panel", icon: "dashboard" as const }]
+      : []),
+  ];
 
   return (
     <div className="min-h-screen bg-muted/30">

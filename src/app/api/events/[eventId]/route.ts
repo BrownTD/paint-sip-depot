@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { eventSchema } from "@/lib/validations";
 import { resolveEventCodeForVisibility } from "@/lib/event-discovery";
 
+const FIXED_TICKET_PRICE_CENTS = 3500;
+const FIXED_REFUND_POLICY =
+  "Full refunds available up to 72 hours before the event. 50% refund between 72-48 hours. No refunds within 48 hours of the event.";
+
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ eventId: string }> }
@@ -69,8 +73,8 @@ export async function PATCH(
     }
 
     const allowedUpdates: Record<string, string[]> = {
-      DRAFT: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "ticketPriceCents", "capacity", "salesCutoffHours", "refundPolicyText", "canvasImageUrl", "canvasId", "visibility", "eventFormat"],
-      PUBLISHED: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "ticketPriceCents", "capacity", "salesCutoffHours", "refundPolicyText", "canvasImageUrl", "canvasId", "visibility", "eventFormat"],
+      DRAFT: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "capacity", "salesCutoffHours", "canvasImageUrl", "canvasName", "visibility", "eventFormat"],
+      PUBLISHED: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "capacity", "salesCutoffHours", "canvasImageUrl", "canvasName", "visibility", "eventFormat"],
       ENDED: [],
       CANCELED: [],
     };
@@ -80,11 +84,14 @@ export async function PATCH(
 
     for (const key of Object.keys(body)) {
       if (allowed.includes(key)) {
-        updateData[key] = ["address", "city", "state", "zip", "canvasId", "canvasImageUrl"].includes(key)
+        updateData[key] = ["address", "city", "state", "zip", "canvasImageUrl", "canvasName"].includes(key)
           ? body[key] || null
           : body[key];
       }
     }
+
+    updateData.ticketPriceCents = FIXED_TICKET_PRICE_CENTS;
+    updateData.refundPolicyText = FIXED_REFUND_POLICY;
 
     if (
       allowed.includes("visibility") &&

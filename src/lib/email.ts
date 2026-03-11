@@ -2,7 +2,7 @@ import { formatDate, formatTime, getAbsoluteUrl } from "@/lib/utils";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 const DEFAULT_FROM_EMAIL = "onboarding@resend.dev";
-const DEFAULT_ADMIN_EMAIL = "nevynjbrown1@gmail.com";
+const DEFAULT_ADMIN_EMAIL = "info@paintsipdepot.com";
 
 type SendEmailOptions = {
   to: string | string[];

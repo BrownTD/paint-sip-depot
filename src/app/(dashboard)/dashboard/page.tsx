@@ -132,7 +132,7 @@ export default async function DashboardPage() {
                 {upcomingEvents.map((event: UpcomingEvent) => (
                   <Link
                     key={event.id}
-                    href={`/dashboard/events/${event.id}`}
+                    href="/dashboard/events"
                     className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
                   >
                     <div>

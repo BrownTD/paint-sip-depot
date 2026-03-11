@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { getSession } from "next-auth/react";
 import { Palette, Loader2 } from "lucide-react";
+import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,7 @@ import Image from "next/image";
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,6 +45,37 @@ export default function LoginPage() {
     }
   };
 
+  const handleResendVerification = async () => {
+    if (!formData.email) {
+      toast({ title: "Email required", description: "Enter your email first.", variant: "destructive" });
+      return;
+    }
+
+    setIsResendingVerification(true);
+    try {
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send verification email");
+      }
+
+      toast({ title: "Verification email sent", description: "Check your inbox for the verification link." });
+    } catch (error) {
+      toast({
+        title: "Could not resend email",
+        description: error instanceof Error ? error.message : "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResendingVerification(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-muted/30">
       <div className="w-full max-w-md space-y-8">
@@ -65,9 +98,17 @@ export default function LoginPage() {
         <Card>
           <CardHeader>
             <CardTitle>Sign In</CardTitle>
-            <CardDescription>Enter your credentials to access your dashboard</CardDescription>
+            <CardDescription>Sign in with Google, Facebook, or verified email credentials</CardDescription>
           </CardHeader>
           <CardContent>
+            <SocialAuthButtons disabled={isLoading || isResendingVerification} />
+
+            <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+              <div className="h-px flex-1 bg-border" />
+              <span>or</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -95,6 +136,22 @@ export default function LoginPage() {
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Signing in...</> : "Sign In"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={handleResendVerification}
+                disabled={isLoading || isResendingVerification}
+              >
+                {isResendingVerification ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending verification...
+                  </>
+                ) : (
+                  "Resend verification email"
+                )}
               </Button>
             </form>
           </CardContent>

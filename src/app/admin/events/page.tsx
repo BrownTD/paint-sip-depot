@@ -7,8 +7,27 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+type AdminEventRecord = {
+  id: string;
+  title: string;
+  slug: string;
+  canvasImageUrl: string | null;
+  canvasName: string | null;
+  locationName: string;
+  city: string | null;
+  startDateTime: Date;
+  eventFormat: "IN_PERSON" | "VIRTUAL";
+  visibility: "PUBLIC" | "PRIVATE";
+  status: "DRAFT" | "PUBLISHED" | "ENDED" | "CANCELED";
+  capacity: number;
+  host: {
+    name: string | null;
+    email: string;
+  };
+};
+
 async function getAdminEvents() {
-  const events = await prisma.event.findMany({
+  const events: AdminEventRecord[] = await prisma.event.findMany({
     include: {
       host: {
         select: {
@@ -31,10 +50,12 @@ async function getAdminEvents() {
     return {
       ...event,
       ticketsSold,
-      remaining: Math.max(event.capacity - ticketsSold, 0),
+      remaining: Math.max(Number(event.capacity) - Number(ticketsSold), 0),
     };
   });
 }
+
+type AdminEvent = Awaited<ReturnType<typeof getAdminEvents>>[number];
 
 const statusColors = {
   DRAFT: "secondary",
@@ -84,17 +105,31 @@ export default async function AdminEventsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {events.map((event) => (
+                  {events.map((event: AdminEvent) => (
                     <tr key={event.id} className="border-b last:border-0 hover:bg-muted/40">
                       <td className="px-4 py-3 align-top">
-                        <div>
-                          <Link href={`/e/${event.slug}`} className="font-medium text-primary hover:underline">
-                            {event.title}
-                          </Link>
-                          <p className="text-sm text-muted-foreground">
-                            {event.locationName}
-                            {event.city ? `, ${event.city}` : ""}
-                          </p>
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
+                            {event.canvasImageUrl ? (
+                              <img
+                                src={event.canvasImageUrl}
+                                alt={event.canvasName || event.title}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : null}
+                          </div>
+                          <div>
+                            <Link href={`/e/${event.slug}`} className="font-medium text-primary hover:underline">
+                              {event.title}
+                            </Link>
+                            <p className="text-sm text-muted-foreground">
+                              {event.locationName}
+                              {event.city ? `, ${event.city}` : ""}
+                            </p>
+                            {event.canvasName ? (
+                              <p className="text-sm text-muted-foreground">Canvas: {event.canvasName}</p>
+                            ) : null}
+                          </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 align-top">
@@ -114,13 +149,13 @@ export default async function AdminEventsPage() {
                         {event.visibility === "PUBLIC" ? "Public" : "Private"}
                       </td>
                       <td className="px-4 py-3 align-top">
-                        <Badge variant={statusColors[event.status]}>{event.status.toLowerCase()}</Badge>
+                        <Badge variant={statusColors[event.status as keyof typeof statusColors]}>{event.status.toLowerCase()}</Badge>
                       </td>
                       <td className="px-4 py-3 align-top text-sm font-medium">
-                        {event.ticketsSold} / {event.capacity}
+                        {Number(event.ticketsSold)} / {Number(event.capacity)}
                       </td>
                       <td className="px-4 py-3 align-top text-sm font-medium">
-                        {event.remaining}
+                        {Number(event.remaining)}
                       </td>
                     </tr>
                   ))}

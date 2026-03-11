@@ -4,14 +4,31 @@ import { prisma } from "@/lib/prisma";
 import { formatAmountForDisplay } from "@/lib/money";
 import { formatDate, formatTime } from "@/lib/utils";
 import Link from "next/link";
-import { Plus, Calendar, MapPin, Users, ExternalLink } from "lucide-react";
+import { Plus, Calendar, MapPin, Users, ExternalLink, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { EventCodeCopyButton } from "@/components/dashboard/event-code-copy-button";
 
+type HostEventRecord = {
+  id: string;
+  title: string;
+  slug: string;
+  startDateTime: Date;
+  city: string | null;
+  state: string | null;
+  status: "DRAFT" | "PUBLISHED" | "ENDED" | "CANCELED";
+  visibility: "PUBLIC" | "PRIVATE";
+  eventFormat: "IN_PERSON" | "VIRTUAL";
+  capacity: number;
+  ticketPriceCents: number;
+  canvasImageUrl: string | null;
+  canvasName: string | null;
+  eventCode: string | null;
+};
+
 async function getHostEvents(hostId: string) {
-  const events = await prisma.event.findMany({
+  const events: HostEventRecord[] = await prisma.event.findMany({
     where: { hostId },
     orderBy: { startDateTime: "desc" },
   });
@@ -26,6 +43,8 @@ async function getHostEvents(hostId: string) {
     ticketsSold: paidByEventId.get(event.id) ?? 0,
   }));
 }
+
+type HostEvent = Awaited<ReturnType<typeof getHostEvents>>[number];
 
 const statusColors = {
   DRAFT: "secondary",
@@ -70,7 +89,7 @@ export default async function EventsPage() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {events.map((event) => (
+          {events.map((event: HostEvent) => (
             <Card key={event.id} className="overflow-hidden">
               <div className="flex flex-col md:flex-row">
                 <div className="relative w-full md:w-48 h-32 md:h-auto bg-muted shrink-0">
@@ -93,7 +112,7 @@ export default async function EventsPage() {
                       <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-center">
                         <h3 className="font-semibold text-lg">{event.title}</h3>
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant={statusColors[event.status]}>
+                          <Badge variant={statusColors[event.status as keyof typeof statusColors]}>
                             {event.status.toLowerCase()}
                           </Badge>
                           <Badge
@@ -123,6 +142,12 @@ export default async function EventsPage() {
                             : `${event.city}, ${event.state}`}
                         </span>
                       </div>
+                      {event.canvasName ? (
+                        <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                          <ImageIcon className="h-4 w-4" />
+                          <span>Canvas: {event.canvasName}</span>
+                        </div>
+                      ) : null}
                     </div>
                     <div className="text-right shrink-0">
                       <p className="font-semibold">
@@ -130,7 +155,7 @@ export default async function EventsPage() {
                       </p>
                       <p className="text-sm text-muted-foreground">
                         <Users className="w-3 h-3 inline mr-1" />
-                        {event.ticketsSold} / {event.capacity}
+                        {Number(event.ticketsSold)} / {Number(event.capacity)}
                       </p>
                     </div>
                   </div>

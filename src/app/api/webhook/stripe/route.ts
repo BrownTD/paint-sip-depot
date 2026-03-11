@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
+import {
+  sendAdminOrderCreatedEmail,
+  sendHostOrderCreatedEmail,
+} from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
+import { getAbsoluteUrl } from "@/lib/utils";
 import Stripe from "stripe";
 
 const BOOKING_STATUS = {
@@ -39,14 +44,77 @@ export async function POST(request: Request) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.payment_status === "paid") {
-          await prisma.booking.updateMany({
-            where: { stripeCheckoutSessionId: session.id },
+          const updateResult = await prisma.booking.updateMany({
+            where: {
+              stripeCheckoutSessionId: session.id,
+              status: { in: [BOOKING_STATUS.pending, BOOKING_STATUS.reserved] },
+            },
             data: {
               status: BOOKING_STATUS.paid,
               stripePaymentIntentId: session.payment_intent as string,
               reservationExpiresAt: null,
             },
           });
+
+          if (updateResult.count > 0) {
+            const booking = await prisma.booking.findFirst({
+              where: { stripeCheckoutSessionId: session.id },
+              include: {
+                event: {
+                  include: {
+                    host: {
+                      select: {
+                        name: true,
+                        email: true,
+                      },
+                    },
+                  },
+                },
+              },
+            });
+
+            if (booking) {
+              const eventUrl = getAbsoluteUrl(`/e/${booking.event.slug}`);
+
+              const notifications = [
+                sendAdminOrderCreatedEmail({
+                  recipientName: "Admin",
+                  eventTitle: booking.event.title,
+                  eventUrl,
+                  startDateTime: booking.event.startDateTime,
+                  locationName: booking.event.locationName,
+                  quantity: booking.quantity,
+                  purchaserName: booking.purchaserName,
+                  purchaserEmail: booking.purchaserEmail,
+                  amountPaidCents: booking.amountPaidCents,
+                }),
+              ];
+
+              if (booking.event.host.email) {
+                notifications.push(
+                  sendHostOrderCreatedEmail({
+                    to: booking.event.host.email,
+                    recipientName: booking.event.host.name,
+                    eventTitle: booking.event.title,
+                    eventUrl,
+                    startDateTime: booking.event.startDateTime,
+                    locationName: booking.event.locationName,
+                    quantity: booking.quantity,
+                    purchaserName: booking.purchaserName,
+                    purchaserEmail: booking.purchaserEmail,
+                    amountPaidCents: booking.amountPaidCents,
+                  })
+                );
+              }
+
+              const results = await Promise.allSettled(notifications);
+              const rejected = results.filter((result) => result.status === "rejected");
+              if (rejected.length > 0) {
+                console.error("Order notification email failed:", rejected);
+              }
+            }
+          }
+
           console.log(`Booking confirmed for session: ${session.id}`);
         }
         break;

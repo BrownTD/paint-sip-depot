@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendEmailVerification } from "@/lib/email-verification";
 import { signUpSchema } from "@/lib/validations";
 import bcrypt from "bcryptjs";
 
@@ -32,11 +33,13 @@ export async function POST(request: Request) {
     const passwordHash = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({
-      data: { name, email, passwordHash, role: "HOST" },
+      data: { name, email, passwordHash, role: "HOST", emailVerified: null },
     });
 
+    await sendEmailVerification({ email: user.email, name: user.name });
+
     return NextResponse.json(
-      { message: "Account created successfully", userId: user.id },
+      { message: "Account created successfully. Please verify your email.", userId: user.id },
       { status: 201 }
     );
   } catch (error) {

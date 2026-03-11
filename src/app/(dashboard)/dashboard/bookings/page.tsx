@@ -23,6 +23,8 @@ async function getHostBookings(hostId: string) {
   });
 }
 
+type HostBooking = Awaited<ReturnType<typeof getHostBookings>>[number];
+
 const statusColors = {
   PENDING: "secondary",
   RESERVED: "secondary",
@@ -48,8 +50,8 @@ export default async function BookingsPage() {
   const bookings = await getHostBookings(session.user.id);
 
   const totalTickets = bookings
-    .filter((b) => b.status === "PAID")
-    .reduce((sum, b) => sum + b.quantity, 0);
+    .filter((b: HostBooking) => b.status === "PAID")
+    .reduce((sum: number, b: HostBooking) => sum + b.quantity, 0);
 
   return (
     <div className="space-y-6">
@@ -112,7 +114,7 @@ export default async function BookingsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {bookings.map((booking) => (
+                  {bookings.map((booking: HostBooking) => (
                     <tr key={booking.id} className="border-b last:border-0 hover:bg-muted/50">
                       <td className="py-3 px-4">
                         <div>
@@ -143,8 +145,8 @@ export default async function BookingsPage() {
                         {formatAmountForDisplay(booking.amountPaidCents)}
                       </td>
                       <td className="py-3 px-4">
-                        <Badge variant={statusColors[booking.status]}>
-                          {statusLabels[booking.status]}
+                        <Badge variant={statusColors[booking.status as keyof typeof statusColors]}>
+                          {statusLabels[booking.status as keyof typeof statusLabels]}
                         </Badge>
                       </td>
                     </tr>

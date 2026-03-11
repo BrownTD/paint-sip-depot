@@ -7,6 +7,7 @@ import { signIn } from "next-auth/react";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
 
+import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,7 +55,7 @@ export default function SignUpPage() {
 
       toast({
         title: "Success!",
-        description: "Account created. Please sign in.",
+        description: "Account created. Check your email to verify your account before signing in.",
       });
 
       router.push("/login");
@@ -125,10 +126,18 @@ export default function SignUpPage() {
         <Card>
           <CardHeader className="space-y-1 px-6 pb-4 pt-6">
             <CardTitle>Sign Up</CardTitle>
-            <CardDescription>Create a new host account to get started</CardDescription>
+            <CardDescription>Create a host account with Google, Facebook, or verified email</CardDescription>
           </CardHeader>
 
           <CardContent className="px-6 pb-6">
+            <SocialAuthButtons disabled={isLoading || isDemoLoading} />
+
+            <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+              <div className="h-px flex-1 bg-border" />
+              <span>or</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
@@ -195,12 +204,6 @@ export default function SignUpPage() {
                 )}
               </Button>
             </form>
-
-            <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              <div className="h-px flex-1 bg-border" />
-              <span>or</span>
-              <div className="h-px flex-1 bg-border" />
-            </div>
 
             <Button
               type="button"

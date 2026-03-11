@@ -9,6 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
+type UpcomingEventRecord = {
+  id: string;
+  title: string;
+  startDateTime: Date;
+  capacity: number;
+};
+
 async function getDashboardStats(hostId: string) {
   const [totalEvents, publishedEvents, paidTickets] = await Promise.all([
     prisma.event.count({ where: { hostId } }),
@@ -27,7 +34,7 @@ async function getDashboardStats(hostId: string) {
 }
 
 async function getUpcomingEvents(hostId: string) {
-  const events = await prisma.event.findMany({
+  const events: UpcomingEventRecord[] = await prisma.event.findMany({
     where: { hostId, startDateTime: { gt: new Date() }, status: { in: ["PUBLISHED", "DRAFT"] } },
     orderBy: { startDateTime: "asc" },
     take: 5,
@@ -52,6 +59,9 @@ async function getRecentBookings(hostId: string) {
     take: 5,
   });
 }
+
+type UpcomingEvent = Awaited<ReturnType<typeof getUpcomingEvents>>[number];
+type RecentBooking = Awaited<ReturnType<typeof getRecentBookings>>[number];
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -119,7 +129,7 @@ export default async function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {upcomingEvents.map((event) => (
+                {upcomingEvents.map((event: UpcomingEvent) => (
                   <Link
                     key={event.id}
                     href={`/dashboard/events/${event.id}`}
@@ -130,7 +140,7 @@ export default async function DashboardPage() {
                       <p className="text-sm text-muted-foreground">{formatDate(event.startDateTime)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium">{event.ticketsSold} / {event.capacity}</p>
+                      <p className="text-sm font-medium">{Number(event.ticketsSold)} / {Number(event.capacity)}</p>
                       <p className="text-xs text-muted-foreground">guests</p>
                     </div>
                   </Link>
@@ -155,7 +165,7 @@ export default async function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {recentBookings.map((booking) => (
+                {recentBookings.map((booking: RecentBooking) => (
                   <div key={booking.id} className="flex items-center justify-between p-3 rounded-lg border">
                     <div>
                       <p className="font-medium">{booking.purchaserName}</p>

@@ -5,6 +5,15 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+type CalendarEventRecord = {
+  id: string;
+  title: string;
+  startDateTime: Date;
+  status: string;
+  city: string | null;
+  capacity: number;
+};
+
 export async function GET() {
   try {
     const session = await auth();
@@ -12,7 +21,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const events = await prisma.event.findMany({
+    const events: CalendarEventRecord[] = await prisma.event.findMany({
       where: { hostId: session.user.id },
       select: {
         id: true,
@@ -30,7 +39,7 @@ export async function GET() {
       events.map((event) => event.id)
     );
 
-    const formattedEvents = events.map((event) => ({
+    const formattedEvents = events.map((event: (typeof events)[number]) => ({
       id: event.id,
       title: event.title,
       startDateTime: event.startDateTime.toISOString(),

@@ -15,6 +15,8 @@ async function getOrders() {
           id: true,
           title: true,
           slug: true,
+          canvasImageUrl: true,
+          canvasName: true,
           startDateTime: true,
           locationName: true,
           host: {
@@ -30,6 +32,8 @@ async function getOrders() {
   });
 }
 
+type AdminOrder = Awaited<ReturnType<typeof getOrders>>[number];
+
 const statusColors = {
   PENDING: "secondary",
   RESERVED: "secondary",
@@ -44,8 +48,8 @@ export default async function AdminOrdersPage() {
   const orders = await getOrders();
 
   const paidTickets = orders
-    .filter((order) => order.status === "PAID")
-    .reduce((sum, order) => sum + order.quantity, 0);
+    .filter((order: AdminOrder) => order.status === "PAID")
+    .reduce((sum: number, order: AdminOrder) => sum + order.quantity, 0);
 
   return (
     <div className="space-y-6">
@@ -79,12 +83,12 @@ export default async function AdminOrdersPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
+              <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Paid Orders</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {orders.filter((order) => order.status === "PAID").length}
+              {orders.filter((order: AdminOrder) => order.status === "PAID").length}
             </div>
           </CardContent>
         </Card>
@@ -112,7 +116,7 @@ export default async function AdminOrdersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map((order) => (
+                  {orders.map((order: AdminOrder) => (
                     <tr key={order.id} className="border-b last:border-0 hover:bg-muted/40">
                       <td className="px-4 py-3 align-top">
                         <div>
@@ -121,13 +125,27 @@ export default async function AdminOrdersPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3 align-top">
-                        <div>
-                          <Link href={`/e/${order.event.slug}`} className="font-medium text-primary hover:underline">
-                            {order.event.title}
-                          </Link>
-                          <p className="text-sm text-muted-foreground">
-                            {formatDate(order.event.startDateTime)} at {order.event.locationName}
-                          </p>
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
+                            {order.event.canvasImageUrl ? (
+                              <img
+                                src={order.event.canvasImageUrl}
+                                alt={order.event.canvasName || order.event.title}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : null}
+                          </div>
+                          <div>
+                            <Link href={`/e/${order.event.slug}`} className="font-medium text-primary hover:underline">
+                              {order.event.title}
+                            </Link>
+                            <p className="text-sm text-muted-foreground">
+                              {formatDate(order.event.startDateTime)} at {order.event.locationName}
+                            </p>
+                            {order.event.canvasName ? (
+                              <p className="text-sm text-muted-foreground">Canvas: {order.event.canvasName}</p>
+                            ) : null}
+                          </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 align-top">
@@ -143,7 +161,7 @@ export default async function AdminOrdersPage() {
                         {formatAmountForDisplay(order.amountPaidCents)}
                       </td>
                       <td className="px-4 py-3 align-top">
-                        <Badge variant={statusColors[order.status]}>{order.status.toLowerCase()}</Badge>
+                        <Badge variant={statusColors[order.status as keyof typeof statusColors]}>{order.status.toLowerCase()}</Badge>
                       </td>
                       <td className="px-4 py-3 align-top text-sm text-muted-foreground">
                         {formatDate(order.createdAt)}

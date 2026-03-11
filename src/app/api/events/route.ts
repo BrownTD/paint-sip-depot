@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import {
+  sendAdminEventCreatedEmail,
+  sendHostEventCreatedEmail,
+} from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { eventSchema } from "@/lib/validations";
-import { generateRandomSlug } from "@/lib/utils";
+import { generateRandomSlug, getAbsoluteUrl } from "@/lib/utils";
 import { resolveEventCodeForVisibility } from "@/lib/event-discovery";
 
 const FIXED_TICKET_PRICE_CENTS = 3500;
@@ -95,6 +99,35 @@ export async function POST(request: Request) {
         canvasName: parsed.data.canvasName || null,
         status: body.status || "DRAFT",
       },
+    });
+
+    const eventUrl = getAbsoluteUrl(`/e/${event.slug}`);
+
+    void Promise.allSettled([
+      session.user.email
+        ? sendHostEventCreatedEmail({
+            to: session.user.email,
+            recipientName: session.user.name,
+            eventTitle: event.title,
+            eventUrl,
+            startDateTime: event.startDateTime,
+            locationName: event.locationName,
+            visibility: event.visibility,
+          })
+        : Promise.resolve(),
+      sendAdminEventCreatedEmail({
+        recipientName: "Admin",
+        eventTitle: event.title,
+        eventUrl,
+        startDateTime: event.startDateTime,
+        locationName: event.locationName,
+        visibility: event.visibility,
+      }),
+    ]).then((results) => {
+      const rejected = results.filter((result) => result.status === "rejected");
+      if (rejected.length > 0) {
+        console.error("Event notification email failed:", rejected);
+      }
     });
 
     return NextResponse.json({ event }, { status: 201 });

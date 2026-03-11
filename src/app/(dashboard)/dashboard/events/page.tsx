@@ -16,6 +16,7 @@ type HostEventRecord = {
   id: string;
   title: string;
   slug: string;
+  createdAt: Date;
   startDateTime: Date;
   city: string | null;
   state: string | null;
@@ -33,7 +34,7 @@ type HostEventRecord = {
 async function getHostEvents(hostId: string) {
   const events: HostEventRecord[] = await prisma.event.findMany({
     where: { hostId },
-    orderBy: { startDateTime: "desc" },
+    orderBy: { createdAt: "desc" },
   });
 
   const eventsMissingQr = events.filter(
@@ -60,10 +61,23 @@ async function getHostEvents(hostId: string) {
     events.map((event) => event.id)
   );
 
-  return events.map((event) => ({
-    ...event,
-    ticketsSold: paidByEventId.get(event.id) ?? 0,
-  }));
+  const statusPriority = {
+    PUBLISHED: 0,
+    DRAFT: 1,
+    CANCELED: 2,
+    ENDED: 3,
+  } as const;
+
+  return events
+    .map((event) => ({
+      ...event,
+      ticketsSold: paidByEventId.get(event.id) ?? 0,
+    }))
+    .sort((a, b) => {
+      const statusDiff = statusPriority[a.status] - statusPriority[b.status];
+      if (statusDiff !== 0) return statusDiff;
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    });
 }
 
 type HostEvent = Awaited<ReturnType<typeof getHostEvents>>[number];

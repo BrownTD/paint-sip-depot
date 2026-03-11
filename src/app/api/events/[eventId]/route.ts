@@ -60,19 +60,6 @@ export async function PATCH(
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
 
-    const parsed = eventSchema.safeParse({
-      ...body,
-      startDateTime: new Date(body.startDateTime),
-      endDateTime: body.endDateTime ? new Date(body.endDateTime) : undefined,
-    });
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.errors[0].message },
-        { status: 400 }
-      );
-    }
-
     const allowedUpdates: Record<string, string[]> = {
       DRAFT: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "capacity", "salesCutoffHours", "canvasImageUrl", "canvasName", "visibility", "eventFormat"],
       PUBLISHED: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "capacity", "salesCutoffHours", "canvasImageUrl", "canvasName", "visibility", "eventFormat"],
@@ -81,6 +68,41 @@ export async function PATCH(
     };
 
     const allowed = allowedUpdates[existingEvent.status] || [];
+    const requestedKeys = Object.keys(body);
+
+    if (!(requestedKeys.length === 1 && requestedKeys[0] === "status")) {
+      const parsed = eventSchema.safeParse({
+        title: body.title ?? existingEvent.title,
+        description: body.description ?? existingEvent.description ?? undefined,
+        startDateTime: body.startDateTime
+          ? new Date(body.startDateTime)
+          : existingEvent.startDateTime,
+        endDateTime: body.endDateTime
+          ? new Date(body.endDateTime)
+          : existingEvent.endDateTime ?? undefined,
+        eventFormat: body.eventFormat ?? existingEvent.eventFormat,
+        visibility: body.visibility ?? existingEvent.visibility,
+        locationName: body.locationName ?? existingEvent.locationName,
+        address: body.address ?? existingEvent.address ?? "",
+        city: body.city ?? existingEvent.city ?? "",
+        state: body.state ?? existingEvent.state ?? "",
+        zip: body.zip ?? existingEvent.zip ?? "",
+        ticketPriceCents: FIXED_TICKET_PRICE_CENTS,
+        capacity: body.capacity ?? existingEvent.capacity,
+        salesCutoffHours: body.salesCutoffHours ?? existingEvent.salesCutoffHours,
+        refundPolicyText: FIXED_REFUND_POLICY,
+        canvasImageUrl: body.canvasImageUrl ?? existingEvent.canvasImageUrl ?? "",
+        canvasName: body.canvasName ?? existingEvent.canvasName ?? "",
+      });
+
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: parsed.error.errors[0].message },
+          { status: 400 }
+        );
+      }
+    }
+
     const updateData: Record<string, unknown> = {};
 
     for (const key of Object.keys(body)) {

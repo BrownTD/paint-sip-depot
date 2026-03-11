@@ -7,7 +7,7 @@ import { ArrowLeft, Images, Loader2, Upload, X } from "lucide-react";
 
 import type { CanvasGalleryItem, CanvasGallerySection } from "@/lib/canvas-gallery";
 import { CanvasGalleryDialog } from "@/components/events/canvas-gallery-dialog";
-import { formatDateInputValue, formatTimeInputValue } from "@/lib/utils";
+import { dateTimeInZoneToIso, formatDateInputValue, formatTimeInputValue } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -280,12 +280,8 @@ if (isTooSoon) {
   return;
 }
 
-      const startDateTime = new Date(`${formData.startDate}T${formData.startTime}`);
-      const endDateTime = new Date(`${formData.startDate}T${formData.endTime}`);
-
-      if (Number.isNaN(startDateTime.getTime()) || Number.isNaN(endDateTime.getTime())) {
-        throw new Error("Please enter a valid date and time.");
-      }
+      const startDateTimeIso = dateTimeInZoneToIso(formData.startDate, formData.startTime);
+      const endDateTimeIso = dateTimeInZoneToIso(formData.startDate, formData.endTime);
 
       // capacity rule
       const capacityInt = parseInt(formData.capacity, 10);
@@ -295,8 +291,8 @@ if (isTooSoon) {
 
       const payload: any = {
         ...formData,
-        startDateTime: startDateTime.toISOString(),
-        endDateTime: endDateTime.toISOString(),
+        startDateTime: startDateTimeIso,
+        endDateTime: endDateTimeIso,
         ticketPriceCents: FIXED_TICKET_PRICE_CENTS,
         capacity: capacityInt,
         salesCutoffHours: 168,

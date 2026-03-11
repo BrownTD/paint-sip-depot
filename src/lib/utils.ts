@@ -81,6 +81,74 @@ export function formatTimeInputValue(input: Date | string | number | null | unde
   return hour && minute ? `${hour}:${minute}` : "";
 }
 
+function getTimeZoneParts(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+
+  const getPart = (type: string) => parts.find((part) => part.type === type)?.value;
+
+  return {
+    year: Number(getPart("year")),
+    month: Number(getPart("month")),
+    day: Number(getPart("day")),
+    hour: Number(getPart("hour")),
+    minute: Number(getPart("minute")),
+  };
+}
+
+export function dateTimeInZoneToIso(
+  dateInput: string,
+  timeInput: string,
+  timeZone: string = EVENT_TIME_ZONE
+) {
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateInput);
+  const timeMatch = /^(\d{2}):(\d{2})$/.exec(timeInput);
+
+  if (!dateMatch || !timeMatch) {
+    throw new Error("Invalid date or time format.");
+  }
+
+  const [, yearText, monthText, dayText] = dateMatch;
+  const [, hourText, minuteText] = timeMatch;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+
+  const utcGuess = Date.UTC(year, month - 1, day, hour, minute);
+  const firstPass = new Date(utcGuess);
+  const firstParts = getTimeZoneParts(firstPass, timeZone);
+  const firstPassUtc = Date.UTC(
+    firstParts.year,
+    firstParts.month - 1,
+    firstParts.day,
+    firstParts.hour,
+    firstParts.minute
+  );
+  const adjusted = new Date(utcGuess - (firstPassUtc - utcGuess));
+  const adjustedParts = getTimeZoneParts(adjusted, timeZone);
+
+  if (
+    adjustedParts.year !== year ||
+    adjustedParts.month !== month ||
+    adjustedParts.day !== day ||
+    adjustedParts.hour !== hour ||
+    adjustedParts.minute !== minute
+  ) {
+    throw new Error("Selected time is invalid for America/New_York.");
+  }
+
+  return adjusted.toISOString();
+}
+
 export function generateSlug(input: string): string {
   return input
     .toLowerCase()

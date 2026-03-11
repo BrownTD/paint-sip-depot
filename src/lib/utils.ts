@@ -2,8 +2,19 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { randomBytes } from "crypto"
 
+export const EVENT_TIME_ZONE = "America/New_York";
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+function toValidDate(input: Date | string | number | null | undefined) {
+  if (!input) return null;
+
+  const d = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(d.getTime())) return null;
+
+  return d;
 }
 
 export function formatDate(
@@ -15,12 +26,10 @@ export function formatDate(
   },
   locale: string = "en-US"
 ): string {
-  if (!input) return "";
+  const d = toValidDate(input);
+  if (!d) return "";
 
-  const d = input instanceof Date ? input : new Date(input);
-  if (Number.isNaN(d.getTime())) return "";
-
-  return new Intl.DateTimeFormat(locale, options).format(d);
+  return new Intl.DateTimeFormat(locale, { ...options, timeZone: EVENT_TIME_ZONE }).format(d);
 }
 
 export function formatTime(
@@ -31,12 +40,45 @@ export function formatTime(
   },
   locale: string = "en-US"
 ): string {
-  if (!input) return "";
+  const d = toValidDate(input);
+  if (!d) return "";
 
-  const d = input instanceof Date ? input : new Date(input);
-  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat(locale, { ...options, timeZone: EVENT_TIME_ZONE }).format(d);
+}
 
-  return new Intl.DateTimeFormat(locale, options).format(d);
+export function formatDateInputValue(input: Date | string | number | null | undefined): string {
+  const d = toValidDate(input);
+  if (!d) return "";
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: EVENT_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return year && month && day ? `${year}-${month}-${day}` : "";
+}
+
+export function formatTimeInputValue(input: Date | string | number | null | undefined): string {
+  const d = toValidDate(input);
+  if (!d) return "";
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: EVENT_TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(d);
+
+  const hour = parts.find((part) => part.type === "hour")?.value;
+  const minute = parts.find((part) => part.type === "minute")?.value;
+
+  return hour && minute ? `${hour}:${minute}` : "";
 }
 
 export function generateSlug(input: string): string {

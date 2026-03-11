@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { getPaidTicketQuantity } from "@/lib/booking";
 import { getCanvasGallerySections } from "@/lib/canvas-gallery";
 import { prisma } from "@/lib/prisma";
+import { formatDateInputValue, formatTimeInputValue } from "@/lib/utils";
 import { AlertTriangle, ArrowLeft } from "lucide-react";
 import { EventActions } from "@/components/event-actions";
 import { EventEditForm } from "@/components/events/event-edit-form";
@@ -17,15 +18,11 @@ async function getEvent(eventId: string, hostId: string) {
 }
 
 function isoToDate(iso?: string | Date | null) {
-  if (!iso) return "";
-  const d = iso instanceof Date ? iso : new Date(iso);
-  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+  return formatDateInputValue(iso);
 }
 
 function isoToTime(iso?: string | Date | null) {
-  if (!iso) return "";
-  const d = iso instanceof Date ? iso : new Date(iso);
-  return d.toISOString().slice(11, 16); // HH:mm
+  return formatTimeInputValue(iso);
 }
 
 export default async function EventDetailPage({

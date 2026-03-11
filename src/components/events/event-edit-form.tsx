@@ -7,6 +7,7 @@ import { ArrowLeft, Images, Loader2, Upload, X } from "lucide-react";
 
 import type { CanvasGalleryItem, CanvasGallerySection } from "@/lib/canvas-gallery";
 import { CanvasGalleryDialog } from "@/components/events/canvas-gallery-dialog";
+import { formatDateInputValue, formatTimeInputValue } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,12 +60,10 @@ export type EventEditFormInitialData = {
 };
 
 function isoToDate(iso?: string | null) {
-  if (!iso) return "";
-  return new Date(iso).toISOString().slice(0, 10);
+  return formatDateInputValue(iso);
 }
 function isoToTime(iso?: string | null) {
-  if (!iso) return "";
-  return new Date(iso).toISOString().slice(11, 16);
+  return formatTimeInputValue(iso);
 }
 
 export function EventEditForm({
@@ -162,7 +161,7 @@ const clearFieldError = (field: string) =>
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() + 7);
-    return d.toISOString().slice(0, 10);
+    return formatDateInputValue(d);
   }, []);
 
   const minCapacity = useMemo(() => {

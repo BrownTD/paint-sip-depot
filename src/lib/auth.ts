@@ -38,7 +38,7 @@ const providers = [
         where: { email: parsed.data.email },
       });
 
-      if (!user || !user.passwordHash || !user.emailVerified) return null;
+      if (!user || !user.passwordHash) return null;
 
       const ok = await bcrypt.compare(parsed.data.password, user.passwordHash);
       if (!ok) return null;

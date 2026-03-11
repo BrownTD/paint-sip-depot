@@ -17,8 +17,6 @@ import Image from "next/image";
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [isResendingVerification, setIsResendingVerification] = useState(false);
-  const [showResendVerification, setShowResendVerification] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,27 +31,8 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        const verificationStatusResponse = await fetch("/api/auth/verification-status", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: formData.email }),
-        });
-
-        const verificationStatus = await verificationStatusResponse.json().catch(() => ({}));
-
-        if (verificationStatusResponse.ok && verificationStatus.needsVerification) {
-          setShowResendVerification(true);
-          toast({
-            title: "Verify your email first",
-            description: "This account exists, but the email address has not been verified yet.",
-            variant: "destructive",
-          });
-        } else {
-          setShowResendVerification(false);
-          toast({ title: "Error", description: "Invalid email or password", variant: "destructive" });
-        }
+        toast({ title: "Error", description: "Invalid email or password", variant: "destructive" });
       } else {
-        setShowResendVerification(false);
         const session = await getSession();
         router.push(session?.user?.role === "ADMIN" ? "/admin/orders" : "/dashboard");
         router.refresh();
@@ -62,37 +41,6 @@ export default function LoginPage() {
       toast({ title: "Error", description: "Something went wrong. Please try again.", variant: "destructive" });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleResendVerification = async () => {
-    if (!formData.email) {
-      toast({ title: "Email required", description: "Enter your email first.", variant: "destructive" });
-      return;
-    }
-
-    setIsResendingVerification(true);
-    try {
-      const res = await fetch("/api/auth/resend-verification", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: formData.email }),
-      });
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to send verification email");
-      }
-
-      toast({ title: "Verification email sent", description: "Check your inbox for the verification link." });
-    } catch (error) {
-      toast({
-        title: "Could not resend email",
-        description: error instanceof Error ? error.message : "Something went wrong",
-        variant: "destructive",
-      });
-    } finally {
-      setIsResendingVerification(false);
     }
   };
 
@@ -118,10 +66,10 @@ export default function LoginPage() {
         <Card>
           <CardHeader>
             <CardTitle>Sign In</CardTitle>
-            <CardDescription>Sign in with Google, Facebook, or verified email credentials</CardDescription>
+            <CardDescription>Sign in with Google, Facebook, or email credentials</CardDescription>
           </CardHeader>
           <CardContent>
-            <SocialAuthButtons disabled={isLoading || isResendingVerification} />
+            <SocialAuthButtons disabled={isLoading} />
 
             <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
               <div className="h-px flex-1 bg-border" />
@@ -137,10 +85,7 @@ export default function LoginPage() {
                   type="email"
                   placeholder="you@example.com"
                   value={formData.email}
-                  onChange={(e) => {
-                    setShowResendVerification(false);
-                    setFormData({ ...formData, email: e.target.value });
-                  }}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
                   disabled={isLoading}
                 />
@@ -160,24 +105,6 @@ export default function LoginPage() {
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Signing in...</> : "Sign In"}
               </Button>
-              {showResendVerification ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full"
-                  onClick={handleResendVerification}
-                  disabled={isLoading || isResendingVerification}
-                >
-                  {isResendingVerification ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending verification...
-                    </>
-                  ) : (
-                    "Resend verification email"
-                  )}
-                </Button>
-              ) : null}
             </form>
           </CardContent>
         </Card>

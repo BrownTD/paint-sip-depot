@@ -58,7 +58,7 @@ function centsToDollars(cents: number) {
 }
 
 function emailShell(title: string, eyebrow: string, bodyHtml: string) {
-  const logoUrl = getAbsoluteUrl("/psdLogo.png");
+  const logoUrl = getAbsoluteUrl("/logoSquare.svg");
 
   return `
     <div style="margin:0;padding:24px;background:#000000;font-family:Arial,sans-serif;color:#000000;">
@@ -77,31 +77,14 @@ function emailShell(title: string, eyebrow: string, bodyHtml: string) {
 }
 
 async function sendEmail({ to, subject, html, text }: SendEmailOptions) {
-  const apiKey = getResendApiKey();
-  if (!apiKey) {
-    console.warn("RESEND_API_KEY is missing; skipping email send.");
-    return;
-  }
-
-  const response = await fetch(RESEND_API_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: getFromEmail(),
-      to: Array.isArray(to) ? to : [to],
-      subject,
-      html,
-      text,
-    }),
+  console.info("Email delivery disabled.", {
+    to,
+    subject,
+    from: getFromEmail(),
+    hasHtml: Boolean(html),
+    hasText: Boolean(text),
+    apiConfigured: Boolean(getResendApiKey()),
   });
-
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => "");
-    throw new Error(`Resend email failed (${response.status}): ${errorBody}`);
-  }
 }
 
 export async function sendAdminEventCreatedEmail(input: EventCreatedEmailInput) {

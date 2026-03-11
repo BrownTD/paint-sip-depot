@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { put } from "@vercel/blob";
 import * as QRCode from "qrcode";
+import sharp from "sharp";
 import { getAbsoluteUrl } from "@/lib/utils";
 
 const BG_COLOR = "#ffffff";
@@ -96,7 +97,7 @@ export async function generateEventQrCode(eventId: string, eventSlug: string) {
   const quietZone = BORDER * moduleSize;
   const { markup, viewBox } = await loadLogoMarkup();
   const { artClip, finderClip } = buildQrClipPaths(modules, moduleSize, quietZone, qr);
-  const output = `<?xml version="1.0" encoding="UTF-8"?>
+  const svgOutput = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CANVAS_SIZE} ${CANVAS_SIZE}" width="${CANVAS_SIZE}" height="${CANVAS_SIZE}">
   <rect width="${CANVAS_SIZE}" height="${CANVAS_SIZE}" fill="${BG_COLOR}"/>
   <defs>
@@ -117,13 +118,16 @@ export async function generateEventQrCode(eventId: string, eventSlug: string) {
   </g>
 </svg>
 `;
+  const pngOutput = await sharp(Buffer.from(svgOutput, "utf8"))
+    .png()
+    .toBuffer();
 
   if (process.env.VERCEL && process.env.BLOB_READ_WRITE_TOKEN) {
-    const blob = await put(`qr-codes/${eventId}.svg`, output, {
+    const blob = await put(`qr-codes/${eventId}.png`, pngOutput, {
       token: process.env.BLOB_READ_WRITE_TOKEN,
       access: "public",
       addRandomSuffix: false,
-      contentType: "image/svg+xml",
+      contentType: "image/png",
     });
 
     return blob.url;
@@ -131,8 +135,8 @@ export async function generateEventQrCode(eventId: string, eventSlug: string) {
 
   await mkdir(QR_CODE_DIR, { recursive: true });
 
-  const fileName = `${eventId}.svg`;
-  await writeFile(path.join(QR_CODE_DIR, fileName), output, "utf8");
+  const fileName = `${eventId}.png`;
+  await writeFile(path.join(QR_CODE_DIR, fileName), pngOutput);
 
   return `/qr-codes/${fileName}`;
 }

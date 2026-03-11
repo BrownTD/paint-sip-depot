@@ -110,7 +110,7 @@ export async function PATCH(
       data: updateData,
     });
 
-    if (!event.qrCodeImageUrl) {
+    if (!event.qrCodeImageUrl || event.qrCodeImageUrl.endsWith(".svg")) {
       const qrCodeImageUrl = await generateEventQrCode(event.id, event.slug);
       const eventWithQr = await prisma.event.update({
         where: { id: event.id },

@@ -145,9 +145,12 @@ export default async function HomePage() {
             <Link href="/" className="font-display text-sm font-semibold">
               Paint &amp; Sip Depot
             </Link>
-            <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Paint &amp; Sip Depot. All rights reserved.
-            </p>
+            <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground md:items-end">
+              <Link href="/privacy-policy" className="hover:text-foreground transition-colors">
+                Privacy Policy
+              </Link>
+              <p>© {new Date().getFullYear()} Paint &amp; Sip Depot. All rights reserved.</p>
+            </div>
           </div>
         </div>
       </footer>

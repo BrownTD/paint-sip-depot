@@ -372,7 +372,12 @@ export default async function EventPage({
       {/* Footer */}
       <footer className="border-t mt-16 py-8">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} Paint & Sip Depot. All rights reserved.</p>
+          <div className="flex flex-col items-center gap-2">
+            <Link href="/privacy-policy" className="hover:text-foreground transition-colors">
+              Privacy Policy
+            </Link>
+            <p>© {new Date().getFullYear()} Paint & Sip Depot. All rights reserved.</p>
+          </div>
         </div>
       </footer>
     </div>

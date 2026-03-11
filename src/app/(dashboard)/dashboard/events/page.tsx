@@ -1,19 +1,12 @@
 import { auth } from "@/lib/auth";
 import { getPaidTicketQuantitiesForEvents } from "@/lib/booking";
+import { EventQrDownloadButton } from "@/components/dashboard/event-qr-download-button";
 import { generateEventQrCode } from "@/lib/event-qr";
 import { prisma } from "@/lib/prisma";
 import { formatAmountForDisplay } from "@/lib/money";
 import { formatDate, formatTime } from "@/lib/utils";
 import Link from "next/link";
-import {
-  Plus,
-  Calendar,
-  MapPin,
-  Users,
-  ExternalLink,
-  Image as ImageIcon,
-  Download,
-} from "lucide-react";
+import { Plus, Calendar, MapPin, Users, ExternalLink, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,7 +36,9 @@ async function getHostEvents(hostId: string) {
     orderBy: { startDateTime: "desc" },
   });
 
-  const eventsMissingQr = events.filter((event) => !event.qrCodeImageUrl);
+  const eventsMissingQr = events.filter(
+    (event) => !event.qrCodeImageUrl || event.qrCodeImageUrl.endsWith(".svg")
+  );
 
   if (eventsMissingQr.length > 0) {
     await Promise.all(
@@ -214,12 +209,10 @@ export default async function EventsPage() {
                     )}
 
                     {event.qrCodeImageUrl ? (
-                      <Button variant="ghost" size="sm" asChild>
-                        <a href={event.qrCodeImageUrl} download={`${event.slug}-qr.svg`}>
-                          <Download className="w-4 h-4 mr-1" />
-                          Download QR
-                        </a>
-                      </Button>
+                      <EventQrDownloadButton
+                        fileName={`${event.slug}-qr.png`}
+                        qrCodeImageUrl={event.qrCodeImageUrl}
+                      />
                     ) : null}
                   </div>
                 </div>

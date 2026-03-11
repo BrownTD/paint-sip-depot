@@ -43,7 +43,7 @@ function getResendApiKey() {
 }
 
 function getFromEmail() {
-  return process.env.ORDER_ALERT_FROM_EMAIL || DEFAULT_FROM_EMAIL;
+  return DEFAULT_FROM_EMAIL;
 }
 
 function getAdminEmail() {
@@ -58,15 +58,15 @@ function centsToDollars(cents: number) {
 }
 
 function emailShell(title: string, eyebrow: string, bodyHtml: string) {
-  const logoUrl = getAbsoluteUrl("/psdLogo.png");
+  const logoUrl = getAbsoluteUrl("/logo.svg");
 
   return `
-    <div style="margin:0;padding:24px;background:#f5f2ea;font-family:Arial,sans-serif;color:#1f2937;">
-      <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid #eadfd0;">
-        <div style="padding:28px 32px;background:linear-gradient(135deg,#f4e1c1 0%,#f7efe1 100%);border-bottom:1px solid #eadfd0;">
+    <div style="margin:0;padding:24px;background:#000000;font-family:Arial,sans-serif;color:#000000;">
+      <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid #1f1f1f;">
+        <div style="padding:28px 32px;background:#000000;border-bottom:4px solid #feaa08;">
           <img src="${logoUrl}" alt="Paint & Sip Depot" style="height:56px;width:auto;display:block;margin-bottom:16px;" />
-          <div style="font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#8b5e34;font-weight:700;">${eyebrow}</div>
-          <h1 style="margin:8px 0 0;font-size:28px;line-height:1.15;color:#1f2937;">${title}</h1>
+          <div style="font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#feaa08;font-weight:700;">${eyebrow}</div>
+          <h1 style="margin:8px 0 0;font-size:28px;line-height:1.15;color:#ffffff;">${title}</h1>
         </div>
         <div style="padding:32px;">
           ${bodyHtml}
@@ -111,13 +111,13 @@ export async function sendAdminEventCreatedEmail(input: EventCreatedEmailInput) 
     "Admin Alert",
     `
       <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">A new event has been created on Paint &amp; Sip Depot.</p>
-      <div style="padding:20px;border:1px solid #eadfd0;border-radius:18px;background:#fcfaf6;">
+      <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
         <p style="margin:0 0 10px;"><strong>Event:</strong> ${input.eventTitle}</p>
         <p style="margin:0 0 10px;"><strong>Date:</strong> ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}</p>
         <p style="margin:0 0 10px;"><strong>Location:</strong> ${input.locationName}</p>
         <p style="margin:0;"><strong>Visibility:</strong> ${input.visibility}</p>
       </div>
-      <p style="margin:20px 0 0;"><a href="${input.eventUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#c9742c;color:#ffffff;text-decoration:none;font-weight:700;">View Event</a></p>
+      <p style="margin:20px 0 0;"><a href="${input.eventUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">View Event</a></p>
     `
   );
 
@@ -140,12 +140,12 @@ export async function sendHostEventCreatedEmail(input: EventCreatedEmailInput & 
     `
       <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${greeting}</p>
       <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Your event <strong>${input.eventTitle}</strong> has been created successfully.</p>
-      <div style="padding:20px;border:1px solid #eadfd0;border-radius:18px;background:#fcfaf6;">
+      <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
         <p style="margin:0 0 10px;"><strong>Date:</strong> ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}</p>
         <p style="margin:0 0 10px;"><strong>Location:</strong> ${input.locationName}</p>
         <p style="margin:0;"><strong>Visibility:</strong> ${input.visibility}</p>
       </div>
-      <p style="margin:20px 0 0;"><a href="${input.eventUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#c9742c;color:#ffffff;text-decoration:none;font-weight:700;">View Event Page</a></p>
+      <p style="margin:20px 0 0;"><a href="${input.eventUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">View Event Page</a></p>
     `
   );
 
@@ -166,14 +166,14 @@ export async function sendAdminOrderCreatedEmail(input: OrderNotificationInput) 
     "Admin Alert",
     `
       <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">A new paid booking has been completed.</p>
-      <div style="padding:20px;border:1px solid #eadfd0;border-radius:18px;background:#fcfaf6;">
+      <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
         <p style="margin:0 0 10px;"><strong>Event:</strong> ${input.eventTitle}</p>
         <p style="margin:0 0 10px;"><strong>Customer:</strong> ${input.purchaserName} (${input.purchaserEmail})</p>
         <p style="margin:0 0 10px;"><strong>Tickets:</strong> ${input.quantity}</p>
         <p style="margin:0 0 10px;"><strong>Total:</strong> ${centsToDollars(input.amountPaidCents)}</p>
         <p style="margin:0;"><strong>Event date:</strong> ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}</p>
       </div>
-      <p style="margin:20px 0 0;"><a href="${input.eventUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#c9742c;color:#ffffff;text-decoration:none;font-weight:700;">View Event</a></p>
+      <p style="margin:20px 0 0;"><a href="${input.eventUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">View Event</a></p>
     `
   );
 
@@ -196,13 +196,13 @@ export async function sendHostOrderCreatedEmail(input: OrderNotificationInput & 
     `
       <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${greeting}</p>
       <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">You have a new paid booking for <strong>${input.eventTitle}</strong>.</p>
-      <div style="padding:20px;border:1px solid #eadfd0;border-radius:18px;background:#fcfaf6;">
+      <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
         <p style="margin:0 0 10px;"><strong>Customer:</strong> ${input.purchaserName} (${input.purchaserEmail})</p>
         <p style="margin:0 0 10px;"><strong>Tickets:</strong> ${input.quantity}</p>
         <p style="margin:0 0 10px;"><strong>Total:</strong> ${centsToDollars(input.amountPaidCents)}</p>
         <p style="margin:0;"><strong>Event date:</strong> ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}</p>
       </div>
-      <p style="margin:20px 0 0;"><a href="${input.eventUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#c9742c;color:#ffffff;text-decoration:none;font-weight:700;">View Event Page</a></p>
+      <p style="margin:20px 0 0;"><a href="${input.eventUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">View Event Page</a></p>
     `
   );
 
@@ -226,9 +226,9 @@ export async function sendVerificationEmail(input: VerificationEmailInput) {
       <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${greeting}</p>
       <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Please verify your email address to activate your Paint &amp; Sip Depot host account.</p>
       <p style="margin:20px 0;">
-        <a href="${input.verificationUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#c9742c;color:#ffffff;text-decoration:none;font-weight:700;">Verify Email</a>
+        <a href="${input.verificationUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">Verify Email</a>
       </p>
-      <p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#6b7280;">If you did not create this account, you can ignore this email.</p>
+      <p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#525252;">If you did not create this account, you can ignore this email.</p>
     `
   );
   const text = `${greeting}\nPlease verify your Paint & Sip Depot account:\n${input.verificationUrl}`;

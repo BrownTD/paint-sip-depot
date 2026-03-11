@@ -10,7 +10,7 @@ import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
 
 export default function SignUpPage() {
@@ -83,7 +83,6 @@ export default function SignUpPage() {
         <Card>
           <CardHeader className="space-y-1 px-6 pb-4 pt-6">
             <CardTitle>Sign Up</CardTitle>
-            <CardDescription>Create a host account with Google, Facebook, or verified email</CardDescription>
           </CardHeader>
 
           <CardContent className="px-6 pb-6">

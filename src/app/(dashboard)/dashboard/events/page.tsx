@@ -1,10 +1,19 @@
 import { auth } from "@/lib/auth";
 import { getPaidTicketQuantitiesForEvents } from "@/lib/booking";
+import { generateEventQrCode } from "@/lib/event-qr";
 import { prisma } from "@/lib/prisma";
 import { formatAmountForDisplay } from "@/lib/money";
 import { formatDate, formatTime } from "@/lib/utils";
 import Link from "next/link";
-import { Plus, Calendar, MapPin, Users, ExternalLink, Image as ImageIcon } from "lucide-react";
+import {
+  Plus,
+  Calendar,
+  MapPin,
+  Users,
+  ExternalLink,
+  Image as ImageIcon,
+  Download,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +33,7 @@ type HostEventRecord = {
   ticketPriceCents: number;
   canvasImageUrl: string | null;
   canvasName: string | null;
+  qrCodeImageUrl: string | null;
   eventCode: string | null;
 };
 
@@ -32,6 +42,23 @@ async function getHostEvents(hostId: string) {
     where: { hostId },
     orderBy: { startDateTime: "desc" },
   });
+
+  const eventsMissingQr = events.filter((event) => !event.qrCodeImageUrl);
+
+  if (eventsMissingQr.length > 0) {
+    await Promise.all(
+      eventsMissingQr.map(async (event) => {
+        const qrCodeImageUrl = await generateEventQrCode(event.id, event.slug);
+
+        await prisma.event.update({
+          where: { id: event.id },
+          data: { qrCodeImageUrl },
+        });
+
+        event.qrCodeImageUrl = qrCodeImageUrl;
+      })
+    );
+  }
 
   const paidByEventId = await getPaidTicketQuantitiesForEvents(
     prisma,
@@ -185,6 +212,15 @@ export default async function EventsPage() {
                         </Button>
                       </Link>
                     )}
+
+                    {event.qrCodeImageUrl ? (
+                      <Button variant="ghost" size="sm" asChild>
+                        <a href={event.qrCodeImageUrl} download={`${event.slug}-qr.svg`}>
+                          <Download className="w-4 h-4 mr-1" />
+                          Download QR
+                        </a>
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               </div>

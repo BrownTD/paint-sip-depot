@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { generateEventQrCode } from "@/lib/event-qr";
 import { prisma } from "@/lib/prisma";
 import { eventSchema } from "@/lib/validations";
 import { resolveEventCodeForVisibility } from "@/lib/event-discovery";
@@ -108,6 +109,16 @@ export async function PATCH(
       where: { id: eventId },
       data: updateData,
     });
+
+    if (!event.qrCodeImageUrl) {
+      const qrCodeImageUrl = await generateEventQrCode(event.id, event.slug);
+      const eventWithQr = await prisma.event.update({
+        where: { id: event.id },
+        data: { qrCodeImageUrl },
+      });
+
+      return NextResponse.json({ event: eventWithQr });
+    }
 
     return NextResponse.json({ event });
   } catch (error) {

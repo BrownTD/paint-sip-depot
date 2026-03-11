@@ -4,6 +4,7 @@ import {
   sendAdminEventCreatedEmail,
   sendHostEventCreatedEmail,
 } from "@/lib/email";
+import { generateEventQrCode } from "@/lib/event-qr";
 import { prisma } from "@/lib/prisma";
 import { eventSchema } from "@/lib/validations";
 import { generateRandomSlug, getAbsoluteUrl } from "@/lib/utils";
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
 
     const eventCode = await resolveEventCodeForVisibility(parsed.data.visibility);
 
-    const event = await prisma.event.create({
+    const createdEvent = await prisma.event.create({
       data: {
         hostId: session.user.id,
         title: parsed.data.title,
@@ -99,6 +100,13 @@ export async function POST(request: Request) {
         canvasName: parsed.data.canvasName || null,
         status: body.status || "DRAFT",
       },
+    });
+
+    const qrCodeImageUrl = await generateEventQrCode(createdEvent.id, createdEvent.slug);
+
+    const event = await prisma.event.update({
+      where: { id: createdEvent.id },
+      data: { qrCodeImageUrl },
     });
 
     const eventUrl = getAbsoluteUrl(`/e/${event.slug}`);

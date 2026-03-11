@@ -18,6 +18,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [showResendVerification, setShowResendVerification] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,8 +33,27 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        toast({ title: "Error", description: "Invalid email or password", variant: "destructive" });
+        const verificationStatusResponse = await fetch("/api/auth/verification-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: formData.email }),
+        });
+
+        const verificationStatus = await verificationStatusResponse.json().catch(() => ({}));
+
+        if (verificationStatusResponse.ok && verificationStatus.needsVerification) {
+          setShowResendVerification(true);
+          toast({
+            title: "Verify your email first",
+            description: "This account exists, but the email address has not been verified yet.",
+            variant: "destructive",
+          });
+        } else {
+          setShowResendVerification(false);
+          toast({ title: "Error", description: "Invalid email or password", variant: "destructive" });
+        }
       } else {
+        setShowResendVerification(false);
         const session = await getSession();
         router.push(session?.user?.role === "ADMIN" ? "/admin/orders" : "/dashboard");
         router.refresh();
@@ -117,7 +137,10 @@ export default function LoginPage() {
                   type="email"
                   placeholder="you@example.com"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) => {
+                    setShowResendVerification(false);
+                    setFormData({ ...formData, email: e.target.value });
+                  }}
                   required
                   disabled={isLoading}
                 />
@@ -137,22 +160,24 @@ export default function LoginPage() {
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Signing in...</> : "Sign In"}
               </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full"
-                onClick={handleResendVerification}
-                disabled={isLoading || isResendingVerification}
-              >
-                {isResendingVerification ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending verification...
-                  </>
-                ) : (
-                  "Resend verification email"
-                )}
-              </Button>
+              {showResendVerification ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={handleResendVerification}
+                  disabled={isLoading || isResendingVerification}
+                >
+                  {isResendingVerification ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending verification...
+                    </>
+                  ) : (
+                    "Resend verification email"
+                  )}
+                </Button>
+              ) : null}
             </form>
           </CardContent>
         </Card>

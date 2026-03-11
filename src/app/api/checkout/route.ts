@@ -8,8 +8,8 @@ import {
   getRemainingTickets,
   getReservationExpiry,
 } from "@/lib/booking";
+import { getCheckoutTotalCents } from "@/lib/checkout-pricing";
 import { bookingSchema } from "@/lib/validations";
-import { getAbsoluteUrl } from "@/lib/utils";
 
 class CheckoutError extends Error {
   status: number;
@@ -24,9 +24,24 @@ const BOOKING_STATUS = {
   reserved: "RESERVED",
 } as const;
 
-function getCheckoutImageUrl(imageUrl: string | null) {
+function getRequestOrigin(request: Request) {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
+
+  if (forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+
+  return new URL(request.url).origin;
+}
+
+function getAbsoluteRequestUrl(request: Request, path: string) {
+  return new URL(path, getRequestOrigin(request)).toString();
+}
+
+function getCheckoutImageUrl(request: Request, imageUrl: string | null) {
   if (!imageUrl) return null;
-  if (imageUrl.startsWith("/")) return getAbsoluteUrl(imageUrl);
+  if (imageUrl.startsWith("/")) return getAbsoluteRequestUrl(request, imageUrl);
   return imageUrl;
 }
 
@@ -65,6 +80,7 @@ async function reserveBookingForCheckout({
       }
 
       const availability = await getRemainingTickets(tx, event.id, event.capacity, now);
+      const pricing = getCheckoutTotalCents(event.ticketPriceCents, quantity);
 
       if (quantity > availability.remaining) {
         throw new CheckoutError(
@@ -79,7 +95,7 @@ async function reserveBookingForCheckout({
           purchaserName,
           purchaserEmail,
           quantity,
-          amountPaidCents: event.ticketPriceCents * quantity,
+          amountPaidCents: pricing.totalCents,
           status: BOOKING_STATUS.reserved,
           reservationExpiresAt,
         },
@@ -142,8 +158,11 @@ export async function POST(request: Request) {
     try {
       const cancelUrl =
         event.visibility === "PRIVATE" && event.eventCode
-          ? getAbsoluteUrl(`/e/${event.slug}?canceled=true&code=${encodeURIComponent(event.eventCode)}`)
-          : getAbsoluteUrl(`/e/${event.slug}?canceled=true`);
+          ? getAbsoluteRequestUrl(
+              request,
+              `/e/${event.slug}?canceled=true&code=${encodeURIComponent(event.eventCode)}`
+            )
+          : getAbsoluteRequestUrl(request, `/e/${event.slug}?canceled=true`);
 
       const checkoutSession = await stripe.checkout.sessions.create({
         mode: "payment",
@@ -156,18 +175,32 @@ export async function POST(request: Request) {
               product_data: {
                 name: event.title,
                 description: `${quantity} ticket${quantity > 1 ? "s" : ""} for ${event.title}`,
-                images: getCheckoutImageUrl(event.canvasImageUrl)
-                  ? [getCheckoutImageUrl(event.canvasImageUrl)!]
+                images: getCheckoutImageUrl(request, event.canvasImageUrl)
+                  ? [getCheckoutImageUrl(request, event.canvasImageUrl)!]
                   : [],
               },
               unit_amount: event.ticketPriceCents,
             },
             quantity,
           },
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: "Processing Fee",
+                description: "Stripe payment processing fee",
+              },
+              unit_amount: getCheckoutTotalCents(event.ticketPriceCents, quantity).processingFeeCents,
+            },
+            quantity: 1,
+          },
         ],
         customer_email: purchaserEmail,
         metadata: { bookingId: booking.id, eventId: event.id, purchaserName },
-        success_url: getAbsoluteUrl(`/booking/success?session_id={CHECKOUT_SESSION_ID}`),
+        success_url: getAbsoluteRequestUrl(
+          request,
+          `/booking/success?session_id={CHECKOUT_SESSION_ID}`
+        ),
         cancel_url: cancelUrl,
       });
 

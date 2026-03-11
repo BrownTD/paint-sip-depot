@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Loader2, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getCheckoutTotalCents } from "@/lib/checkout-pricing";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -23,7 +24,7 @@ export function BookingForm({ eventId, maxQuantity, ticketPrice }: BookingFormPr
     email: "",
   });
 
-  const total = ticketPrice * quantity;
+  const pricing = getCheckoutTotalCents(ticketPrice, quantity);
 
   const handleQuantityChange = (delta: number) => {
     setQuantity((prev) => Math.max(1, Math.min(maxQuantity, prev + delta)));
@@ -139,9 +140,19 @@ export function BookingForm({ eventId, maxQuantity, ticketPrice }: BookingFormPr
       <Separator />
 
       {/* Total */}
-      <div className="flex items-center justify-between py-2">
-        <span className="font-medium">Total</span>
-        <span className="text-xl font-bold">{formatAmountForDisplay(total)}</span>
+      <div className="space-y-3 py-2">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Tickets</span>
+          <span>{formatAmountForDisplay(pricing.subtotalCents)}</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Processing Fee</span>
+          <span>{formatAmountForDisplay(pricing.processingFeeCents)}</span>
+        </div>
+        <div className="flex items-center justify-between border-t pt-3">
+          <span className="font-medium">Total</span>
+          <span className="text-xl font-bold">{formatAmountForDisplay(pricing.totalCents)}</span>
+        </div>
       </div>
 
       {/* Submit */}

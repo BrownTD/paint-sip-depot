@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { getCheckoutTotalCents } from "@/lib/checkout-pricing";
 import { stripe } from "@/lib/stripe";
 import { formatAmountForDisplay } from "@/lib/money";
 import { formatDate, formatTime } from "@/lib/utils";
@@ -55,6 +56,7 @@ export default async function BookingSuccessPage({
   }
 
   const event = booking.event;
+  const pricing = getCheckoutTotalCents(event.ticketPriceCents, booking.quantity);
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -128,11 +130,21 @@ export default async function BookingSuccessPage({
             <Separator />
 
             {/* Payment */}
-            <div className="flex items-center justify-between">
-              <span className="font-medium">Total Paid</span>
-              <span className="text-xl font-bold">
-                {formatAmountForDisplay(booking.amountPaidCents)}
-              </span>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Tickets</span>
+                <span>{formatAmountForDisplay(pricing.subtotalCents)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Processing Fee</span>
+                <span>{formatAmountForDisplay(pricing.processingFeeCents)}</span>
+              </div>
+              <div className="flex items-center justify-between border-t pt-3">
+                <span className="font-medium">Total Paid</span>
+                <span className="text-xl font-bold">
+                  {formatAmountForDisplay(booking.amountPaidCents)}
+                </span>
+              </div>
             </div>
 
             {/* Location Details */}

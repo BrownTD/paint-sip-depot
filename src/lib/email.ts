@@ -76,15 +76,51 @@ function emailShell(title: string, eyebrow: string, bodyHtml: string) {
   `;
 }
 
-async function sendEmail({ to, subject, html, text }: SendEmailOptions) {
+async function sendEmail(
+  { to, subject, html, text }: SendEmailOptions,
+  options?: { enabled?: boolean }
+) {
+  if (options?.enabled === false) {
+    console.info("Email delivery disabled.", {
+      to,
+      subject,
+      from: getFromEmail(),
+    });
+    return;
+  }
+
   console.info("Email delivery disabled.", {
+    disabled: false,
     to,
     subject,
     from: getFromEmail(),
-    hasHtml: Boolean(html),
-    hasText: Boolean(text),
-    apiConfigured: Boolean(getResendApiKey()),
   });
+
+  const apiKey = getResendApiKey();
+  if (!apiKey) {
+    console.warn("RESEND_API_KEY is missing; skipping email send.");
+    return;
+  }
+
+  const response = await fetch(RESEND_API_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: getFromEmail(),
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      html,
+      text,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => "");
+    throw new Error(`Resend email failed (${response.status}): ${errorBody}`);
+  }
 }
 
 export async function sendAdminEventCreatedEmail(input: EventCreatedEmailInput) {
@@ -139,7 +175,7 @@ export async function sendHostEventCreatedEmail(input: EventCreatedEmailInput & 
     subject,
     html,
     text,
-  });
+  }, { enabled: false });
 }
 
 export async function sendAdminOrderCreatedEmail(input: OrderNotificationInput) {
@@ -196,7 +232,7 @@ export async function sendHostOrderCreatedEmail(input: OrderNotificationInput & 
     subject,
     html,
     text,
-  });
+  }, { enabled: false });
 }
 
 export async function sendVerificationEmail(input: VerificationEmailInput) {
@@ -221,5 +257,5 @@ export async function sendVerificationEmail(input: VerificationEmailInput) {
     subject,
     html,
     text,
-  });
+  }, { enabled: false });
 }

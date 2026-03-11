@@ -20,34 +20,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Stripe Connect fields
-  stripeAccountId        String?
-  stripeDetailsSubmitted Boolean                @default(false)
-  stripeChargesEnabled   Boolean                @default(false)
-  stripePayoutsEnabled   Boolean                @default(false)
-  stripeOnboardingStatus StripeOnboardingStatus @default(NOT_STARTED)
-  stripeRequirements     Json?
-  stripeDisabledReason   String?
-  stripeLastSyncedAt     DateTime?
-
-  // Org host / payout gating
-  hostTypeRequested HostTypeRequested @default(INDIVIDUAL)
-  orgApprovalStatus OrgApprovalStatus @default(NONE)
-  payoutMode        PayoutMode        @default(PLATFORM)
-
-  // Optional org metadata (used when requesting org payouts)
-  orgName     String?
-  orgWebsite  String?
-  orgCity     String?
-  orgState    String?
-  orgProofUrl String?
-
   // Relations
   accounts Account[]
   events   Event[]
   sessions Session[]
-
-  @@index([stripeAccountId])
   @@map("users")
 }
 
@@ -102,15 +78,18 @@ model Event {
   title       String
   description String?
   slug        String  @unique
+  eventCode   String? @unique
 
   startDateTime DateTime
   endDateTime   DateTime?
 
   locationName String
-  address      String
-  city         String
-  state        String
-  zip          String
+  address      String?
+  city         String?
+  state        String?
+  zip          String?
+  visibility   EventVisibility @default(PUBLIC)
+  eventFormat  EventFormat     @default(IN_PERSON)
 
   ticketPriceCents Int
   capacity         Int
@@ -132,6 +111,7 @@ model Event {
   @@index([hostId])
   @@index([status])
   @@index([startDateTime])
+  @@index([visibility, status, startDateTime])
   @@map("events")
 }
 
@@ -141,6 +121,7 @@ model Booking {
   eventId                 String
   stripeCheckoutSessionId String? @unique
   stripePaymentIntentId   String?
+  reservationExpiresAt    DateTime?
 
   purchaserName   String
   purchaserEmail  String
@@ -155,6 +136,7 @@ model Booking {
 
   @@index([eventId])
   @@index([purchaserEmail])
+  @@index([eventId, status, reservationExpiresAt])
   @@map("bookings")
 }
 
@@ -186,32 +168,19 @@ enum EventStatus {
 
 enum BookingStatus {
   PENDING
+  RESERVED
   PAID
   REFUNDED
+  EXPIRED
   CANCELED
 }
 
-enum StripeOnboardingStatus {
-  NOT_STARTED
-  IN_PROGRESS
-  COMPLETE
-  RESTRICTED
+enum EventVisibility {
+  PUBLIC
+  PRIVATE
 }
 
-// Host payout gating enums (NEW)
-enum HostTypeRequested {
-  INDIVIDUAL
-  ORG
-}
-
-enum OrgApprovalStatus {
-  NONE
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-enum PayoutMode {
-  PLATFORM
-  HOST
+enum EventFormat {
+  IN_PERSON
+  VIRTUAL
 }

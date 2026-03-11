@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { formatAmountForDisplay } from "@/lib/money";
 import { formatDate } from "@/lib/utils";
 import Link from "next/link";
-import { Ticket, Search } from "lucide-react";
+import { Ticket } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -25,8 +25,10 @@ async function getHostBookings(hostId: string) {
 
 const statusColors = {
   PENDING: "secondary",
+  RESERVED: "secondary",
   PAID: "success",
   REFUNDED: "warning",
+  EXPIRED: "outline",
   CANCELED: "destructive",
 } as const;
 
@@ -35,10 +37,6 @@ export default async function BookingsPage() {
   if (!session?.user?.id) return null;
 
   const bookings = await getHostBookings(session.user.id);
-
-  const totalRevenue = bookings
-    .filter((b) => b.status === "PAID")
-    .reduce((sum, b) => sum + b.amountPaidCents, 0);
 
   const totalTickets = bookings
     .filter((b) => b.status === "PAID")
@@ -52,19 +50,10 @@ export default async function BookingsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-1">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatAmountForDisplay(totalRevenue)}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Tickets Sold</CardTitle>
+            <CardTitle className="text-sm font-medium">Tickets Purchased</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalTickets}</div>
@@ -77,13 +66,10 @@ export default async function BookingsPage() {
         <Card>
           <CardContent className="py-16 text-center">
             <Ticket className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-xl font-semibold mb-2">No sales yet</h2>
+            <h2 className="text-xl font-semibold mb-2">No Purchases Yet</h2>
             <p className="text-muted-foreground mb-6">
               Tickets will appear here once guests checkout
             </p>
-            <Link href="/dashboard/events/new">
-              <span className="text-primary hover:underline">Create an event</span>
-            </Link>
           </CardContent>
         </Card>
       ) : (

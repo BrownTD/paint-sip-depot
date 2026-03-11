@@ -4,6 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import Stripe from "stripe";
 
+const BOOKING_STATUS = {
+  pending: "PENDING",
+  reserved: "RESERVED",
+  paid: "PAID",
+  expired: "EXPIRED",
+  refunded: "REFUNDED",
+} as const;
+
 export async function POST(request: Request) {
   const body = await request.text();
   const headersList = await headers();
@@ -31,11 +39,12 @@ export async function POST(request: Request) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.payment_status === "paid") {
-          await prisma.booking.update({
+          await prisma.booking.updateMany({
             where: { stripeCheckoutSessionId: session.id },
             data: {
-              status: "PAID",
+              status: BOOKING_STATUS.paid,
               stripePaymentIntentId: session.payment_intent as string,
+              reservationExpiresAt: null,
             },
           });
           console.log(`Booking confirmed for session: ${session.id}`);
@@ -46,10 +55,13 @@ export async function POST(request: Request) {
       case "checkout.session.expired": {
         const session = event.data.object as Stripe.Checkout.Session;
         await prisma.booking.updateMany({
-          where: { stripeCheckoutSessionId: session.id, status: "PENDING" },
-          data: { status: "CANCELED" },
+          where: {
+            stripeCheckoutSessionId: session.id,
+            status: { in: [BOOKING_STATUS.pending, BOOKING_STATUS.reserved] },
+          },
+          data: { status: BOOKING_STATUS.expired },
         });
-        console.log(`Booking canceled (session expired): ${session.id}`);
+        console.log(`Booking expired (session expired): ${session.id}`);
         break;
       }
 
@@ -57,8 +69,8 @@ export async function POST(request: Request) {
         const charge = event.data.object as Stripe.Charge;
         const paymentIntentId = charge.payment_intent as string;
         await prisma.booking.updateMany({
-          where: { stripePaymentIntentId: paymentIntentId, status: "PAID" },
-          data: { status: "REFUNDED" },
+          where: { stripePaymentIntentId: paymentIntentId, status: BOOKING_STATUS.paid },
+          data: { status: BOOKING_STATUS.refunded },
         });
         console.log(`Booking refunded for payment intent: ${paymentIntentId}`);
         break;

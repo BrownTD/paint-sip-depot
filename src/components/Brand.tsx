@@ -18,7 +18,7 @@ export function Brand({
   return (
     <Link href={href} className={cn("flex items-center gap-2", className)}>
       <Image
-        src="/logo.svg"   // <-- your actual file in /public
+        src="/logo.svg"
         alt="Paint & Sip Depot"
         width={dims}
         height={dims}

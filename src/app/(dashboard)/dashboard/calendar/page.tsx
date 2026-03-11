@@ -137,7 +137,7 @@ export default function CalendarPage() {
                     {dayEvents.map((event) => (
                       <Link
                         key={event.id}
-                        href={`/dashboard/events/${event.id}`}
+                        href="/dashboard/events"
                         className={`block rounded px-1 py-0.5 text-[10px] leading-tight border ${
                           statusColors[event.status] || "bg-muted"
                         }`}

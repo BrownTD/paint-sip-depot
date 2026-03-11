@@ -1,0 +1,2 @@
+ALTER TABLE "events"
+ALTER COLUMN "eventCode" DROP NOT NULL;

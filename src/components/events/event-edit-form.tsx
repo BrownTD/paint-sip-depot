@@ -44,6 +44,8 @@ export type EventEditFormInitialData = {
   startDate: string; // YYYY-MM-DD
   startTime: string; // HH:mm
   endTime: string;   // HH:mm
+  visibility: "PUBLIC" | "PRIVATE";
+  eventFormat: "IN_PERSON" | "VIRTUAL";
   locationName: string;
   address: string;
   city: string;
@@ -101,6 +103,8 @@ export function EventEditForm({
     startDate: initialData?.startDate ?? "",
     startTime: initialData?.startTime ?? "",
     endTime: initialData?.endTime ?? "",
+    visibility: initialData?.visibility ?? "PRIVATE",
+    eventFormat: initialData?.eventFormat ?? "IN_PERSON",
     locationName: initialData?.locationName ?? "",
     address: initialData?.address ?? "",
     city: initialData?.city ?? "",
@@ -269,6 +273,10 @@ if (isTooSoon) {
         endDateTime: endDateTime.toISOString(),
         capacity: capacityInt,
         salesCutoffHours: parseInt(formData.salesCutoffHours, 10),
+        address: formData.eventFormat === "VIRTUAL" ? "" : formData.address,
+        city: formData.eventFormat === "VIRTUAL" ? "" : formData.city,
+        state: formData.eventFormat === "VIRTUAL" ? "" : formData.state,
+        zip: formData.eventFormat === "VIRTUAL" ? "" : formData.zip,
       };
 
       // Upload image only when saving/publishing
@@ -468,6 +476,54 @@ router.refresh();
               <CardTitle>Event Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Visibility</Label>
+                  <Select
+                    value={formData.visibility}
+                    onValueChange={(value: "PUBLIC" | "PRIVATE") =>
+                      setFormData({ ...formData, visibility: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select visibility" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PRIVATE">Private Event</SelectItem>
+                      <SelectItem value="PUBLIC">Public Event</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Public events appear in discovery. Private events stay hidden and are accessed by event code.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Format</Label>
+                  <Select
+                    value={formData.eventFormat}
+                    onValueChange={(value: "IN_PERSON" | "VIRTUAL") =>
+                      setFormData({
+                        ...formData,
+                        eventFormat: value,
+                        locationName:
+                          value === "VIRTUAL" && !formData.locationName
+                            ? "Virtual Event"
+                            : formData.locationName,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select event format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="IN_PERSON">In Person</SelectItem>
+                      <SelectItem value="VIRTUAL">Virtual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="title">Event Title</Label>
                 <Input
@@ -490,7 +546,7 @@ router.refresh();
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="startDate">Date</Label>
                   <Input
@@ -517,30 +573,32 @@ router.refresh();
                     Events must be scheduled at least 7 days in advance.
                   </p>
                   {errors.startDate ? (
-    <p className="text-xs text-destructive mt-1">{errors.startDate}</p>
-  ) : null}
+                    <p className="mt-1 text-xs text-destructive">{errors.startDate}</p>
+                  ) : null}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="startTime">Start Time</Label>
-                  <Input
-                    id="startTime"
-                    type="time"
-                    value={formData.startTime}
-                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                    required
-                  />
-                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="startTime">Start Time</Label>
+                    <Input
+                      id="startTime"
+                      type="time"
+                      value={formData.startTime}
+                      onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                      required
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="endTime">End Time</Label>
-                  <Input
-                    id="endTime"
-                    type="time"
-                    value={formData.endTime}
-                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                    required
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="endTime">End Time</Label>
+                    <Input
+                      id="endTime"
+                      type="time"
+                      value={formData.endTime}
+                      onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                      required
+                    />
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -556,66 +614,74 @@ router.refresh();
                 <Label htmlFor="locationName">Venue Name</Label>
                 <Input
                   id="locationName"
-                  placeholder="e.g., The Art Loft Studio"
+                  placeholder={formData.eventFormat === "VIRTUAL" ? "e.g., Virtual Event" : "e.g., The Art Loft Studio"}
                   value={formData.locationName}
                   onChange={(e) => setFormData({ ...formData, locationName: e.target.value })}
                   required
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="address">Street Address</Label>
-                <Input
-                  id="address"
-                  placeholder="123 Main Street"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  required
-                />
-              </div>
+              {formData.eventFormat === "IN_PERSON" ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Street Address</Label>
+                    <Input
+                      id="address"
+                      placeholder="123 Main Street"
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      required
+                    />
+                  </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    placeholder="Austin"
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    required
-                  />
-                </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        placeholder="Austin"
+                        value={formData.city}
+                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                        required
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="state">State</Label>
-                  <Select
-                    value={formData.state}
-                    onValueChange={(value) => setFormData({ ...formData, state: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {US_STATES.map((st) => (
-                        <SelectItem key={st} value={st}>
-                          {st}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="state">State</Label>
+                      <Select
+                        value={formData.state}
+                        onValueChange={(value) => setFormData({ ...formData, state: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {US_STATES.map((st) => (
+                            <SelectItem key={st} value={st}>
+                              {st}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="zip">ZIP Code</Label>
-                  <Input
-                    id="zip"
-                    placeholder="78701"
-                    value={formData.zip}
-                    onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
-                    required
-                  />
+                    <div className="space-y-2">
+                      <Label htmlFor="zip">ZIP Code</Label>
+                      <Input
+                        id="zip"
+                        placeholder="78701"
+                        value={formData.zip}
+                        onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-2xl border border-dashed bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+                  Guests will see this event as virtual. Share your meeting link and access instructions after booking.
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 

@@ -252,7 +252,6 @@ User (Host) ─┬─ Event ─── Booking
 
 ## 🔮 Future Enhancements
 
-- [ ] Stripe Connect for host payouts
 - [ ] Email notifications (SendGrid/Resend)
 - [ ] Event reminders
 - [ ] Admin refund interface

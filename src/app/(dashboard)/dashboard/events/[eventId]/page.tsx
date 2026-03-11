@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { ArrowLeft } from "lucide-react";
 import { EventActions } from "@/components/event-actions";
 import { EventEditForm } from "@/components/events/event-edit-form";
+import { EventShareCard } from "@/components/dashboard/event-share-card";
 
 async function getEvent(eventId: string, hostId: string) {
   return prisma.event.findFirst({
@@ -56,6 +57,8 @@ export default async function EventDetailPage({
         <EventActions event={{ id: event.id, status: event.status, slug: event.slug }} />
       </div>
 
+      <EventShareCard eventCode={event.eventCode ?? null} visibility={event.visibility} />
+
       {/* Edit form (Manage = Edit) */}
       <EventEditForm
         mode="edit"
@@ -77,6 +80,8 @@ export default async function EventDetailPage({
           city: event.city ?? "",
           state: event.state ?? "",
           zip: event.zip ?? "",
+          visibility: event.visibility ?? "PUBLIC",
+          eventFormat: event.eventFormat ?? "IN_PERSON",
           ticketPrice: String(Math.round((event.ticketPriceCents ?? 0) / 100)),
           capacity: String(event.capacity ?? 0),
           salesCutoffHours: String(event.salesCutoffHours ?? "48"),

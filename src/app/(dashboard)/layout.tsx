@@ -12,7 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/sign-out-button";
 import { DashboardMobileNav } from "@/components/dashboard/mobile-nav";
-import { StripeGate } from "@/app/(dashboard)/dashboard/StripeGate";
 import { Brand } from "@/components/Brand";
 
 const navItems = [
@@ -109,8 +108,8 @@ export default async function DashboardLayout({
 
       <main className="lg:pl-64 pt-16 lg:pt-0">
         <div className="p-6 lg:p-8">
-          <StripeGate>{children}</StripeGate>
-          </div>
+          {children}
+        </div>
       </main>
     </div>
   );

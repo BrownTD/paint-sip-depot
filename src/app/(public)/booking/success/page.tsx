@@ -79,10 +79,7 @@ export default async function BookingSuccessPage({
           <h1 className="font-display text-3xl font-bold mb-2">
             Booking Confirmed!
           </h1>
-          <p className="text-muted-foreground">
-            A confirmation email has been sent to{" "}
-            <span className="font-medium text-foreground">{booking.purchaserEmail}</span>
-          </p>
+          <p className="text-muted-foreground">Your booking has been confirmed.</p>
         </div>
 
         {/* Booking Details */}

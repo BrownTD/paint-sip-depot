@@ -1,118 +1,134 @@
 import Link from "next/link";
-import { Sparkles, Users, CreditCard, ShieldCheck, Building2, User, BadgeCheck } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Brand } from "@/components/Brand";
-import { HostTypeToggleSection } from "@/components/home/HostTypeToggleSection";
+import { FloatingCanvasSection } from "@/components/home/floating-canvas-section";
+import { HeroSection } from "@/components/home/hero-section";
+import { PublicHeader } from "@/components/public/public-header";
+import { UpcomingEventsSection } from "@/components/public/upcoming-events-section";
+import { getDiscoverableEvents } from "@/lib/event-discovery";
 
-// ✅ No Prisma on homepage now (no events listing)
-// ✅ No /events navigation
+export const dynamic = "force-dynamic";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const upcomingEvents = await getDiscoverableEvents({ limit: 6 });
+
   return (
     <div className="min-h-screen">
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Brand href="/" className="gap-2" />
-          <div className="flex items-center gap-4">
-            <a
-              href="#host-types"
-              className="text-sm font-medium hover:text-primary transition-colors"
-            >
-              How hosting works
-            </a>
-            <Link href="/login">
-              <Button variant="outline" size="sm">Host Login</Button>
-            </Link>
-            <Link href="/signup">
-              <Button size="sm">Become a Host</Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <PublicHeader links={[{ href: "#how-it-works", label: "How it works" }]} />
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
-        </div>
+      <HeroSection />
+      <FloatingCanvasSection />
 
-        <div className="container mx-auto text-center max-w-4xl">
-          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
-            <Sparkles className="w-4 h-4" />
-            Create unforgettable experiences
-          </div>
-
-          <h1 className="font-display text-5xl md:text-7xl font-bold mb-6 leading-tight">
-            Where Art Meets <span className="text-primary">Celebration</span>
-          </h1>
-
-          <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Host stunning paint and sip events with ease. Manage ticketing, confirmations,
-            and payouts—without building your own payment stack.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/signup">
-              <Button size="lg" className="text-lg px-8 py-6">Start Hosting Events</Button>
-            </Link>
-
-            {/* Anchor CTA replaces Browse Upcoming Events */}
-            <a href="#host-types">
-              <Button size="lg" variant="outline" className="text-lg px-8 py-6">
-                Understand host types
-              </Button>
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 px-4 bg-muted/30">
+      <section id="how-it-works" className="bg-muted/20 px-4 py-24 md:py-32">
         <div className="container mx-auto">
-          <h2 className="font-display text-3xl md:text-4xl font-bold text-center mb-4">
-            Everything You Need to Host
-          </h2>
-          <p className="text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
-            You bring the vibe. We handle ticketing, checkout, confirmations, and the payout logic behind the scenes.
-          </p>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="mt-4 grid gap-10 md:grid-cols-3 md:gap-8 lg:gap-12">
             {[
-              { icon: Users, title: "Simple Host Dashboard", description: "Create events fast, manage bookings, and stay organized." },
-              { icon: CreditCard, title: "Secure Checkout", description: "Stripe-powered payments with automatic tracking and confirmation." },
-              { icon: ShieldCheck, title: "Fraud-aware Payouts", description: "Organization payouts are gated behind review + onboarding." },
-              { icon: BadgeCheck, title: "Two Host Modes", description: "Individuals can host easily. Organizations can request payouts." },
-            ].map((feature, i) => (
-              <div key={i} className="bg-card p-6 rounded-2xl border shadow-sm hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
-                  <feature.icon className="w-6 h-6 text-primary" />
+              {
+                number: "1",
+                title: "Create your host account",
+                description:
+                  "Set up your account and access your dashboard to manage your events, track guests, and keep everything organized in one place.",
+                tones: "from-primary/12 via-primary/5 to-background",
+                labels: ["Dashboard", "Upcoming events", "Recent bookings"],
+                imageSrc: "/dashboard.png",
+              },
+              {
+                number: "2",
+                title: "Choose your canvas and publish your event",
+                description:
+                  "Pick a design, add your event details, and launch a booking page your guests can start registering for right away.",
+                tones: "from-accent/20 via-primary/5 to-background",
+                labels: ["Canvas library", "Event details", "Publish booking page"],
+                imageSrc: "/Frame 61.png",
+              },
+              {
+                number: "3",
+                title: "Accept bookings and manage attendees",
+                description:
+                  "Collect payments online, track tickets, confirm guests, and stay on top of everything from your dashboard.",
+                tones: "from-primary/10 via-accent/10 to-background",
+                labels: ["Payments", "Guest confirmations", "Ticket tracking"],
+                imageSrc: "/checkout.png",
+              },
+            ].map((step) => (
+              <div key={step.number} className="flex flex-col items-center text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground shadow-sm">
+                  {step.number}
                 </div>
-                <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground text-sm">{feature.description}</p>
+                <h3 className="mt-6 text-xl font-semibold md:text-2xl">{step.title}</h3>
+                <p className="mt-4 max-w-sm text-sm leading-6 text-muted-foreground md:text-base">
+                  {step.description}
+                </p>
+
+                <div className="mt-8 w-full rounded-3xl border bg-card p-5 shadow-sm">
+                  <div
+                    className={[
+                      "min-h-[220px] rounded-2xl border border-border/70 bg-gradient-to-br p-5 text-left md:min-h-[240px]",
+                      step.tones,
+                    ].join(" ")}
+                  >
+                    {step.imageSrc ? (
+                      <div className="relative flex min-h-[220px] items-center justify-center overflow-hidden rounded-2xl md:min-h-[240px]">
+                        <Image
+                          src={step.imageSrc}
+                          alt={step.title}
+                          fill
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                          className="object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex justify-end gap-2">
+                          <span className="h-2.5 w-2.5 rounded-full bg-primary/30" />
+                          <span className="h-2.5 w-2.5 rounded-full bg-primary/20" />
+                          <span className="h-2.5 w-2.5 rounded-full bg-primary/10" />
+                        </div>
+
+                        <div className="mt-8 space-y-4">
+                          {step.labels.map((label, index) => (
+                            <div key={label} className="rounded-2xl bg-background/85 p-4 shadow-sm">
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-xl bg-primary/10" />
+                                <div className="flex-1">
+                                  <div
+                                    className="h-3 rounded-full bg-foreground/10"
+                                    style={{ width: `${78 - index * 12}%` }}
+                                  />
+                                  <div
+                                    className="mt-2 h-2 rounded-full bg-foreground/5"
+                                    style={{ width: `${58 - index * 10}%` }}
+                                  />
+                                </div>
+                              </div>
+                              <p className="mt-3 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                {label}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Host Types Section (Anchor target) */}
-      <HostTypeToggleSection />
-
-      {/* CTA Section */}
-      <section className="py-20 px-4">
+      <section className="px-4 py-[50px]">
         <div className="container mx-auto">
-          <div className="bg-primary rounded-3xl p-8 md:p-16 text-center relative overflow-hidden">
+          <div className="relative overflow-hidden rounded-3xl bg-primary p-8 text-center md:p-16">
             <div className="relative">
-              <h2 className="font-display text-3xl md:text-5xl font-bold text-white mb-4">
+              <h2 className="mb-4 font-display text-3xl font-bold text-white md:text-5xl">
                 Ready to Host Your First Event?
               </h2>
-              <p className="text-white/80 text-lg mb-8 max-w-xl mx-auto">
+              <p className="mx-auto mb-8 max-w-xl text-lg text-white/80">
                 Create your host account and start sharing event links with your audience.
               </p>
               <Link href="/signup">
-                <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
+                <Button size="lg" variant="secondary" className="px-8 py-6 text-lg">
                   Create Your Free Account
                 </Button>
               </Link>
@@ -121,13 +137,16 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t py-12 px-4">
+      <UpcomingEventsSection events={upcomingEvents} />
+
+      <footer className="border-t px-4 py-12">
         <div className="container mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <Brand href="/" size="sm" />
+          <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
+            <Link href="/" className="font-display text-sm font-semibold">
+              Paint &amp; Sip Depot
+            </Link>
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Paint & Sip Depot. All rights reserved.
+              © {new Date().getFullYear()} Paint &amp; Sip Depot. All rights reserved.
             </p>
           </div>
         </div>

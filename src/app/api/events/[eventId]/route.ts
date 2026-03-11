@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { eventSchema } from "@/lib/validations";
+import { resolveEventCodeForVisibility } from "@/lib/event-discovery";
 
 export async function GET(
   request: NextRequest,
@@ -53,9 +55,22 @@ export async function PATCH(
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
 
+    const parsed = eventSchema.safeParse({
+      ...body,
+      startDateTime: new Date(body.startDateTime),
+      endDateTime: body.endDateTime ? new Date(body.endDateTime) : undefined,
+    });
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.errors[0].message },
+        { status: 400 }
+      );
+    }
+
     const allowedUpdates: Record<string, string[]> = {
-      DRAFT: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "ticketPriceCents", "capacity", "salesCutoffHours", "refundPolicyText", "canvasImageUrl"],
-      PUBLISHED: ["status", "description", "refundPolicyText"],
+      DRAFT: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "ticketPriceCents", "capacity", "salesCutoffHours", "refundPolicyText", "canvasImageUrl", "canvasId", "visibility", "eventFormat"],
+      PUBLISHED: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "ticketPriceCents", "capacity", "salesCutoffHours", "refundPolicyText", "canvasImageUrl", "canvasId", "visibility", "eventFormat"],
       ENDED: [],
       CANCELED: [],
     };
@@ -65,8 +80,21 @@ export async function PATCH(
 
     for (const key of Object.keys(body)) {
       if (allowed.includes(key)) {
-        updateData[key] = body[key];
+        updateData[key] = ["address", "city", "state", "zip", "canvasId", "canvasImageUrl"].includes(key)
+          ? body[key] || null
+          : body[key];
       }
+    }
+
+    if (
+      allowed.includes("visibility") &&
+      (
+        body.visibility !== existingEvent.visibility ||
+        ((body.visibility ?? existingEvent.visibility) === "PRIVATE" && !existingEvent.eventCode)
+      )
+    ) {
+      const nextVisibility = (body.visibility ?? existingEvent.visibility) as "PUBLIC" | "PRIVATE";
+      updateData.eventCode = await resolveEventCodeForVisibility(nextVisibility, existingEvent.eventCode);
     }
 
     const event = await prisma.event.update({

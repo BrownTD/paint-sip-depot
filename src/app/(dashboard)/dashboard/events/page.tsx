@@ -8,6 +8,7 @@ import { Plus, Calendar, MapPin, Users, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { EventCodeCopyButton } from "@/components/dashboard/event-code-copy-button";
 
 async function getHostEvents(hostId: string) {
   return prisma.event.findMany({
@@ -81,11 +82,26 @@ export default async function EventsPage() {
                 <div className="flex-1 p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-center">
                         <h3 className="font-semibold text-lg">{event.title}</h3>
-                        <Badge variant={statusColors[event.status]}>
-                          {event.status.toLowerCase()}
-                        </Badge>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant={statusColors[event.status]}>
+                            {event.status.toLowerCase()}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className={
+                              event.visibility === "PUBLIC"
+                                ? "border-blue-200 bg-blue-50 text-blue-700"
+                                : "border-[#6741ff]/20 bg-[#6741ff]/10 text-[#6741ff]"
+                            }
+                          >
+                            {event.visibility === "PUBLIC" ? "public" : "private"}
+                          </Badge>
+                          <Badge variant="secondary">
+                            {event.eventFormat === "VIRTUAL" ? "virtual" : "in person"}
+                          </Badge>
+                        </div>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
@@ -94,7 +110,9 @@ export default async function EventsPage() {
                         </span>
                         <span className="flex items-center gap-1">
                           <MapPin className="w-4 h-4" />
-                          {event.city}, {event.state}
+                          {event.eventFormat === "VIRTUAL"
+                            ? "Virtual"
+                            : `${event.city}, ${event.state}`}
                         </span>
                       </div>
                     </div>
@@ -110,27 +128,31 @@ export default async function EventsPage() {
                   </div>
 
                   <div className="flex items-center gap-2 mt-4">
-  {event.status === "CANCELED" ? (
-    <Button variant="outline" size="sm" disabled className="opacity-60">
-      Manage
-    </Button>
-  ) : (
-    <Link href={`/dashboard/events/${event.id}`}>
-      <Button variant="outline" size="sm">
-        Manage
-      </Button>
-    </Link>
-  )}
+                    {event.status === "CANCELED" ? (
+                      <Button variant="outline" size="sm" disabled className="opacity-60">
+                        Manage
+                      </Button>
+                    ) : (
+                      <Link href={`/dashboard/events/${event.id}`}>
+                        <Button variant="outline" size="sm">
+                          Manage
+                        </Button>
+                      </Link>
+                    )}
 
-  {event.status === "PUBLISHED" && (
-    <Link href={`/e/${event.slug}`} target="_blank">
-      <Button variant="ghost" size="sm">
-        <ExternalLink className="w-4 h-4 mr-1" />
-        View Public Page
-      </Button>
-    </Link>
-  )}
-</div>
+                    {event.eventCode ? (
+                      <EventCodeCopyButton eventCode={event.eventCode} />
+                    ) : null}
+
+                    {event.status === "PUBLISHED" && (
+                      <Link href={`/e/${event.slug}`} target="_blank">
+                        <Button variant="ghost" size="sm">
+                          <ExternalLink className="w-4 h-4 mr-1" />
+                          View Event Page
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
                 </div>
               </div>
             </Card>

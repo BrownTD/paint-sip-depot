@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { randomBytes } from "crypto"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -50,6 +51,10 @@ export function generateSlug(input: string): string {
     .replace(/-+/g, "-")
     // trim dashes from ends
     .replace(/^-|-$/g, "");
+}
+
+export function generateRandomSlug(prefix: string = "evt"): string {
+  return `${prefix}-${randomBytes(4).toString("hex")}`;
 }
 
 export function getAbsoluteUrl(path: string): string {

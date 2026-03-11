@@ -2,28 +2,22 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatAmountForDisplay } from "@/lib/money";
 import { formatDate } from "@/lib/utils";
-import { Calendar, DollarSign, Ticket, Users } from "lucide-react";
+import { Calendar, Ticket } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { StripeGate } from "./StripeGate";
 
 async function getDashboardStats(hostId: string) {
-  const [totalEvents, publishedEvents, totalBookings, revenueResult] = await Promise.all([
+  const [totalEvents, publishedEvents, totalBookings] = await Promise.all([
     prisma.event.count({ where: { hostId } }),
     prisma.event.count({ where: { hostId, status: "PUBLISHED" } }),
     prisma.booking.count({ where: { event: { hostId }, status: "PAID" } }),
-    prisma.booking.aggregate({
-      where: { event: { hostId }, status: "PAID" },
-      _sum: { amountPaidCents: true },
-    }),
   ]);
 
   return {
     totalEvents,
     publishedEvents,
     totalBookings,
-    totalRevenue: revenueResult._sum.amountPaidCents || 0,
   };
 }
 
@@ -56,7 +50,6 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <StripeGate>
     <div className="space-y-8">
       <div>
         <h1 className="font-display text-3xl font-bold">
@@ -66,18 +59,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatAmountForDisplay(stats.totalRevenue)}</div>
-            <p className="text-xs text-muted-foreground">From all paid bookings</p>
-          </CardContent>
-        </Card>
-
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Tickets Sold</CardTitle>
@@ -97,19 +79,6 @@ export default async function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.publishedEvents}</div>
             <p className="text-xs text-muted-foreground">{stats.totalEvents} total events created</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Avg. per Event</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.totalEvents > 0 ? Math.round(stats.totalBookings / stats.totalEvents) : 0}
-            </div>
-            <p className="text-xs text-muted-foreground">Guests per event</p>
           </CardContent>
         </Card>
       </div>
@@ -187,6 +156,5 @@ export default async function DashboardPage() {
         </Card>
       </div>
     </div>
-    </StripeGate>
   );
 }

@@ -18,17 +18,58 @@ export const eventSchema = z.object({
     message: "Event must be in the future",
   }),
   endDateTime: z.coerce.date().optional(),
+  eventFormat: z.enum(["IN_PERSON", "VIRTUAL"]).default("IN_PERSON"),
+  visibility: z.enum(["PUBLIC", "PRIVATE"]).default("PUBLIC"),
   locationName: z.string().min(2, "Location name is required"),
-  address: z.string().min(5, "Address is required"),
-  city: z.string().min(2, "City is required"),
-  state: z.string().length(2, "Use 2-letter state code"),
-  zip: z.string().regex(/^\d{5}(-\d{4})?$/, "Invalid ZIP code"),
+  address: z.string().optional().or(z.literal("")),
+  city: z.string().optional().or(z.literal("")),
+  state: z.string().optional().or(z.literal("")),
+  zip: z.string().optional().or(z.literal("")),
   ticketPriceCents: z.coerce.number().int().min(0).max(100000),
   capacity: z.coerce.number().int().min(1).max(1000),
   salesCutoffHours: z.coerce.number().int().min(0).max(168).default(48),
   refundPolicyText: z.string().max(1000).optional(),
   canvasImageUrl: z.string().url().optional().or(z.literal("")),
   canvasId: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.endDateTime && data.endDateTime <= data.startDateTime) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["endDateTime"],
+      message: "End time must be after the start time",
+    });
+  }
+
+  if (data.eventFormat === "IN_PERSON") {
+    if (!data.address || data.address.trim().length < 5) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["address"],
+        message: "Address is required for in-person events",
+      });
+    }
+    if (!data.city || data.city.trim().length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["city"],
+        message: "City is required for in-person events",
+      });
+    }
+    if (!data.state || data.state.trim().length !== 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["state"],
+        message: "Use 2-letter state code",
+      });
+    }
+    if (!data.zip || !/^\d{5}(-\d{4})?$/.test(data.zip)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["zip"],
+        message: "Invalid ZIP code",
+      });
+    }
+  }
 });
 
 export const bookingSchema = z.object({

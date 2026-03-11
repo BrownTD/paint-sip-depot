@@ -2,7 +2,21 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { eventSchema } from "@/lib/validations";
-import { generateSlug } from "@/lib/utils";
+import { generateRandomSlug } from "@/lib/utils";
+import { resolveEventCodeForVisibility } from "@/lib/event-discovery";
+
+async function generateUniqueEventSlug() {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const slug = generateRandomSlug();
+    const existingSlug = await prisma.event.findUnique({ where: { slug } });
+
+    if (!existingSlug) {
+      return slug;
+    }
+  }
+
+  throw new Error("Failed to generate a unique event slug");
+}
 
 export async function GET() {
   try {
@@ -49,11 +63,9 @@ export async function POST(request: Request) {
       );
     }
 
-    let slug = generateSlug(parsed.data.title);
-    const existingSlug = await prisma.event.findUnique({ where: { slug } });
-    if (existingSlug) {
-      slug = `${slug}-${Date.now().toString(36)}`;
-    }
+    const slug = await generateUniqueEventSlug();
+
+    const eventCode = await resolveEventCodeForVisibility(parsed.data.visibility);
 
     const event = await prisma.event.create({
       data: {
@@ -61,13 +73,16 @@ export async function POST(request: Request) {
         title: parsed.data.title,
         description: parsed.data.description || null,
         slug,
+        ...(eventCode ? { eventCode } : {}),
         startDateTime: parsed.data.startDateTime,
         endDateTime: parsed.data.endDateTime || null,
         locationName: parsed.data.locationName,
-        address: parsed.data.address,
-        city: parsed.data.city,
-        state: parsed.data.state,
-        zip: parsed.data.zip,
+        address: parsed.data.address || null,
+        city: parsed.data.city || null,
+        state: parsed.data.state || null,
+        zip: parsed.data.zip || null,
+        visibility: parsed.data.visibility,
+        eventFormat: parsed.data.eventFormat,
         ticketPriceCents: parsed.data.ticketPriceCents,
         capacity: parsed.data.capacity,
         salesCutoffHours: parsed.data.salesCutoffHours,

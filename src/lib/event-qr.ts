@@ -123,6 +123,7 @@ export async function generateEventQrCode(eventId: string, eventSlug: string) {
       token: process.env.BLOB_READ_WRITE_TOKEN,
       access: "public",
       addRandomSuffix: false,
+      allowOverwrite: true,
       contentType: "image/svg+xml",
     });
 

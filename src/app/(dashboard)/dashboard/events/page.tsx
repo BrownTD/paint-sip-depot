@@ -38,7 +38,7 @@ async function getHostEvents(hostId: string) {
   });
 
   const eventsMissingQr = events.filter(
-    (event) => !event.qrCodeImageUrl || event.qrCodeImageUrl.endsWith(".svg")
+    (event) => !event.qrCodeImageUrl || event.qrCodeImageUrl.endsWith(".png")
   );
 
   if (eventsMissingQr.length > 0) {
@@ -81,12 +81,14 @@ async function getHostEvents(hostId: string) {
 }
 
 type HostEvent = Awaited<ReturnType<typeof getHostEvents>>[number];
+type DisplayStatus = HostEvent["status"] | "COMPLETED";
 
 const statusColors = {
   DRAFT: "secondary",
   PUBLISHED: "success",
   ENDED: "outline",
   CANCELED: "destructive",
+  COMPLETED: "outline",
 } as const;
 
 export default async function EventsPage() {
@@ -127,6 +129,17 @@ export default async function EventsPage() {
         <div className="grid gap-4">
           {events.map((event: HostEvent) => (
             <Card key={event.id} className="overflow-hidden">
+              {(() => {
+                const isPastEvent = event.startDateTime < new Date();
+                const isRelaunchable = event.status === "CANCELED" || isPastEvent;
+                const displayStatus: DisplayStatus =
+                  event.status === "CANCELED"
+                    ? "CANCELED"
+                    : isPastEvent
+                      ? "COMPLETED"
+                      : event.status;
+
+                return (
               <div className="flex flex-col md:flex-row">
                 <div className="relative w-full md:w-48 h-32 md:h-auto bg-muted shrink-0">
                   {event.canvasImageUrl ? (
@@ -148,8 +161,8 @@ export default async function EventsPage() {
                       <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-center">
                         <h3 className="font-semibold text-lg">{event.title}</h3>
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant={statusColors[event.status as keyof typeof statusColors]}>
-                            {event.status.toLowerCase()}
+                          <Badge variant={statusColors[displayStatus as keyof typeof statusColors]}>
+                            {displayStatus.toLowerCase()}
                           </Badge>
                           <Badge
                             variant="outline"
@@ -197,10 +210,12 @@ export default async function EventsPage() {
                   </div>
 
                   <div className="flex items-center gap-2 mt-4">
-                    {event.status === "CANCELED" ? (
-                      <Button variant="outline" size="sm" disabled className="opacity-60">
-                        Manage
-                      </Button>
+                    {isRelaunchable ? (
+                      <Link href={`/dashboard/events/${event.id}?relaunch=1`}>
+                        <Button variant="outline" size="sm">
+                          Relaunch
+                        </Button>
+                      </Link>
                     ) : (
                       <Link href={`/dashboard/events/${event.id}`}>
                         <Button variant="outline" size="sm">
@@ -224,13 +239,15 @@ export default async function EventsPage() {
 
                     {event.qrCodeImageUrl ? (
                       <EventQrDownloadButton
-                        fileName={`${event.slug}-qr.png`}
+                        fileName={`${event.slug}-qr.svg`}
                         qrCodeImageUrl={event.qrCodeImageUrl}
                       />
                     ) : null}
                   </div>
                 </div>
               </div>
+                );
+              })()}
             </Card>
           ))}
         </div>

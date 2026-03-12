@@ -7,7 +7,7 @@ import { resolveEventCodeForVisibility } from "@/lib/event-discovery";
 
 const FIXED_TICKET_PRICE_CENTS = 3500;
 const FIXED_REFUND_POLICY =
-  "Full refunds available up to 72 hours before the event. 50% refund between 72-48 hours. No refunds within 48 hours of the event.";
+  "Refunds are not available within 7 days of the event due to preparation and supply costs.\n\nIf you are unable to attend, your pre-drawn canvas and materials can be shipped to you so you can still complete the painting at home. Shipping fees may apply.\n\nIf the event is canceled by the organizer, all pre-drawn canvases and materials will be shipped to guests so they can still complete the painting at home. Guests will be contacted with additional details if necessary.";
 
 export async function GET(
   request: NextRequest,
@@ -63,8 +63,8 @@ export async function PATCH(
     const allowedUpdates: Record<string, string[]> = {
       DRAFT: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "capacity", "salesCutoffHours", "canvasImageUrl", "canvasName", "visibility", "eventFormat"],
       PUBLISHED: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "capacity", "salesCutoffHours", "canvasImageUrl", "canvasName", "visibility", "eventFormat"],
-      ENDED: [],
-      CANCELED: [],
+      ENDED: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "capacity", "salesCutoffHours", "canvasImageUrl", "canvasName", "visibility", "eventFormat"],
+      CANCELED: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "capacity", "salesCutoffHours", "canvasImageUrl", "canvasName", "visibility", "eventFormat"],
     };
 
     const allowed = allowedUpdates[existingEvent.status] || [];
@@ -132,7 +132,7 @@ export async function PATCH(
       data: updateData,
     });
 
-    if (!event.qrCodeImageUrl || event.qrCodeImageUrl.endsWith(".svg")) {
+    if (!event.qrCodeImageUrl || event.qrCodeImageUrl.endsWith(".png")) {
       const qrCodeImageUrl = await generateEventQrCode(event.id, event.slug);
       const eventWithQr = await prisma.event.update({
         where: { id: event.id },

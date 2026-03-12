@@ -27,16 +27,21 @@ function isoToTime(iso?: string | Date | null) {
 
 export default async function EventDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ eventId: string }>;
+  searchParams?: Promise<{ relaunch?: string }> | { relaunch?: string };
 }) {
   const { eventId } = await params;
+  const sp = searchParams ? await searchParams : {};
 
   const session = await auth();
   if (!session?.user?.id) return null;
 
   const event = await getEvent(eventId, session.user.id);
   if (!event) notFound();
+  const isPastEvent = event.startDateTime < new Date();
+  const isRelaunchMode = Boolean(sp?.relaunch) || event.status === "CANCELED" || isPastEvent;
 
   const ticketsSold = await getPaidTicketQuantity(prisma, event.id);
   const canvasSections = await getCanvasGallerySections();
@@ -52,12 +57,14 @@ export default async function EventDetailPage({
           <ArrowLeft className="w-4 h-4 mr-1" />
           Back to Events
         </Link>
-        <EventActions event={{ id: event.id, status: event.status, slug: event.slug }} />
+        {!isRelaunchMode ? (
+          <EventActions event={{ id: event.id, status: event.status, slug: event.slug }} />
+        ) : null}
       </div>
 
       <EventShareCard eventCode={event.eventCode ?? null} visibility={event.visibility} />
 
-      {event.status === "CANCELED" ? (
+      {event.status === "CANCELED" && !isRelaunchMode ? (
         <Card className="border-destructive/25 bg-destructive/5">
           <CardContent className="flex items-start gap-3 p-6">
             <AlertTriangle className="mt-0.5 h-5 w-5 text-destructive" />
@@ -77,10 +84,16 @@ export default async function EventDetailPage({
           ticketsSold={ticketsSold}
           backHref="/dashboard/events"
           showBackLink={false}
-          titleText="Edit Event"
-          subtitleText="Update your event details and save changes"
+          titleText={isRelaunchMode ? "Relaunch Event" : "Edit Event"}
+          subtitleText={
+            isRelaunchMode
+              ? "Review the details, update the date and time if needed, then relaunch the event."
+              : "Update your event details and save changes"
+          }
           canvasSections={canvasSections}
           initialStatus={event.status}
+          submitButtonLabel={isRelaunchMode ? "Relaunch Event" : "Save Changes"}
+          publishOnSubmit={isRelaunchMode}
           initialData={{
             title: event.title ?? "",
             description: event.description ?? "",

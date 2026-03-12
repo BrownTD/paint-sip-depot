@@ -33,7 +33,7 @@ const US_STATES = [
 const FIXED_TICKET_PRICE_DOLLARS = "35";
 const FIXED_TICKET_PRICE_CENTS = 3500;
 const FIXED_REFUND_POLICY =
-  "Full refunds available up to 72 hours before the event. 50% refund between 72-48 hours. No refunds within 48 hours of the event.";
+  "Refunds are not available within 7 days of the event due to preparation and supply costs.\n\nIf you are unable to attend, your pre-drawn canvas and materials can be shipped to you so you can still complete the painting at home. Shipping fees may apply.\n\nIf the event is canceled by the organizer, all pre-drawn canvases and materials will be shipped to guests so they can still complete the painting at home. Guests will be contacted with additional details if necessary.";
 const DEFAULT_EVENT_DESCRIPTION =
   "Join us for a fun creative Paint & Sip experience! Each guest will receive a pre-drawn canvas design, making it easy for anyone to paint — no experience required. Simply follow the outlines, add your own colors, and enjoy the creative process.\n\nAll painting supplies are included. Bring friends, enjoy the atmosphere, and leave with a finished canvas you'll be proud of!";
 
@@ -77,6 +77,8 @@ export function EventEditForm({
   initialData,
   canvasSections,
   initialStatus, // "DRAFT" | "PUBLISHED" etc (optional, used for button labels)
+  submitButtonLabel,
+  publishOnSubmit = false,
 }: {
   mode: Mode;
   eventId?: string;
@@ -88,6 +90,8 @@ export function EventEditForm({
   initialData?: Partial<EventEditFormInitialData>;
   canvasSections: CanvasGallerySection[];
   initialStatus?: string;
+  submitButtonLabel?: string;
+  publishOnSubmit?: boolean;
 }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -335,6 +339,8 @@ if (pendingImageFile) {
       // only on create do we set status via action buttons
       if (mode === "create") {
         payload.status = action === "publish" ? "PUBLISHED" : "DRAFT";
+      } else if (publishOnSubmit) {
+        payload.status = "PUBLISHED";
       }
 
       const url = mode === "create" ? "/api/events" : `/api/events/${eventId}`;
@@ -833,10 +839,10 @@ router.refresh();
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
+                    {publishOnSubmit ? "Relaunching..." : "Saving..."}
                   </>
                 ) : (
-                  "Save Changes"
+                  submitButtonLabel || "Save Changes"
                 )}
               </Button>
             )}

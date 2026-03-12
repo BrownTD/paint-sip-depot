@@ -289,8 +289,8 @@ export default async function EventPage({
                   <Card>
                     <CardContent className="space-y-4 p-4">
                       <div>
-                        <p className="font-medium text-sm">Sales Cutoff</p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm font-bold">Sales Cutoff</p>
+                        <p className="text-sm text-destructive">
                           Bookings close 7 days before the event ({formatDate(cutoffDate)} at{" "}
                           {formatTime(cutoffDate)})
                         </p>
@@ -300,7 +300,7 @@ export default async function EventPage({
                         <>
                           <Separator />
                           <div>
-                            <p className="font-medium text-sm">Refund Policy</p>
+                            <p className="text-sm font-bold">Refund Policy</p>
                             <p className="text-sm text-muted-foreground">
                               {event.refundPolicyText}
                             </p>

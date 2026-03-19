@@ -239,7 +239,7 @@ export default async function EventsPage() {
 
                     {event.qrCodeImageUrl ? (
                       <EventQrDownloadButton
-                        fileName={`${event.slug}-qr.svg`}
+                        fileName={`${event.slug}-qr.png`}
                         qrCodeImageUrl={event.qrCodeImageUrl}
                       />
                     ) : null}

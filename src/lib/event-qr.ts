@@ -11,10 +11,10 @@ const BORDER = 4;
 const MODULE_RADIUS_RATIO = 0.38;
 const CANVAS_SIZE = 250;
 const FINDER_SIZE = 7;
-const LOGO_BOX_SIZE = 84;
+const LOGO_BOX_SIZE = 56;
 const LOGO_PADDING = 0;
-const LOGO_CORNER_RADIUS = 25;
-const LOGO_QR_CLEARANCE = 7;
+const LOGO_CORNER_RADIUS = 16;
+const LOGO_QR_CLEARANCE = 4;
 const LOGO_PATH = path.join(process.cwd(), "public", "logoSquare.svg");
 const QR_CODE_DIR = path.join(process.cwd(), "public", "qr-codes");
 

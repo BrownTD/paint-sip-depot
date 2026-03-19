@@ -151,7 +151,7 @@ export async function buildQrSvg(url: string) {
   const logoY = logoBoxY + (LOGO_BOX_SIZE - logoHeight) / 2;
   const { artModules, finderModules } = buildQrModules(modules, moduleSize, quietZone, qr);
 
-  return `<?xml version="1.0" encoding="UTF-8"?>
+  const svgOutput = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CANVAS_SIZE} ${CANVAS_SIZE}" width="${CANVAS_SIZE}" height="${CANVAS_SIZE}">
   <rect width="${CANVAS_SIZE}" height="${CANVAS_SIZE}" fill="${BG_COLOR}"/>
   <defs>
@@ -172,4 +172,19 @@ export async function buildQrSvg(url: string) {
   </g>
 </svg>
 `;
+
+  validateSvgOutput(svgOutput);
+  return svgOutput;
+}
+
+function validateSvgOutput(svgOutput: string) {
+  const trimmed = svgOutput.trim();
+  const hasRootSvg = trimmed.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<svg');
+  const closesSvg = trimmed.endsWith("</svg>");
+  const openSvgCount = (svgOutput.match(/<svg\b/g) || []).length;
+  const closeSvgCount = (svgOutput.match(/<\/svg>/g) || []).length;
+
+  if (!hasRootSvg || !closesSvg || openSvgCount !== 1 || closeSvgCount !== 1) {
+    throw new Error("Generated QR code output is missing the root svg element");
+  }
 }

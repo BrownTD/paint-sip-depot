@@ -75,7 +75,7 @@ async function reserveBookingForCheckout({
         throw new CheckoutError("This event is not available for booking", 400);
       }
 
-      if (areBookingsClosed(event.startDateTime, now)) {
+      if (areBookingsClosed(event.startDateTime, now, event.bookingCutoffOverrideAt)) {
         throw new CheckoutError("Bookings are closed for this event", 400);
       }
 

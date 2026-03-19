@@ -783,7 +783,7 @@ router.refresh();
               </div>
 
               <div className="rounded-2xl border border-dashed bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-                Bookings close automatically 7 days before the event start time.
+                Bookings close automatically at 11:59 PM, 7 days before the event date.
               </div>
             </CardContent>
           </Card>

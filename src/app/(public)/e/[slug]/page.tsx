@@ -89,8 +89,9 @@ export default async function EventPage({
 
   const totalSold = event.availability.paid;
   const spotsRemaining = event.availability.remaining;
-  const isCutoff = areBookingsClosed(event.startDateTime);
-  const cutoffDate = getBookingCutoffDate(event.startDateTime);
+  const hasAdminCutoffOverride = Boolean(event.bookingCutoffOverrideAt);
+  const isCutoff = areBookingsClosed(event.startDateTime, new Date(), event.bookingCutoffOverrideAt);
+  const cutoffDate = getBookingCutoffDate(event.startDateTime, event.bookingCutoffOverrideAt);
   const isPastEvent = new Date(event.startDateTime) < new Date();
   const isCanceled = false;
   const isSoldOut = spotsRemaining <= 0;
@@ -291,8 +292,11 @@ export default async function EventPage({
                       <div>
                         <p className="text-sm font-bold">Sales Cutoff</p>
                         <p className="text-sm text-destructive">
-                          Bookings close 7 days before the event ({formatDate(cutoffDate)} at{" "}
-                          {formatTime(cutoffDate)})
+                          {hasAdminCutoffOverride
+                            ? `Bookings close on ${formatDate(cutoffDate)} at ${formatTime(cutoffDate)}`
+                            : `Bookings close at 11:59 PM, 7 days before the event (${formatDate(
+                                cutoffDate
+                              )} at ${formatTime(cutoffDate)})`}
                         </p>
                       </div>
 
@@ -349,7 +353,11 @@ export default async function EventPage({
                             <div className="rounded-2xl border border-border bg-muted/40 px-4 py-3">
                               <p className="font-medium text-foreground">Bookings have closed</p>
                               <p className="mt-1 text-sm text-muted-foreground">
-                                This event is within 7 days of starting.
+                                {hasAdminCutoffOverride
+                                  ? `Bookings closed on ${formatDate(cutoffDate)} at ${formatTime(
+                                      cutoffDate
+                                    )}.`
+                                  : "This event is within 7 days of its date."}
                               </p>
                             </div>
                           )}

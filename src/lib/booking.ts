@@ -1,4 +1,5 @@
 import type { PrismaClient, Prisma } from "@prisma/client";
+import { EVENT_TIME_ZONE, dateTimeInZoneToIso } from "@/lib/utils";
 
 // Stripe Checkout sessions cannot expire sooner than 30 minutes, so the
 // reservation window matches that lower bound to keep inventory consistent.
@@ -17,12 +18,59 @@ export function getReservationExpiry(now: Date = new Date()) {
   return new Date(now.getTime() + RESERVATION_WINDOW_MINUTES * 60 * 1000);
 }
 
-export function getBookingCutoffDate(startDateTime: Date) {
-  return new Date(startDateTime.getTime() - BOOKING_CUTOFF_DAYS * 24 * 60 * 60 * 1000);
+function getDatePartsInZone(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const getPart = (type: string) => parts.find((part) => part.type === type)?.value;
+
+  return {
+    year: Number(getPart("year")),
+    month: Number(getPart("month")),
+    day: Number(getPart("day")),
+  };
 }
 
-export function areBookingsClosed(startDateTime: Date, now: Date = new Date()) {
-  return now >= getBookingCutoffDate(startDateTime);
+function toDateInputValue(year: number, month: number, day: number) {
+  return `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day
+    .toString()
+    .padStart(2, "0")}`;
+}
+
+export function getBookingCutoffDate(
+  startDateTime: Date,
+  bookingCutoffOverrideAt?: Date | null
+) {
+  if (bookingCutoffOverrideAt) {
+    return new Date(bookingCutoffOverrideAt);
+  }
+
+  const { year, month, day } = getDatePartsInZone(startDateTime, EVENT_TIME_ZONE);
+  const cutoffDateUtc = new Date(Date.UTC(year, month - 1, day - BOOKING_CUTOFF_DAYS));
+
+  return new Date(
+    dateTimeInZoneToIso(
+      toDateInputValue(
+        cutoffDateUtc.getUTCFullYear(),
+        cutoffDateUtc.getUTCMonth() + 1,
+        cutoffDateUtc.getUTCDate()
+      ),
+      "23:59",
+      EVENT_TIME_ZONE
+    )
+  );
+}
+
+export function areBookingsClosed(
+  startDateTime: Date,
+  now: Date = new Date(),
+  bookingCutoffOverrideAt?: Date | null
+) {
+  return now >= getBookingCutoffDate(startDateTime, bookingCutoffOverrideAt);
 }
 
 export async function expireStaleReservations(

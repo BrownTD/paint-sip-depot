@@ -94,6 +94,7 @@ model Event {
   ticketPriceCents Int
   capacity         Int
   salesCutoffHours Int     @default(48)
+  bookingCutoffOverrideAt DateTime?
   refundPolicyText String?
 
   canvasImageUrl String?

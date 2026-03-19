@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/admin";
-import { getPaidTicketQuantitiesForEvents } from "@/lib/booking";
-import { formatDate, formatTime } from "@/lib/utils";
+import { getBookingCutoffDate, getPaidTicketQuantitiesForEvents } from "@/lib/booking";
+import { formatDate, formatDateInputValue, formatTime, formatTimeInputValue } from "@/lib/utils";
+import { EventCutoffOverrideControl } from "@/components/admin/event-cutoff-override-control";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ type AdminEventRecord = {
   visibility: "PUBLIC" | "PRIVATE";
   status: "DRAFT" | "PUBLISHED" | "ENDED" | "CANCELED";
   capacity: number;
+  bookingCutoffOverrideAt: Date | null;
   host: {
     name: string | null;
     email: string;
@@ -46,11 +48,16 @@ async function getAdminEvents() {
 
   return events.map((event) => {
     const ticketsSold = paidByEventId.get(event.id) ?? 0;
+    const effectiveCutoff = getBookingCutoffDate(
+      event.startDateTime,
+      event.bookingCutoffOverrideAt
+    );
 
     return {
       ...event,
       ticketsSold,
       remaining: Math.max(Number(event.capacity) - Number(ticketsSold), 0),
+      effectiveCutoff,
     };
   });
 }
@@ -91,7 +98,7 @@ export default async function AdminEventsPage() {
             <p className="text-sm text-muted-foreground">No events found.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1080px]">
+              <table className="w-full min-w-[1280px]">
                 <thead>
                   <tr className="border-b">
                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Event</th>
@@ -102,6 +109,7 @@ export default async function AdminEventsPage() {
                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Sold</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Remaining</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Booking Cutoff</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -156,6 +164,28 @@ export default async function AdminEventsPage() {
                       </td>
                       <td className="px-4 py-3 align-top text-sm font-medium">
                         {Number(event.remaining)}
+                      </td>
+                      <td className="px-4 py-3 align-top text-sm">
+                        <div className="space-y-2">
+                          <div>
+                            <p className="font-medium">
+                              {formatDate(event.effectiveCutoff)} at {formatTime(event.effectiveCutoff)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {event.bookingCutoffOverrideAt ? "Admin override active" : "Default cutoff"}
+                            </p>
+                          </div>
+                          <EventCutoffOverrideControl
+                            eventId={event.id}
+                            initialDate={formatDateInputValue(
+                              event.bookingCutoffOverrideAt ?? event.effectiveCutoff
+                            )}
+                            initialTime={formatTimeInputValue(
+                              event.bookingCutoffOverrideAt ?? event.effectiveCutoff
+                            )}
+                            hasOverride={Boolean(event.bookingCutoffOverrideAt)}
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}

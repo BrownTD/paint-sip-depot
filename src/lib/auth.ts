@@ -5,6 +5,7 @@ import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { signInSchema } from "@/lib/validations";
+import { normalizeEmail } from "@/lib/utils";
 import bcrypt from "bcryptjs";
 
 const providers = [
@@ -34,8 +35,15 @@ const providers = [
       const parsed = signInSchema.safeParse(credentials);
       if (!parsed.success) return null;
 
-      const user = await prisma.user.findUnique({
-        where: { email: parsed.data.email },
+      const normalizedEmail = normalizeEmail(parsed.data.email);
+
+      const user = await prisma.user.findFirst({
+        where: {
+          email: {
+            equals: normalizedEmail,
+            mode: "insensitive",
+          },
+        },
       });
 
       if (!user || !user.passwordHash) return null;
@@ -69,8 +77,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       if ((!token.role || !token.id) && token.email) {
-        const dbUser = await prisma.user.findUnique({
-          where: { email: token.email },
+        const normalizedEmail = normalizeEmail(token.email);
+        const dbUser = await prisma.user.findFirst({
+          where: {
+            email: {
+              equals: normalizedEmail,
+              mode: "insensitive",
+            },
+          },
           select: { id: true, role: true },
         });
 
@@ -93,9 +107,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!user.email) return false;
 
       if (account?.provider !== "credentials") {
-        await prisma.user.update({
-          where: { email: user.email },
+        const normalizedEmail = normalizeEmail(user.email);
+
+        await prisma.user.updateMany({
+          where: {
+            email: {
+              equals: normalizedEmail,
+              mode: "insensitive",
+            },
+          },
           data: {
+            email: normalizedEmail,
             emailVerified: new Date(),
           },
         }).catch(() => null);

@@ -27,7 +27,7 @@ export function Brand({
         priority
       />
       {showText && (
-        <span className="flex flex-col justify-center leading-none">
+        <span className="flex flex-col justify-center gap-1 py-1 leading-none">
           <span className="font-display font-bold">Paint &amp; Sip Depot</span>
           <span className={cn("font-medium text-muted-foreground", subtitleClassName)}>
             Formerly known as Millennium Studios

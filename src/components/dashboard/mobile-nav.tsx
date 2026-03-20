@@ -61,10 +61,10 @@ export function DashboardMobileNav({
 
       <SheetContent side="left" className="w-72 p-0">
         <div className="flex h-full flex-col">
-          <SheetHeader className="border-b p-4">
-            <SheetTitle>
-  <Brand />
-</SheetTitle>
+          <SheetHeader className="items-start border-b p-4 text-left">
+            <SheetTitle className="w-full text-left">
+              <Brand className="justify-start" />
+            </SheetTitle>
           </SheetHeader>
 
           <nav className="flex-1 space-y-1 p-3">

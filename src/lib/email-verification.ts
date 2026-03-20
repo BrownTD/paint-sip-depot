@@ -1,21 +1,22 @@
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendVerificationEmail } from "@/lib/email";
-import { getAbsoluteUrl } from "@/lib/utils";
+import { getAbsoluteUrl, normalizeEmail } from "@/lib/utils";
 
 const EMAIL_VERIFICATION_TTL_HOURS = 24;
 
 export async function createEmailVerificationToken(identifier: string) {
+  const normalizedIdentifier = normalizeEmail(identifier);
   const token = randomBytes(24).toString("hex");
   const expires = new Date(Date.now() + EMAIL_VERIFICATION_TTL_HOURS * 60 * 60 * 1000);
 
   await prisma.verificationToken.deleteMany({
-    where: { identifier },
+    where: { identifier: normalizedIdentifier },
   });
 
   await prisma.verificationToken.create({
     data: {
-      identifier,
+      identifier: normalizedIdentifier,
       token,
       expires,
     },
@@ -31,23 +32,25 @@ export async function sendEmailVerification({
   email: string;
   name?: string | null;
 }) {
-  const { token } = await createEmailVerificationToken(email);
+  const normalizedEmail = normalizeEmail(email);
+  const { token } = await createEmailVerificationToken(normalizedEmail);
   const verificationUrl = getAbsoluteUrl(
-    `/verify-email?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`
+    `/verify-email?token=${encodeURIComponent(token)}&email=${encodeURIComponent(normalizedEmail)}`
   );
 
   await sendVerificationEmail({
-    to: email,
+    to: normalizedEmail,
     recipientName: name,
     verificationUrl,
   });
 }
 
 export async function verifyEmailToken(email: string, token: string) {
+  const normalizedEmail = normalizeEmail(email);
   const record = await prisma.verificationToken.findUnique({
     where: {
       identifier_token: {
-        identifier: email,
+        identifier: normalizedEmail,
         token,
       },
     },
@@ -61,7 +64,7 @@ export async function verifyEmailToken(email: string, token: string) {
     await prisma.verificationToken.delete({
       where: {
         identifier_token: {
-          identifier: email,
+          identifier: normalizedEmail,
           token,
         },
       },
@@ -71,14 +74,22 @@ export async function verifyEmailToken(email: string, token: string) {
   }
 
   await prisma.$transaction([
-    prisma.user.update({
-      where: { email },
-      data: { emailVerified: new Date() },
+    prisma.user.updateMany({
+      where: {
+        email: {
+          equals: normalizedEmail,
+          mode: "insensitive",
+        },
+      },
+      data: {
+        email: normalizedEmail,
+        emailVerified: new Date(),
+      },
     }),
     prisma.verificationToken.delete({
       where: {
         identifier_token: {
-          identifier: email,
+          identifier: normalizedEmail,
           token,
         },
       },

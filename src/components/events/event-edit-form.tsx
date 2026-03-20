@@ -35,7 +35,7 @@ const FIXED_TICKET_PRICE_CENTS = 3500;
 const FIXED_REFUND_POLICY =
   "Refunds are not available within 7 days of the event due to preparation and supply costs.\n\nIf you are unable to attend, your pre-drawn canvas and materials can be shipped to you so you can still complete the painting at home. Shipping fees may apply.\n\nIf the event is canceled by the organizer, all pre-drawn canvases and materials will be shipped to guests so they can still complete the painting at home. Guests will be contacted with additional details if necessary.";
 const DEFAULT_EVENT_DESCRIPTION =
-  "Join us for a fun creative Paint & Sip experience! Each guest will receive a pre-drawn canvas design, making it easy for anyone to paint — no experience required. Simply follow the outlines, add your own colors, and enjoy the creative process.\n\nAll painting supplies are included. Bring friends, enjoy the atmosphere, and leave with a finished canvas you'll be proud of!";
+  "Join us for a fun creative Paint experience! Each guest will receive a pre-drawn canvas design, making it easy for anyone to paint — no experience required. Simply follow the outlines, add your own colors, and enjoy the creative process.\n\nAll painting supplies are included. Bring friends, enjoy the atmosphere, and leave with a finished canvas you'll be proud of!";
 
 type Mode = "create" | "edit";
 
@@ -615,6 +615,7 @@ router.refresh();
                   <Input
                     id="startDate"
                     type="date"
+                    className="[&::-webkit-datetime-edit]:pl-2"
                     min={minEventDate}
                     value={formData.startDate}
                     onChange={(e) => {
@@ -640,12 +641,13 @@ router.refresh();
                   ) : null}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="startTime">Start Time</Label>
                     <Input
                       id="startTime"
                       type="time"
+                      className="[&::-webkit-datetime-edit]:pl-2"
                       value={formData.startTime}
                       onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
                       required
@@ -657,6 +659,7 @@ router.refresh();
                     <Input
                       id="endTime"
                       type="time"
+                      className="[&::-webkit-datetime-edit]:pl-2"
                       value={formData.endTime}
                       onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
                       required

@@ -3,7 +3,7 @@ import path from "path";
 import { buildQrSvg } from "../src/lib/event-qr";
 
 const EXAMPLE_URL = "https://host.paintsipdepot.com";
-const OUTPUT_PATH = path.join(process.cwd(), "public", "example.svg");
+const OUTPUT_PATH = path.join(process.cwd(), "public", "Misc", "example.svg");
 
 async function main() {
   const svg = await buildQrSvg(EXAMPLE_URL);

@@ -30,7 +30,7 @@ export default async function HomePage() {
                   "Set up your account and access your dashboard to manage your events, track guests, and keep everything organized in one place.",
                 tones: "from-primary/12 via-primary/5 to-background",
                 labels: ["Dashboard", "Upcoming events", "Recent bookings"],
-                imageSrc: "/dashboard.png",
+                imageSrc: "/Misc/dashboard.png",
               },
               {
                 number: "2",
@@ -39,7 +39,7 @@ export default async function HomePage() {
                   "Pick a design, add your event details, and launch a booking page your guests can start registering for right away.",
                 tones: "from-accent/20 via-primary/5 to-background",
                 labels: ["Canvas library", "Event details", "Publish booking page"],
-                imageSrc: "/Frame 61.png",
+                imageSrc: "/Misc/Frame 61.png",
               },
               {
                 number: "3",
@@ -48,7 +48,7 @@ export default async function HomePage() {
                   "Collect payments online, track tickets, confirm guests, and stay on top of everything from your dashboard.",
                 tones: "from-primary/10 via-accent/10 to-background",
                 labels: ["Payments", "Guest confirmations", "Ticket tracking"],
-                imageSrc: "/checkout.png",
+                imageSrc: "/Misc/checkout.png",
               },
             ].map((step) => (
               <div key={step.number} className="flex flex-col items-center text-center">

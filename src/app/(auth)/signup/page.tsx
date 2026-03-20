@@ -73,7 +73,7 @@ export default function SignUpPage() {
         <div className="text-center">
           <Link href="/" className="mb-4 inline-flex items-center gap-2">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-              <Image src="/logo.svg" alt="Logo" width={48} height={48} priority />
+              <Image src="/Misc/logo.svg" alt="Logo" width={48} height={48} priority />
             </div>
           </Link>
           <h1 className="font-display text-3xl font-bold">Create your account</h1>

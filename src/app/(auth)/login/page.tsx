@@ -51,7 +51,7 @@ export default function LoginPage() {
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
             <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
   <Image
-    src="/logo.svg"
+    src="/Misc/logo.svg"
     alt="Logo"
     width={48}
     height={48}

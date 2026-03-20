@@ -15,7 +15,7 @@ const LOGO_BOX_SIZE = 56;
 const LOGO_PADDING = 0;
 const LOGO_CORNER_RADIUS = 16;
 const LOGO_QR_CLEARANCE = 4;
-const LOGO_PATH = path.join(process.cwd(), "public", "logoSquare.svg");
+const LOGO_PATH = path.join(process.cwd(), "public", "Misc", "logoSquare.svg");
 const QR_CODE_DIR = path.join(process.cwd(), "public", "qr-codes");
 
 function isFinderModule(rowIndex: number, columnIndex: number, modules: number) {
@@ -39,7 +39,7 @@ async function loadLogoMarkup() {
   const viewBoxMatch = svg.match(/viewBox=["']([^"']+)["']/i);
 
   if (!viewBoxMatch) {
-    throw new Error("logoSquare.svg is missing a viewBox attribute");
+    throw new Error("Misc/logoSquare.svg is missing a viewBox attribute");
   }
 
   const [minX, minY, width, height] = viewBoxMatch[1]

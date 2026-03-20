@@ -58,7 +58,7 @@ function centsToDollars(cents: number) {
 }
 
 function emailShell(title: string, eyebrow: string, bodyHtml: string) {
-  const logoUrl = getAbsoluteUrl("/logoSquare.svg");
+  const logoUrl = getAbsoluteUrl("/Misc/logoSquare.svg");
 
   return `
     <div style="margin:0;padding:24px;background:#000000;font-family:Arial,sans-serif;color:#000000;">

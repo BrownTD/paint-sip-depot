@@ -14,6 +14,8 @@ export function Brand({
   className?: string;
 }) {
   const dims = size === "sm" ? 28 : 32;
+  const subtitleClassName =
+    size === "sm" ? "text-[10px] sm:text-xs" : "text-xs";
 
   return (
     <Link href={href} className={cn("flex items-center gap-2", className)}>
@@ -25,8 +27,11 @@ export function Brand({
         priority
       />
       {showText && (
-        <span className="font-display font-bold leading-none">
-          Paint &amp; Sip Depot
+        <span className="flex flex-wrap items-baseline gap-x-2 leading-none">
+          <span className="font-display font-bold">Paint &amp; Sip Depot</span>
+          <span className={cn("font-medium text-muted-foreground", subtitleClassName)}>
+            Formerly known as Millennium Studios
+          </span>
         </span>
       )}
     </Link>

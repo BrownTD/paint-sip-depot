@@ -134,7 +134,7 @@ export function EventEditForm({
     state: initialData?.state ?? "",
     zip: initialData?.zip ?? "",
     ticketPrice: FIXED_TICKET_PRICE_DOLLARS,
-    capacity: initialData?.capacity ?? "50",
+    capacity: initialData?.capacity ?? "",
     refundPolicyText: FIXED_REFUND_POLICY,
     canvasImageUrl: initialData?.canvasImageUrl ?? "",
     canvasName: initialData?.canvasName ?? "",
@@ -702,7 +702,7 @@ router.refresh();
                       <Label htmlFor="city">City</Label>
                       <Input
                         id="city"
-                        placeholder="Austin"
+                        placeholder="Columbia"
                         value={formData.city}
                         onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                         required
@@ -732,7 +732,7 @@ router.refresh();
                       <Label htmlFor="zip">ZIP Code</Label>
                       <Input
                         id="zip"
-                        placeholder="78701"
+                        placeholder="29229"
                         value={formData.zip}
                         onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
                         required
@@ -763,7 +763,7 @@ router.refresh();
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="capacity">Max Capacity</Label>
+                  <Label htmlFor="capacity">Max Participants</Label>
                   <Input
                     id="capacity"
                     type="number"

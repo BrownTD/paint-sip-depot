@@ -194,7 +194,6 @@ const clearFieldError = (field: string) =>
     setSelectedCanvas(canvas.id);
     setFormData((prev) => ({
       ...prev,
-      title: prev.title || canvas.name,
       canvasImageUrl: canvas.imageUrl,
       canvasName: canvas.name,
     }));

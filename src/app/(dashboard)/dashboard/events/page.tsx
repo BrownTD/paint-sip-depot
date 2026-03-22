@@ -1,16 +1,12 @@
 import { auth } from "@/lib/auth";
 import { getPaidTicketQuantitiesForEvents } from "@/lib/booking";
-import { EventQrDownloadButton } from "@/components/dashboard/event-qr-download-button";
 import { generateEventQrCode } from "@/lib/event-qr";
 import { prisma } from "@/lib/prisma";
-import { formatAmountForDisplay } from "@/lib/money";
-import { formatDate, formatTime } from "@/lib/utils";
 import Link from "next/link";
-import { Plus, Calendar, MapPin, Users, ExternalLink, Image as ImageIcon } from "lucide-react";
+import { Plus, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { EventCodeCopyButton } from "@/components/dashboard/event-code-copy-button";
+import { HostEventsList } from "@/components/dashboard/host-events-list";
 
 type HostEventRecord = {
   id: string;
@@ -81,15 +77,6 @@ async function getHostEvents(hostId: string) {
 }
 
 type HostEvent = Awaited<ReturnType<typeof getHostEvents>>[number];
-type DisplayStatus = HostEvent["status"] | "COMPLETED";
-
-const statusColors = {
-  DRAFT: "secondary",
-  PUBLISHED: "success",
-  ENDED: "outline",
-  CANCELED: "destructive",
-  COMPLETED: "outline",
-} as const;
 
 export default async function EventsPage() {
   const session = await auth();
@@ -126,131 +113,7 @@ export default async function EventsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
-          {events.map((event: HostEvent) => (
-            <Card key={event.id} className="overflow-hidden">
-              {(() => {
-                const isPastEvent = event.startDateTime < new Date();
-                const isRelaunchable = event.status === "CANCELED" || isPastEvent;
-                const displayStatus: DisplayStatus =
-                  event.status === "CANCELED"
-                    ? "CANCELED"
-                    : isPastEvent
-                      ? "COMPLETED"
-                      : event.status;
-
-                return (
-              <div className="flex flex-col md:flex-row">
-                <div className="relative w-full md:w-48 h-32 md:h-auto bg-muted shrink-0">
-                  {event.canvasImageUrl ? (
-                    <img
-                      src={event.canvasImageUrl}
-                      alt={event.title}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Calendar className="w-8 h-8 text-muted-foreground/30" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex-1 p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-center">
-                        <h3 className="font-semibold text-lg">{event.title}</h3>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant={statusColors[displayStatus as keyof typeof statusColors]}>
-                            {displayStatus.toLowerCase()}
-                          </Badge>
-                          <Badge
-                            variant="outline"
-                            className={
-                              event.visibility === "PUBLIC"
-                                ? "border-blue-200 bg-blue-50 text-blue-700"
-                                : "border-[#6741ff]/20 bg-[#6741ff]/10 text-[#6741ff]"
-                            }
-                          >
-                            {event.visibility === "PUBLIC" ? "public" : "private"}
-                          </Badge>
-                          <Badge variant="secondary">
-                            {event.eventFormat === "VIRTUAL" ? "virtual" : "in person"}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          {formatDate(event.startDateTime)} at {formatTime(event.startDateTime)}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-4 h-4" />
-                          {event.eventFormat === "VIRTUAL"
-                            ? "Virtual"
-                            : `${event.city}, ${event.state}`}
-                        </span>
-                      </div>
-                      {event.canvasName ? (
-                        <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                          <ImageIcon className="h-4 w-4" />
-                          <span>Canvas: {event.canvasName}</span>
-                        </div>
-                      ) : null}
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="font-semibold">
-                        {formatAmountForDisplay(event.ticketPriceCents)}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        <Users className="w-3 h-3 inline mr-1" />
-                        {Number(event.ticketsSold)} / {Number(event.capacity)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 mt-4">
-                    {isRelaunchable ? (
-                      <Link href={`/dashboard/events/${event.id}?relaunch=1`}>
-                        <Button variant="outline" size="sm">
-                          Relaunch
-                        </Button>
-                      </Link>
-                    ) : (
-                      <Link href={`/dashboard/events/${event.id}`}>
-                        <Button variant="outline" size="sm">
-                          Manage
-                        </Button>
-                      </Link>
-                    )}
-
-                    {event.eventCode ? (
-                      <EventCodeCopyButton eventCode={event.eventCode} />
-                    ) : null}
-
-                    {event.status === "PUBLISHED" && (
-                      <Link href={`/e/${event.slug}`} target="_blank">
-                        <Button variant="ghost" size="sm">
-                          <ExternalLink className="w-4 h-4 mr-1" />
-                          View Event Page
-                        </Button>
-                      </Link>
-                    )}
-
-                    {event.qrCodeImageUrl ? (
-                      <EventQrDownloadButton
-                        fileName={`${event.slug}-qr.png`}
-                        qrCodeImageUrl={event.qrCodeImageUrl}
-                      />
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-                );
-              })()}
-            </Card>
-          ))}
-        </div>
+        <HostEventsList events={events as HostEvent[]} />
       )}
     </div>
   );

@@ -1,12 +1,12 @@
-export const STRIPE_PROCESSING_PERCENT = 0.029;
-export const STRIPE_PROCESSING_FIXED_CENTS = 30;
+export const CHECKOUT_PROCESSING_FEE_CENTS = 135;
 
 export function getTicketSubtotalCents(ticketPriceCents: number, quantity: number) {
   return ticketPriceCents * quantity;
 }
 
 export function getProcessingFeeCents(subtotalCents: number) {
-  return Math.round(subtotalCents * STRIPE_PROCESSING_PERCENT) + STRIPE_PROCESSING_FIXED_CENTS;
+  void subtotalCents;
+  return CHECKOUT_PROCESSING_FEE_CENTS;
 }
 
 export function getCheckoutTotalCents(ticketPriceCents: number, quantity: number) {

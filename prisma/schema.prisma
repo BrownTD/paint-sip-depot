@@ -133,12 +133,35 @@ model Booking {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event     Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  emailLogs BookingEmailLog[]
 
   @@index([eventId])
   @@index([purchaserEmail])
   @@index([eventId, status, reservationExpiresAt])
   @@map("bookings")
+}
+
+model BookingEmailLog {
+  id                String             @id @default(cuid())
+  bookingId         String
+  emailType         BookingEmailType
+  status            BookingEmailStatus
+  recipientEmail    String
+  provider          String
+  providerMessageId String?
+  attemptedAt       DateTime           @default(now())
+  sentAt            DateTime?
+  failedAt          DateTime?
+  errorMessage      String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, emailType])
+  @@index([bookingId, emailType, status])
+  @@map("booking_email_logs")
 }
 
 enum UserRole {
@@ -160,6 +183,16 @@ enum BookingStatus {
   REFUNDED
   EXPIRED
   CANCELED
+}
+
+enum BookingEmailType {
+  EXPIRED_CHECKOUT
+}
+
+enum BookingEmailStatus {
+  PENDING
+  SENT
+  FAILED
 }
 
 enum EventVisibility {

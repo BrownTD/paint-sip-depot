@@ -59,10 +59,12 @@ async function reserveBookingForCheckout({
   const now = new Date();
   const reservationExpiresAt = getReservationExpiry(now);
 
+  // Stale reservations are expired before the inventory transaction starts so any
+  // follow-up email work does not run inside the ticket reservation transaction.
+  await expireStaleReservations(prisma, now, eventId);
+
   return prisma.$transaction(
     async (tx) => {
-      await expireStaleReservations(tx, now, eventId);
-
       const event = await tx.event.findUnique({
         where: { id: eventId },
       });

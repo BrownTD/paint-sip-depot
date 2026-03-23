@@ -3,12 +3,14 @@ import { formatDate, formatTime, getAbsoluteUrl } from "@/lib/utils";
 const RESEND_API_URL = "https://api.resend.com/emails";
 const DEFAULT_FROM_EMAIL = "onboarding@resend.dev";
 const DEFAULT_ADMIN_EMAIL = "info@paintsipdepot.com";
+const DEFAULT_REPLY_TO_EMAIL = "info@paintsipdepot.com";
 
 type SendEmailOptions = {
   to: string | string[];
   subject: string;
   html: string;
   text: string;
+  replyTo?: string | string[];
 };
 
 type EventCreatedEmailInput = {
@@ -38,16 +40,30 @@ type OrderNotificationInput = {
   amountPaidCents: number;
 };
 
+type ExpiredCheckoutEmailInput = {
+  to: string;
+  purchaserName?: string | null;
+  eventTitle: string;
+  eventUrl: string;
+  startDateTime: Date;
+  locationName: string;
+  timeLeftLabel: string;
+};
+
 function getResendApiKey() {
   return process.env.RESEND_API_KEY;
 }
 
 function getFromEmail() {
-  return DEFAULT_FROM_EMAIL;
+  return process.env.RESEND_FROM_EMAIL || DEFAULT_FROM_EMAIL;
 }
 
 function getAdminEmail() {
   return process.env.ORDER_ALERT_ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL;
+}
+
+function getReplyToEmail() {
+  return process.env.EMAIL_REPLY_TO || DEFAULT_REPLY_TO_EMAIL;
 }
 
 function centsToDollars(cents: number) {
@@ -76,8 +92,29 @@ function emailShell(title: string, eyebrow: string, bodyHtml: string) {
   `;
 }
 
+function signatureBlock() {
+  return `
+    <div style="margin-top:32px;padding-top:24px;border-top:1px solid #e5e5e5;font-size:14px;line-height:1.7;color:#525252;">
+      <p style="margin:0 0 14px;font-weight:700;color:#111111;">Paint &amp; Sip Depot</p>
+      <p style="margin:0;">Creating unforgettable paint &amp; sip experiences</p>
+      <p style="margin:14px 0 0;">
+        <a href="tel:+18039384775" style="color:#111111;text-decoration:none;">(803) 938-4775</a><br />
+        <a href="mailto:info@paintsipdepot.com" style="color:#111111;text-decoration:none;">info@paintsipdepot.com</a><br />
+        <a href="https://www.paintsipdepot.com" style="color:#111111;text-decoration:none;">www.paintsipdepot.com</a>
+      </p>
+    </div>
+  `;
+}
+
+function getFirstName(name?: string | null) {
+  const trimmedName = name?.trim();
+  if (!trimmedName) return "there";
+
+  return trimmedName.split(/\s+/)[0] || "there";
+}
+
 async function sendEmail(
-  { to, subject, html, text }: SendEmailOptions,
+  { to, subject, html, text, replyTo }: SendEmailOptions,
   options?: { enabled?: boolean }
 ) {
   if (options?.enabled === false) {
@@ -85,21 +122,23 @@ async function sendEmail(
       to,
       subject,
       from: getFromEmail(),
+      replyTo,
     });
-    return;
+    return { skipped: true as const, reason: "disabled" as const };
   }
 
-  console.info("Email delivery disabled.", {
+  console.info("Email delivery attempt.", {
     disabled: false,
     to,
     subject,
     from: getFromEmail(),
+    replyTo,
   });
 
   const apiKey = getResendApiKey();
   if (!apiKey) {
     console.warn("RESEND_API_KEY is missing; skipping email send.");
-    return;
+    return { skipped: true as const, reason: "missing_api_key" as const };
   }
 
   const response = await fetch(RESEND_API_URL, {
@@ -114,6 +153,7 @@ async function sendEmail(
       subject,
       html,
       text,
+      reply_to: replyTo,
     }),
   });
 
@@ -121,6 +161,12 @@ async function sendEmail(
     const errorBody = await response.text().catch(() => "");
     throw new Error(`Resend email failed (${response.status}): ${errorBody}`);
   }
+
+  const responseBody = await response.json().catch(() => null);
+  return {
+    id: responseBody?.id as string | undefined,
+    skipped: false as const,
+  };
 }
 
 export async function sendAdminEventCreatedEmail(input: EventCreatedEmailInput) {
@@ -233,6 +279,61 @@ export async function sendHostOrderCreatedEmail(input: OrderNotificationInput & 
     html,
     text,
   }, { enabled: false });
+}
+
+export async function sendExpiredCheckoutEmail(input: ExpiredCheckoutEmailInput) {
+  const firstName = getFirstName(input.purchaserName);
+  const greeting = `Hi ${firstName},`;
+  const subject = `Your checkout session expired for ${input.eventTitle}`;
+  const html = emailShell(
+    "Checkout session expired",
+    "Booking Update",
+    `
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${greeting}</p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">
+        Your previous checkout session has expired, but you still have <strong>${input.timeLeftLabel}</strong> left to complete your order before checkout closes for your event.
+      </p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">
+        To make sure everything is processed correctly and your order is secured, you&apos;ll need to start a new checkout using the link below.
+      </p>
+      <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        <p style="margin:0 0 10px;"><strong>Event:</strong> ${input.eventTitle}</p>
+        <p style="margin:0 0 10px;"><strong>Date:</strong> ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}</p>
+        <p style="margin:0;"><strong>Location:</strong> ${input.locationName}</p>
+      </div>
+      <p style="margin:20px 0 0;">
+        <a href="${input.eventUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">Complete Your Order</a>
+      </p>
+      <p style="margin:20px 0 0;font-size:16px;line-height:1.6;">
+        We recommend completing your order as soon as possible so we can prepare your kits and ensure everything arrives on time for your event.
+      </p>
+      <p style="margin:16px 0 0;font-size:16px;line-height:1.6;">
+        If you need help or have any questions, just reply here. We&apos;ve got you.
+      </p>
+      ${signatureBlock()}
+    `
+  );
+
+  const text =
+    `${greeting}\n\n` +
+    `Your previous checkout session has expired, but you still have ${input.timeLeftLabel} left to complete your order before checkout closes for your event.\n\n` +
+    `To make sure everything is processed correctly and your order is secured, you'll need to start a new checkout using the link below:\n\n` +
+    `${input.eventUrl}\n\n` +
+    `We recommend completing your order as soon as possible so we can prepare your kits and ensure everything arrives on time for your event.\n\n` +
+    `If you need help or have any questions, just reply here — we've got you.\n\n` +
+    `Paint & Sip Depot\n` +
+    `Creating unforgettable paint & sip experiences\n` +
+    `(803) 938-4775\n` +
+    `info@paintsipdepot.com\n` +
+    `www.paintsipdepot.com`;
+
+  return sendEmail({
+    to: input.to,
+    subject,
+    html,
+    text,
+    replyTo: getReplyToEmail(),
+  });
 }
 
 export async function sendVerificationEmail(input: VerificationEmailInput) {

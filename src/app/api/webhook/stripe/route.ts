@@ -4,6 +4,7 @@ import {
   sendAdminOrderCreatedEmail,
   sendHostOrderCreatedEmail,
 } from "@/lib/email";
+import { expireBookingsForCheckoutSession } from "@/lib/booking";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import { getAbsoluteUrl } from "@/lib/utils";
@@ -122,13 +123,7 @@ export async function POST(request: Request) {
 
       case "checkout.session.expired": {
         const session = event.data.object as Stripe.Checkout.Session;
-        await prisma.booking.updateMany({
-          where: {
-            stripeCheckoutSessionId: session.id,
-            status: { in: [BOOKING_STATUS.pending, BOOKING_STATUS.reserved] },
-          },
-          data: { status: BOOKING_STATUS.expired },
-        });
+        await expireBookingsForCheckoutSession(prisma, session.id);
         console.log(`Booking expired (session expired): ${session.id}`);
         break;
       }

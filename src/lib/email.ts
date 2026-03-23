@@ -74,13 +74,13 @@ function centsToDollars(cents: number) {
 }
 
 function emailShell(title: string, eyebrow: string, bodyHtml: string) {
-  const logoUrl = getAbsoluteUrl("/Misc/logoSquare.svg");
+  const logoUrl = getAbsoluteUrl("/Misc/psd_logo.png");
 
   return `
     <div style="margin:0;padding:24px;background:#000000;font-family:Arial,sans-serif;color:#000000;">
       <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid #1f1f1f;">
         <div style="padding:28px 32px;background:#000000;border-bottom:4px solid #feaa08;">
-          <img src="${logoUrl}" alt="Paint & Sip Depot" style="height:56px;width:auto;display:block;margin-bottom:16px;" />
+          <img src="${logoUrl}" alt="Paint & Sip Depot" style="height:36px;width:auto;display:block;margin-bottom:12px;" />
           <div style="font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#feaa08;font-weight:700;">${eyebrow}</div>
           <h1 style="margin:8px 0 0;font-size:28px;line-height:1.15;color:#ffffff;">${title}</h1>
         </div>

@@ -11,6 +11,8 @@ type PublicHeaderLink = {
   label: string;
 };
 
+const SHOP_CANVASES_HREF = "/shop";
+
 export function PublicHeader({
   links = [],
   ctaHref = "/signup",
@@ -57,6 +59,9 @@ export function PublicHeader({
               <Button variant="ghost" size="sm">{link.label}</Button>
             </Link>
           ))}
+          <Link href={SHOP_CANVASES_HREF}>
+            <Button variant="ghost" size="sm">Shop Canvases</Button>
+          </Link>
           <Link href="/login">
             <Button variant="ghost" size="sm">Host Login</Button>
           </Link>
@@ -109,6 +114,14 @@ export function PublicHeader({
                       {link.label}
                     </Link>
                   ))}
+
+                  <Link
+                    href={SHOP_CANVASES_HREF}
+                    className="block text-sm font-medium text-foreground/80 transition-colors hover:text-primary"
+                    onClick={() => setOpen(false)}
+                  >
+                    Shop Canvases
+                  </Link>
 
                   {showFindEventLink ? (
                     <Link

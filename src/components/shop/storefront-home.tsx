@@ -353,13 +353,26 @@ export function StorefrontHome() {
 
       <main>
         <section className="relative overflow-hidden bg-[#f4f1ee] px-4 pb-10 pt-8 sm:pt-10 md:pb-14">
-          <div className="mx-auto grid max-w-7xl items-center gap-8 lg:grid-cols-[1.02fr_0.98fr] lg:gap-12">
-            <div className="relative z-10">
+          <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[2.25rem] border border-black/10 bg-white shadow-[0_28px_90px_rgba(0,0,0,0.08)]">
+            <Image
+              src="/Misc/BackgroundHero.png"
+              alt="Paint & Sip Depot storefront hero"
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover object-center"
+            />
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(244,241,238,0.96)_0%,rgba(244,241,238,0.92)_34%,rgba(244,241,238,0.5)_58%,rgba(244,241,238,0.18)_100%)] sm:bg-[linear-gradient(90deg,rgba(244,241,238,0.97)_0%,rgba(244,241,238,0.9)_36%,rgba(244,241,238,0.48)_60%,rgba(244,241,238,0.12)_100%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(0,0,0,0.08),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(0,0,0,0.05),transparent_28%)]" />
+            <div className="relative z-10 min-h-[540px] px-6 py-8 sm:min-h-[620px] sm:px-8 sm:py-10 lg:min-h-[660px] lg:px-12 lg:py-12">
+              <div className="max-w-2xl">
               <span className="inline-flex rounded-full border border-black/10 bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-black/70">
                 Curated for events, gifting, and paint nights
               </span>
-              <h1 className="mt-6 max-w-[10ch] font-display text-[3.2rem] uppercase leading-[0.88] tracking-tight text-black sm:text-[4.4rem] lg:text-[5.6rem]">
-                Find a Canvas for Any Occasion
+              <h1 className="mt-6 max-w-[13.5ch] font-display text-[3.35rem] uppercase leading-[0.9] tracking-tight text-black sm:text-[4.6rem] lg:text-[5.35rem]">
+                Find A Canvas
+                <br />
+                For Any Occasion
               </h1>
               <p className="mt-5 max-w-xl text-base leading-7 text-black/68 sm:text-lg">
                 Browse our curated collection of canvases, paint party essentials, and creative
@@ -391,29 +404,6 @@ export function StorefrontHome() {
                 ))}
               </div>
             </div>
-
-            <div className="relative min-h-[420px] overflow-hidden rounded-[2.25rem] border border-black/10 bg-white shadow-[0_28px_90px_rgba(0,0,0,0.08)] sm:min-h-[520px]">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(0,0,0,0.08),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(0,0,0,0.05),transparent_28%)]" />
-              <Image
-                src="/Misc/BackgroundHero.png"
-                alt="Paint & Sip Depot storefront hero"
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 48vw"
-                className="object-cover object-center"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-white/5" />
-              <div className="absolute left-5 top-5 h-10 w-10 rounded-full border border-white/70 bg-white/35 backdrop-blur-sm" />
-              <div className="absolute right-7 top-10 h-16 w-16 rounded-full border border-black/15 bg-white/80" />
-              <div className="absolute bottom-6 left-6 max-w-[220px] rounded-[1.4rem] border border-white/60 bg-white/85 p-4 shadow-lg backdrop-blur">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-black/55">
-                  Best Seller
-                </p>
-                <p className="mt-2 text-lg font-semibold text-black">Paint Party Starter Bundle</p>
-                <p className="mt-1 text-sm text-black/60">
-                  Canvas, brushes, palettes, and event-ready extras in one polished kit.
-                </p>
-              </div>
             </div>
           </div>
         </section>

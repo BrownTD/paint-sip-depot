@@ -147,6 +147,9 @@ export default async function HomePage() {
             </Link>
             <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground md:items-end">
               <div className="flex items-center gap-4">
+                <Link href="/shop" className="hover:text-foreground transition-colors">
+                  Shop Canvases
+                </Link>
                 <Link href="/privacy-policy" className="hover:text-foreground transition-colors">
                   Privacy Policy
                 </Link>

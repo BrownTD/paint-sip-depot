@@ -124,44 +124,30 @@ type StorefrontNavCategory = {
   }>;
 };
 
-function buildStorefrontCategories(products: StorefrontProductRecord[]): StorefrontNavCategory[] {
-  const categoriesById = new Map<string, StorefrontNavCategory>();
+async function getStorefrontNavCategories(): Promise<StorefrontNavCategory[]> {
+  const categories = await prisma.productCategory.findMany({
+    include: {
+      subcategories: {
+        orderBy: {
+          name: "asc",
+        },
+      },
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
 
-  for (const product of products) {
-    const existingCategory = categoriesById.get(product.categoryId);
-
-    if (existingCategory) {
-      if (
-        product.subcategory &&
-        !existingCategory.subcategories.some((item) => item.id === product.subcategory!.id)
-      ) {
-        existingCategory.subcategories.push({
-          id: product.subcategory.id,
-          name: product.subcategory.name,
-          slug: product.subcategory.slug,
-        });
-        existingCategory.subcategories.sort((a, b) => a.name.localeCompare(b.name));
-      }
-      continue;
-    }
-
-    categoriesById.set(product.categoryId, {
-      id: product.categoryId,
-      name: product.category.name,
-      slug: product.category.slug,
-      subcategories: product.subcategory
-        ? [
-            {
-              id: product.subcategory.id,
-              name: product.subcategory.name,
-              slug: product.subcategory.slug,
-            },
-          ]
-        : [],
-    });
-  }
-
-  return [...categoriesById.values()].sort((a, b) => a.name.localeCompare(b.name));
+  return categories.map((category) => ({
+    id: category.id,
+    name: category.name,
+    slug: category.slug,
+    subcategories: category.subcategories.map((subcategory) => ({
+      id: subcategory.id,
+      name: subcategory.name,
+      slug: subcategory.slug,
+    })),
+  }));
 }
 
 type PreparedVariant = {
@@ -489,7 +475,7 @@ export async function getProductForEditing(productId: string) {
 }
 
 export async function getStorefrontProducts() {
-  const [fetchedProducts, paidOrderItems] = await Promise.all([
+  const [fetchedProducts, paidOrderItems, categories] = await Promise.all([
     prisma.product.findMany({
       where: {
         status: ProductStatus.ACTIVE,
@@ -510,6 +496,7 @@ export async function getStorefrontProducts() {
         quantity: true,
       },
     }),
+    getStorefrontNavCategories(),
   ]);
 
   const activeProducts = fetchedProducts.map((product) => ({
@@ -568,8 +555,6 @@ export async function getStorefrontProducts() {
 
   const themes = [...themesById.values()].sort((a, b) => a.name.localeCompare(b.name));
 
-  const categories = buildStorefrontCategories(activeProducts);
-
   return {
     newArrivals,
     topSelling,
@@ -585,7 +570,7 @@ export async function getStorefrontCategoryProducts({
   categorySlug: string;
   subcategorySlug?: string;
 }) {
-  const [fetchedProducts, category] = await Promise.all([
+  const [fetchedProducts, category, categories] = await Promise.all([
     prisma.product.findMany({
       where: {
         status: ProductStatus.ACTIVE,
@@ -607,14 +592,13 @@ export async function getStorefrontCategoryProducts({
         },
       },
     }),
+    getStorefrontNavCategories(),
   ]);
 
   const activeProducts = fetchedProducts.map((product) => ({
     ...product,
     imageUrls: ensurePaintKitImageUrls(product.categoryId, product.imageUrls),
   }));
-
-  const categories = buildStorefrontCategories(activeProducts);
 
   if (!category) {
     return {
@@ -659,7 +643,7 @@ export async function getStorefrontCategoryProducts({
 }
 
 export async function getStorefrontProductDetail(productId: string) {
-  const [fetchedProducts, product] = await Promise.all([
+  const [fetchedProducts, product, categories] = await Promise.all([
     prisma.product.findMany({
       where: {
         status: ProductStatus.ACTIVE,
@@ -676,6 +660,7 @@ export async function getStorefrontProductDetail(productId: string) {
       },
       include: storefrontProductInclude,
     }),
+    getStorefrontNavCategories(),
   ]);
 
   const activeProducts = fetchedProducts.map((item) => ({
@@ -689,8 +674,6 @@ export async function getStorefrontProductDetail(productId: string) {
         imageUrls: ensurePaintKitImageUrls(product.categoryId, product.imageUrls),
       }
     : null;
-
-  const categories = buildStorefrontCategories(activeProducts);
 
   if (!selectedProduct) {
     return {

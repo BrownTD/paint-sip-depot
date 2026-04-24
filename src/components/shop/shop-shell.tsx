@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -79,6 +80,34 @@ function getSubcategoryHref(category: StorefrontNavCategory, subcategory: Storef
   return `/shop/category/${category.slug}/${subcategory.slug}`;
 }
 
+const paintKitSubcategoryOrder = [
+  "girls-night",
+  "couples-date-night",
+  "faith-community",
+  "kids-family",
+  "sports-teams",
+  "sororities",
+  "fraternities",
+  "mature-audience",
+  "everyone-welcome",
+];
+
+function getOrderedPaintKitSubcategories(category: StorefrontNavCategory) {
+  return [...category.subcategories].sort((a, b) => {
+    const indexA = paintKitSubcategoryOrder.indexOf(a.slug);
+    const indexB = paintKitSubcategoryOrder.indexOf(b.slug);
+
+    if (indexA === -1 && indexB === -1) {
+      return a.name.localeCompare(b.name);
+    }
+
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+
+    return indexA - indexB;
+  });
+}
+
 type ShopCartContextValue = {
   items: ShopCartItem[];
   isOpen: boolean;
@@ -108,6 +137,12 @@ function MobileNavigation({ categories }: { categories: StorefrontNavCategory[] 
     { href: "/host", label: "Host an Event" },
     { href: "/contact", label: "Contact" },
   ];
+  const paintKitsCategory =
+    categories.find((category) => category.id === "cat_canvases") ?? categories[0] ?? null;
+  const supplyCategories = categories.filter((category) => category.id !== paintKitsCategory?.id);
+  const paintKitSubcategories = paintKitsCategory
+    ? getOrderedPaintKitSubcategories(paintKitsCategory)
+    : [];
 
   return (
     <Sheet>
@@ -120,67 +155,100 @@ function MobileNavigation({ categories }: { categories: StorefrontNavCategory[] 
           <Menu className="h-5 w-5" />
         </button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[88%] max-w-sm rounded-r-[2rem] px-6 py-8">
-        <SheetHeader className="mb-8 text-left">
+      <SheetContent
+        side="left"
+        hideClose
+        className="flex h-full w-[88%] max-w-sm flex-col rounded-r-[2rem] px-6 py-8"
+      >
+        <div className="mb-8 flex items-center justify-between gap-4">
+        <SheetHeader className="text-left">
           <SheetTitle className="font-display text-2xl uppercase tracking-tight">
             Paint &amp; Sip Depot
           </SheetTitle>
         </SheetHeader>
+          <SheetClose asChild>
+            <button
+              type="button"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white transition hover:bg-black hover:text-white"
+              aria-label="Close menu"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </SheetClose>
+        </div>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="no-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+            {paintKitsCategory ? (
+              <details className="group rounded-2xl bg-white/70 px-4 py-3">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-base font-medium">
+                  <span>{paintKitsCategory.name}</span>
+                  <ChevronRight className="h-4 w-4 transition group-open:rotate-90" />
+                </summary>
+
+                {paintKitSubcategories.length > 0 ? (
+                  <div className="mt-3 space-y-1">
+                    <Link
+                      href={getCategoryHref(paintKitsCategory)}
+                      className="block rounded-xl px-3 py-2 text-sm text-black/70 transition hover:bg-muted hover:text-black"
+                    >
+                      All
+                    </Link>
+                    {paintKitSubcategories.map((subcategory) => (
+                      <Link
+                        key={subcategory.id}
+                        href={getSubcategoryHref(paintKitsCategory, subcategory)}
+                        className="block rounded-xl px-3 py-2 text-sm text-black/70 transition hover:bg-muted hover:text-black"
+                      >
+                        {subcategory.name}
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <Link
+                    href={getCategoryHref(paintKitsCategory)}
+                    className="mt-3 block rounded-xl px-3 py-2 text-sm text-black/70 transition hover:bg-muted hover:text-black"
+                  >
+                    Shop {paintKitsCategory.name}
+                  </Link>
+                )}
+              </details>
+            ) : null}
+
+            {supplyCategories.length > 0 ? (
+              <details className="group rounded-2xl bg-white/70 px-4 py-3">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-base font-medium">
+                  <span>Supplies</span>
+                  <ChevronRight className="h-4 w-4 transition group-open:rotate-90" />
+                </summary>
+
+                <div className="mt-3 space-y-1">
+                  {supplyCategories.map((category) => (
+                    <Link
+                      key={category.id}
+                      href={getCategoryHref(category)}
+                      className="block rounded-xl px-3 py-2 text-sm text-black/70 transition hover:bg-muted hover:text-black"
+                    >
+                      {category.name}
+                    </Link>
+                  ))}
+                </div>
+              </details>
+            ) : null}
+          </div>
+
+          <div className="mt-5 h-px w-full bg-black/10" />
+
+          <div className="mt-4 space-y-1">
             {primaryLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="block rounded-xl px-3 py-2 text-sm font-medium text-black/75 transition hover:bg-muted hover:text-black"
+                className="block rounded-xl px-3 py-1.5 text-xs font-medium text-black/65 transition hover:bg-muted hover:text-black"
               >
                 {link.label}
               </Link>
             ))}
-          </div>
-
-          <div className="h-px w-full bg-black/10" />
-
-          <div className="space-y-3">
-          {categories.map((category) => (
-            <details
-              key={category.id}
-              className="group rounded-2xl bg-white/70 px-4 py-3"
-            >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-base font-medium">
-                <span>{category.name}</span>
-                <ChevronRight className="h-4 w-4 transition group-open:rotate-90" />
-              </summary>
-
-              {category.subcategories.length > 0 ? (
-                <div className="mt-3 space-y-1 border-t border-black/10 pt-3">
-                  <Link
-                    href={getCategoryHref(category)}
-                    className="block rounded-xl px-3 py-2 text-sm font-semibold text-black transition hover:bg-muted"
-                  >
-                    All {category.name}
-                  </Link>
-                  {category.subcategories.map((subcategory) => (
-                    <Link
-                      key={subcategory.id}
-                      href={getSubcategoryHref(category, subcategory)}
-                      className="block rounded-xl px-3 py-2 text-sm text-black/70 transition hover:bg-muted hover:text-black"
-                    >
-                      {subcategory.name}
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <Link
-                  href={getCategoryHref(category)}
-                  className="mt-3 block rounded-xl border-t border-black/10 px-3 py-2 pt-3 text-sm text-black/70 transition hover:bg-muted hover:text-black"
-                >
-                  Shop {category.name}
-                </Link>
-              )}
-            </details>
-          ))}
           </div>
         </div>
       </SheetContent>

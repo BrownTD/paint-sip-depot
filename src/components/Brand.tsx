@@ -14,9 +14,6 @@ export function Brand({
   className?: string;
 }) {
   const dims = size === "sm" ? 28 : 32;
-  const subtitleClassName =
-    size === "sm" ? "text-[10px] sm:text-xs" : "text-xs";
-
   return (
     <Link href={href} className={cn("flex items-center gap-2", className)}>
       <Image
@@ -27,12 +24,7 @@ export function Brand({
         priority
       />
       {showText && (
-        <span className="flex flex-col justify-center gap-1 py-1 leading-none">
-          <span className="font-display font-bold">Paint &amp; Sip Depot</span>
-          <span className={cn("font-medium text-muted-foreground", subtitleClassName)}>
-            Formerly known as Millennium Studios
-          </span>
-        </span>
+        <span className="font-display font-bold leading-none">Paint &amp; Sip Depot</span>
       )}
     </Link>
   );

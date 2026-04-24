@@ -6,9 +6,11 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       <PublicHeader
-        links={[{ href: "/host", label: "Host" }]}
-        ctaHref="/host"
-        ctaLabel="Host Events"
+        navLinks={[
+          { href: "/shop", label: "Shop Paint Kits" },
+          { href: "/host", label: "Host Events" },
+          { href: "/events", label: "Find an Event" },
+        ]}
       />
 
       <main className="flex min-h-screen items-center px-4 pt-24">

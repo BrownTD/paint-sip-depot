@@ -26,6 +26,7 @@ export default async function ShopPage() {
       name: product.name,
       sku: product.sku,
       description: product.description,
+      categoryId: product.categoryId,
       categoryName: getCategoryBadgeLabel(product.categoryId, product.category.name),
       subcategoryName: product.subcategory?.name ?? null,
       imageUrls: product.imageUrls,

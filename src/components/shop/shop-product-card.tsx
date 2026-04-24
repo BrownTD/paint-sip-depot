@@ -28,6 +28,7 @@ export type StorefrontProductCardData = {
   name: string;
   sku: string;
   description: string;
+  categoryId: string;
   categoryName: string;
   subcategoryName: string | null;
   imageUrls: string[];
@@ -144,7 +145,8 @@ export function ShopProductCard({
   );
   const quantityNumber = Math.max(1, Number.parseInt(quantity || "1", 10) || 1);
   const hasVariants = product.variants.length > 0;
-  const hasColorOptions = product.colorOptions.length > 0;
+  const isPaintProduct = product.categoryId === "cat_paint";
+  const hasSelectableColorOptions = isPaintProduct && product.colorOptions.length > 0;
   const unitPriceCents = selectedVariant?.priceCents ?? product.priceCents;
   const checkoutCurrency = selectedVariant?.currency ?? product.currency;
   const selectedImageUrl = product.imageUrls[selectedImageIndex] ?? product.imageUrls[0] ?? null;
@@ -180,7 +182,7 @@ export function ShopProductCard({
       return;
     }
 
-    if (hasColorOptions && !selectedColorOptionId) {
+    if (hasSelectableColorOptions && !selectedColorOptionId) {
       toast({
         title: "Color required",
         description: "Choose a color before continuing to checkout.",
@@ -200,7 +202,7 @@ export function ShopProductCard({
         body: JSON.stringify({
           productId: product.id,
           variantId: selectedVariant?.id ?? null,
-          colorOptionId: selectedColorOptionId || null,
+          colorOptionId: hasSelectableColorOptions ? selectedColorOptionId || null : null,
           quantity: quantityNumber,
           customerName,
           customerEmail,
@@ -261,6 +263,24 @@ export function ShopProductCard({
               {product.name}
             </h3>
           </Link>
+
+          {product.colorOptions.length > 0 ? (
+            <div className="mt-2 flex items-center gap-1.5">
+              {product.colorOptions.slice(0, 3).map((colorOption) => (
+                <span
+                  key={colorOption.id}
+                  className="h-5 w-5 rounded-full border border-black/10"
+                  style={{ backgroundColor: colorOption.hex }}
+                  title={colorOption.label}
+                />
+              ))}
+              {product.colorOptions.length > 3 ? (
+                <span className="text-xs font-semibold text-black/55">
+                  +{product.colorOptions.length - 3}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
 
           <ProductCardStars rating={product.rating} reviewCount={product.reviewCount} />
 
@@ -365,7 +385,7 @@ export function ShopProductCard({
                 </div>
               ) : null}
 
-              {hasColorOptions ? (
+              {hasSelectableColorOptions ? (
                 <div className="space-y-3">
                   <Label>Color</Label>
                   <div className="flex flex-wrap gap-2">

@@ -129,9 +129,14 @@ export default async function ProductDetailPage({
     imageUrls: product.imageUrls,
     breadcrumbs: [
       { label: "Shop", href: "/shop" },
-      { label: categoryName, href: "/shop#browse-theme" },
+      { label: categoryName, href: `/shop/category/${product.category.slug}` },
       ...(product.subcategory
-        ? [{ label: product.subcategory.name, href: "/shop#browse-theme" }]
+        ? [
+            {
+              label: product.subcategory.name,
+              href: `/shop/category/${product.category.slug}/${product.subcategory.slug}`,
+            },
+          ]
         : []),
       { label: product.name },
     ],
@@ -141,6 +146,7 @@ export default async function ProductDetailPage({
     discountPercent: product.discountPercent,
     currency: product.currency,
     stripePriceId: product.stripePriceId,
+    categoryId: product.categoryId,
     categoryName: badgeCategoryName,
     subcategoryName: product.subcategory?.name ?? null,
     colorOptions: product.colorOptions.map((colorOption) => ({

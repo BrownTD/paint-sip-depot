@@ -71,6 +71,14 @@ type ShopCartItem = {
   stripePriceId: string | null;
 };
 
+function getCategoryHref(category: StorefrontNavCategory) {
+  return `/shop/category/${category.slug}`;
+}
+
+function getSubcategoryHref(category: StorefrontNavCategory, subcategory: StorefrontNavCategory["subcategories"][number]) {
+  return `/shop/category/${category.slug}/${subcategory.slug}`;
+}
+
 type ShopCartContextValue = {
   items: ShopCartItem[];
   isOpen: boolean;
@@ -95,6 +103,12 @@ export function useShopCart() {
 }
 
 function MobileNavigation({ categories }: { categories: StorefrontNavCategory[] }) {
+  const primaryLinks = [
+    { href: "/", label: "Home" },
+    { href: "/host", label: "Host an Event" },
+    { href: "/contact", label: "Contact" },
+  ];
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -113,7 +127,22 @@ function MobileNavigation({ categories }: { categories: StorefrontNavCategory[] 
           </SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            {primaryLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="block rounded-xl px-3 py-2 text-sm font-medium text-black/75 transition hover:bg-muted hover:text-black"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="h-px w-full bg-black/10" />
+
+          <div className="space-y-3">
           {categories.map((category) => (
             <details
               key={category.id}
@@ -126,10 +155,16 @@ function MobileNavigation({ categories }: { categories: StorefrontNavCategory[] 
 
               {category.subcategories.length > 0 ? (
                 <div className="mt-3 space-y-1 border-t border-black/10 pt-3">
+                  <Link
+                    href={getCategoryHref(category)}
+                    className="block rounded-xl px-3 py-2 text-sm font-semibold text-black transition hover:bg-muted"
+                  >
+                    All {category.name}
+                  </Link>
                   {category.subcategories.map((subcategory) => (
                     <Link
                       key={subcategory.id}
-                      href="/shop"
+                      href={getSubcategoryHref(category, subcategory)}
                       className="block rounded-xl px-3 py-2 text-sm text-black/70 transition hover:bg-muted hover:text-black"
                     >
                       {subcategory.name}
@@ -137,12 +172,16 @@ function MobileNavigation({ categories }: { categories: StorefrontNavCategory[] 
                   ))}
                 </div>
               ) : (
-                <div className="mt-3 border-t border-black/10 pt-3 text-sm text-black/55">
-                  No sub-categories yet.
-                </div>
+                <Link
+                  href={getCategoryHref(category)}
+                  className="mt-3 block rounded-xl border-t border-black/10 px-3 py-2 pt-3 text-sm text-black/70 transition hover:bg-muted hover:text-black"
+                >
+                  Shop {category.name}
+                </Link>
               )}
             </details>
           ))}
+          </div>
         </div>
       </SheetContent>
     </Sheet>
@@ -398,7 +437,7 @@ export function ShopHeader({ categories }: { categories: StorefrontNavCategory[]
     <header className="sticky top-0 z-40 border-b border-black/5 bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4">
         <div className="flex items-center gap-3">
-          <Brand href="/" className="gap-2" />
+          <Brand href="/shop" className="gap-2" />
         </div>
 
         <div className="flex items-center justify-end gap-2">
@@ -524,13 +563,46 @@ export function ShopNewsletterSection() {
 }
 
 export function ShopFooter() {
+  const footerColumns = [
+    {
+      title: "Company",
+      links: [
+        { label: "Home", href: "/" },
+        { label: "Shop", href: "/shop" },
+        { label: "Host an Event", href: "/host" },
+      ],
+    },
+    {
+      title: "Help",
+      links: [
+        { label: "Customer Support", href: "/contact" },
+        { label: "Shipping", href: "/shipping-policy" },
+        { label: "Returns", href: "/returns" },
+        { label: "Submit a Return", href: "/returns/submit" },
+      ],
+    },
+    {
+      title: "Resources",
+      links: [
+        { label: "Event Ideas", href: "/events" },
+        { label: "Privacy Policy", href: "/privacy-policy" },
+        { label: "Terms", href: "/terms" },
+        { label: "Contact", href: "/contact" },
+      ],
+    },
+  ];
+
   return (
     <footer className="border-t border-black/10 bg-[#f8f7f5] px-4 py-12 sm:py-16">
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-10 lg:grid-cols-[1.25fr_repeat(3,0.8fr)]">
           <div>
-            <Link href="/" className="inline-block font-display text-3xl uppercase tracking-tight text-black transition hover:text-black/75">
-              Paint &amp; Sip Depot
+            <Link
+              href="/"
+              className="inline-flex items-center gap-3 font-display text-3xl uppercase tracking-tight text-black transition hover:text-black/75"
+            >
+              <Image src="/Misc/logo.svg" alt="" width={40} height={40} />
+              <span>Paint &amp; Sip Depot</span>
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-6 text-black/60">
               We offer canvases, kits, and event supplies to help you create unforgettable
@@ -550,29 +622,16 @@ export function ShopFooter() {
             </div>
           </div>
 
-          {[
-            {
-              title: "Company",
-              links: ["About", "Shop", "Host an Event"],
-            },
-            {
-              title: "Help",
-              links: ["Customer Support", "Shipping", "Returns", "FAQ"],
-            },
-            {
-              title: "Resources",
-              links: ["Blog", "Event Ideas", "Canvas Guide", "Contact"],
-            },
-          ].map((column) => (
+          {footerColumns.map((column) => (
             <div key={column.title}>
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-black/55">
                 {column.title}
               </p>
               <ul className="mt-5 space-y-3 text-sm text-black/65">
                 {column.links.map((link) => (
-                  <li key={link}>
-                    <Link href="#" className="transition hover:text-black">
-                      {link}
+                  <li key={link.href}>
+                    <Link href={link.href} className="transition hover:text-black">
+                      {link.label}
                     </Link>
                   </li>
                 ))}

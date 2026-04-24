@@ -141,12 +141,12 @@ async function prepareCheckoutLines(items: CheckoutLineInput[]) {
       throw new ShopCheckoutError(`Selected size for "${product.name}" was not found.`, 404);
     }
 
-    const hasColorOptions = product.colorOptions.length > 0;
-    const colorOption = hasColorOptions
+    const hasSelectableColorOptions = product.categoryId === "cat_paint" && product.colorOptions.length > 0;
+    const colorOption = hasSelectableColorOptions
       ? product.colorOptions.find((entry) => entry.id === item.colorOptionId)
       : null;
 
-    if (hasColorOptions && !colorOption) {
+    if (hasSelectableColorOptions && !colorOption) {
       throw new ShopCheckoutError(`Selected color for "${product.name}" was not found.`, 404);
     }
 

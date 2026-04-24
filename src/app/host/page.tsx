@@ -14,7 +14,15 @@ export default async function HostPage() {
 
   return (
     <div className="min-h-screen">
-      <PublicHeader links={[{ href: "#how-it-works", label: "How it works" }]} />
+      <PublicHeader
+        navLinks={[
+          { href: "/shop", label: "Shop Paint Kits" },
+          { href: "/host", label: "Host Events" },
+          { href: "/events", label: "Find an Event" },
+          { href: "#how-it-works", label: "How it works" },
+          { href: "/login", label: "Login" },
+        ]}
+      />
 
       <HeroSection />
       <FloatingCanvasSection />

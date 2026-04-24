@@ -241,6 +241,26 @@ model ProductReview {
   @@map("product_reviews")
 }
 
+model ReturnSubmission {
+  id          String   @id @default(cuid())
+  orderNumber String
+  customerName String
+  customerEmail String
+  phoneNumber String?
+  issueType   String
+  description String
+  photoUrls   String[]
+  status      String   @default("SUBMITTED")
+  adminNotes  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([customerEmail])
+  @@index([orderNumber])
+  @@map("return_submissions")
+}
+
 model Booking {
   id String @id @default(cuid())
 

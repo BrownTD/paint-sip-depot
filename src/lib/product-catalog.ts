@@ -20,6 +20,111 @@ export const COUPLES_SUBCATEGORY_SLUG = "couples-date-night";
 export const CANVASES_CATEGORY_ID = "cat_canvases";
 export const PAINT_CATEGORY_ID = "cat_paint";
 
+export const PAINT_COLOR_CATEGORIES = [
+  {
+    name: "Neutrals",
+    colors: [
+      { label: "White", hex: "#FFFFFF" },
+      { label: "Black", hex: "#1C1C1C" },
+      { label: "Pewter Gray", hex: "#8A8A8A" },
+      { label: "Country Gray", hex: "#A9A9A9" },
+    ],
+  },
+  {
+    name: "Reds",
+    colors: [
+      { label: "Bright Red", hex: "#FF0000" },
+      { label: "True Red", hex: "#E10600" },
+      { label: "Brick Red", hex: "#8B2500" },
+      { label: "Burgundy", hex: "#800020" },
+      { label: "Barn Red", hex: "#7C0A02" },
+      { label: "Red", hex: "#D00000" },
+    ],
+  },
+  {
+    name: "Oranges",
+    colors: [
+      { label: "Bright Orange", hex: "#FF7F00" },
+      { label: "Pumpkin", hex: "#FF7518" },
+      { label: "Coral", hex: "#FF7F50" },
+      { label: "Tangerine", hex: "#F28500" },
+    ],
+  },
+  {
+    name: "Yellows",
+    colors: [
+      { label: "Bright Yellow", hex: "#FFFF00" },
+      { label: "Yellow", hex: "#FFD700" },
+      { label: "Lemon Yellow", hex: "#FFF44F" },
+      { label: "Mustard", hex: "#E1AD01" },
+      { label: "Yellow Ochre", hex: "#C99700" },
+    ],
+  },
+  {
+    name: "Greens",
+    colors: [
+      { label: "Bright Green", hex: "#00FF00" },
+      { label: "Kelly Green", hex: "#4CBB17" },
+      { label: "Lime Green", hex: "#32CD32" },
+      { label: "Sap Green", hex: "#507D2A" },
+      { label: "Moss Green", hex: "#8A9A5B" },
+      { label: "Hunter Green", hex: "#355E3B" },
+      { label: "Light Green", hex: "#90EE90" },
+    ],
+  },
+  {
+    name: "Blues",
+    colors: [
+      { label: "Bright Blue", hex: "#0000FF" },
+      { label: "Dark Blue", hex: "#00008B" },
+      { label: "Navy Blue", hex: "#000080" },
+      { label: "Sky Blue", hex: "#87CEEB" },
+      { label: "Baby Blue", hex: "#89CFF0" },
+      { label: "Bahama Blue", hex: "#1E90FF" },
+      { label: "Aqua", hex: "#00FFFF" },
+      { label: "Teal", hex: "#008080" },
+    ],
+  },
+  {
+    name: "Purples",
+    colors: [
+      { label: "Purple", hex: "#800080" },
+      { label: "Bright Purple", hex: "#BF00FF" },
+      { label: "Lavender", hex: "#E6E6FA" },
+      { label: "Grape", hex: "#6F2DA8" },
+    ],
+  },
+  {
+    name: "Browns / Earth Tones",
+    colors: [
+      { label: "Brown", hex: "#8B4513" },
+      { label: "Nutmeg Brown", hex: "#8B4513" },
+      { label: "Chocolate", hex: "#5D3A1A" },
+      { label: "Golden Brown", hex: "#996515" },
+      { label: "Sandstone", hex: "#D2B48C" },
+      { label: "Beige", hex: "#F5F5DC" },
+      { label: "Tan", hex: "#D2B48C" },
+      { label: "Khaki", hex: "#C3B091" },
+    ],
+  },
+  {
+    name: "Off-Whites",
+    colors: [
+      { label: "Antique White", hex: "#FAEBD7" },
+      { label: "Ivory", hex: "#FFFFF0" },
+      { label: "Cream", hex: "#FFFDD0" },
+    ],
+  },
+  {
+    name: "Metallic",
+    colors: [
+      { label: "Gold", hex: "#D4AF37" },
+      { label: "Silver", hex: "#C0C0C0" },
+      { label: "Copper", hex: "#B87333" },
+    ],
+  },
+] as const;
+
 export const PRODUCT_VARIANT_DEFINITIONS = {
   MEDIUM: {
     size: PRODUCT_VARIANT_SIZE.medium,

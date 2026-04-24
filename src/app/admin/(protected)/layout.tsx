@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ClipboardList, Calendar, LayoutDashboard, Package } from "lucide-react";
+import { ClipboardList, Calendar, LayoutDashboard, Package, RotateCcw } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/sign-out-button";
@@ -10,6 +10,7 @@ const navItems = [
   { href: "/admin/orders", label: "Orders", icon: "ticket" },
   { href: "/admin/events", label: "Events", icon: "calendar" },
   { href: "/admin/products", label: "Products", icon: "package" },
+  { href: "/admin/returns", label: "Returns", icon: "returns" },
   { href: "/dashboard", label: "Host Dashboard", icon: "dashboard" },
 ] as const;
 
@@ -18,6 +19,7 @@ const iconMap = {
   calendar: Calendar,
   ticket: ClipboardList,
   package: Package,
+  returns: RotateCcw,
 } as const;
 
 export default async function AdminLayout({

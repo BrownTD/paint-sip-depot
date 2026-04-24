@@ -194,11 +194,11 @@ export const productSchema = z
       normalizedColorLabels.add(normalizedLabel);
     }
 
-    if (!isPaintCategory && data.colorOptions.length > 0) {
+    if (!isCanvasCategory && !isPaintCategory && data.colorOptions.length > 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["colorOptions"],
-        message: "Color options are currently supported for paint products only",
+        message: "Paint colors are currently supported for paint kits and paint products only",
       });
     }
   });

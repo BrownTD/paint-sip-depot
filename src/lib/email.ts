@@ -74,6 +74,18 @@ type ExpiredCheckoutEmailInput = {
   timeLeftLabel: string;
 };
 
+type ReturnSubmissionEmailInput = {
+  id: string;
+  orderNumber: string;
+  customerName: string;
+  customerEmail: string;
+  phoneNumber?: string | null;
+  issueType: string;
+  description: string;
+  photoUrls: string[];
+  adminUrl: string;
+};
+
 function getResendApiKey() {
   return process.env.RESEND_API_KEY;
 }
@@ -465,6 +477,54 @@ export async function sendExpiredCheckoutEmail(input: ExpiredCheckoutEmailInput)
     html,
     text,
     replyTo: getReplyToEmail(),
+  });
+}
+
+export async function sendAdminReturnSubmissionEmail(input: ReturnSubmissionEmailInput) {
+  const subject = `Return request: ${input.orderNumber}`;
+  const photoList = input.photoUrls.length
+    ? input.photoUrls
+        .map((url) => `<li><a href="${url}" style="color:#111111;">${url}</a></li>`)
+        .join("")
+    : "<li>No photos provided</li>";
+  const html = emailShell(
+    "New return request",
+    "Admin Alert",
+    `
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">A customer submitted a return request.</p>
+      <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        <p style="margin:0 0 10px;"><strong>Order number:</strong> ${input.orderNumber}</p>
+        <p style="margin:0 0 10px;"><strong>Customer:</strong> ${input.customerName}</p>
+        <p style="margin:0 0 10px;"><strong>Email:</strong> ${input.customerEmail}</p>
+        ${input.phoneNumber ? `<p style="margin:0 0 10px;"><strong>Phone:</strong> ${input.phoneNumber}</p>` : ""}
+        <p style="margin:0 0 10px;"><strong>Issue:</strong> ${input.issueType}</p>
+        <p style="margin:0 0 10px;"><strong>Description:</strong></p>
+        <p style="margin:0 0 10px;white-space:pre-line;">${input.description}</p>
+        <p style="margin:0 0 10px;"><strong>Photos:</strong></p>
+        <ul style="margin:0;padding-left:18px;">${photoList}</ul>
+        <p style="margin:10px 0 0;"><strong>Submission ID:</strong> ${input.id}</p>
+      </div>
+      <p style="margin:20px 0 0;"><a href="${input.adminUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">Review Return Request</a></p>
+    `
+  );
+
+  const text =
+    `New return request\n` +
+    `Order number: ${input.orderNumber}\n` +
+    `Customer: ${input.customerName}\n` +
+    `Email: ${input.customerEmail}\n` +
+    `${input.phoneNumber ? `Phone: ${input.phoneNumber}\n` : ""}` +
+    `Issue: ${input.issueType}\n` +
+    `Description: ${input.description}\n` +
+    `Photos: ${input.photoUrls.length ? input.photoUrls.join(", ") : "No photos provided"}\n` +
+    `Review: ${input.adminUrl}`;
+
+  await sendEmail({
+    to: getAdminEmail(),
+    subject,
+    html,
+    text,
+    replyTo: input.customerEmail,
   });
 }
 

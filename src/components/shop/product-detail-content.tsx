@@ -83,6 +83,7 @@ export type ProductDetailData = {
   discountPercent: number | null;
   currency: string;
   stripePriceId: string | null;
+  categoryId: string;
   categoryName: string;
   subcategoryName: string | null;
   colorOptions: ProductDetailColorOption[];
@@ -233,6 +234,54 @@ function RelatedProductCard({ product }: { product: ProductDetailRelatedProduct 
   );
 }
 
+function ShippingReturnSummary() {
+  return (
+    <div>
+      <h3 className="text-lg font-semibold text-black">Shipping &amp; Returns</h3>
+
+      <div className="mt-4 space-y-4 text-sm leading-7 text-black/60">
+        <div>
+          <p className="font-medium text-black">Shipping</p>
+          <p>
+            Standard shipping takes 3-6 business days, including processing time. Expedited
+            orders ship the same business day when placed by 12 PM EST.
+          </p>
+          <Link
+            href="/shipping-policy"
+            className="mt-2 inline-flex font-medium text-black underline-offset-4 hover:underline"
+          >
+            View shipping policy
+          </Link>
+        </div>
+
+        <div className="h-px bg-black/10" />
+
+        <div>
+          <p className="font-medium text-black">Returns</p>
+          <p>
+            Returns are available for wrong orders or damaged items when proof is submitted
+            within 3 days of delivery. Approved replacements ship within 2-4 business days.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+            <Link
+              href="/returns"
+              className="font-medium text-black underline-offset-4 hover:underline"
+            >
+              View return policy
+            </Link>
+            <Link
+              href="/returns/submit"
+              className="font-medium text-black underline-offset-4 hover:underline"
+            >
+              Submit a return request
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ProductDetailContent({
   product,
   onAddToCart,
@@ -244,13 +293,13 @@ export function ProductDetailContent({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedColorId, setSelectedColorId] = useState<string | null>(
-    product.colorOptions[0]?.id ?? null,
+    product.categoryId === "cat_paint" ? product.colorOptions[0]?.id ?? null : null,
   );
   const [selectedSizeId, setSelectedSizeId] = useState<string | null>(
     product.sizeOptions.find((size) => size.isDefault)?.id ?? product.sizeOptions[0]?.id ?? null,
   );
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState<"details" | "reviews" | "faqs">("reviews");
+  const [activeTab, setActiveTab] = useState<"details" | "reviews" | "faqs" | "shipping">("reviews");
   const [visibleReviewCount, setVisibleReviewCount] = useState(6);
   const [reviewSort, setReviewSort] = useState<"latest" | "highest" | "lowest">("latest");
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -271,6 +320,7 @@ export function ProductDetailContent({
     () => product.colorOptions.find((color) => color.id === selectedColorId) ?? null,
     [product.colorOptions, selectedColorId],
   );
+  const isPaintProduct = product.categoryId === "cat_paint";
   const currentPriceCents = selectedSize?.priceCents ?? product.priceCents;
   const currentCurrency = selectedSize?.currency ?? product.currency;
   const currentStripePriceId = selectedSize?.stripePriceId ?? product.stripePriceId;
@@ -386,7 +436,7 @@ export function ProductDetailContent({
   }
 
   async function handleAddToCart() {
-    if (product.colorOptions.length > 0 && !selectedColorId) {
+    if (isPaintProduct && product.colorOptions.length > 0 && !selectedColorId) {
       toast({
         title: "Color required",
         description: "Choose a color before adding this item.",
@@ -406,8 +456,8 @@ export function ProductDetailContent({
 
     const payload: AddToCartPayload = {
       productId: product.id,
-      colorId: selectedColorId,
-      colorLabel: selectedColor?.label ?? null,
+      colorId: isPaintProduct ? selectedColorId : null,
+      colorLabel: isPaintProduct ? selectedColor?.label ?? null : null,
       sizeId: selectedSizeId,
       quantity,
       stripePriceId: currentStripePriceId,
@@ -517,26 +567,37 @@ export function ProductDetailContent({
 
             {product.colorOptions.length > 0 ? (
               <div className="border-b border-black/10 py-6">
-                <p className="text-sm font-medium text-black/55">Select Colors</p>
+                <p className="text-sm font-medium text-black/55">
+                  {isPaintProduct ? "Select Colors" : "Paint Colors"}
+                </p>
                 <div className="mt-4 flex items-center gap-3">
                   {product.colorOptions.map((color) => (
-                    <button
-                      key={color.id}
-                      type="button"
-                      onClick={() => setSelectedColorId(color.id)}
-                      className={cn(
-                        "relative h-10 w-10 rounded-full transition",
-                        selectedColorId === color.id
-                          ? "ring-2 ring-black ring-offset-2 ring-offset-white"
-                          : "ring-1 ring-black/10 hover:ring-black/30",
-                      )}
-                      style={{ backgroundColor: color.hex }}
-                      aria-label={color.label}
-                    >
-                      {selectedColorId === color.id ? (
-                        <CheckCircle2 className="absolute inset-0 m-auto h-4 w-4 text-white" />
-                      ) : null}
-                    </button>
+                    isPaintProduct ? (
+                      <button
+                        key={color.id}
+                        type="button"
+                        onClick={() => setSelectedColorId(color.id)}
+                        className={cn(
+                          "relative h-10 w-10 rounded-full transition",
+                          selectedColorId === color.id
+                            ? "ring-2 ring-black ring-offset-2 ring-offset-white"
+                            : "ring-1 ring-black/10 hover:ring-black/30",
+                        )}
+                        style={{ backgroundColor: color.hex }}
+                        aria-label={color.label}
+                      >
+                        {selectedColorId === color.id ? (
+                          <CheckCircle2 className="absolute inset-0 m-auto h-4 w-4 text-white" />
+                        ) : null}
+                      </button>
+                    ) : (
+                      <span
+                        key={color.id}
+                        className="h-10 w-10 rounded-full border border-black/10"
+                        style={{ backgroundColor: color.hex }}
+                        title={color.label}
+                      />
+                    )
                   ))}
                 </div>
               </div>
@@ -599,11 +660,12 @@ export function ProductDetailContent({
 
         <section className="mt-16">
           <div className="border-b border-black/10">
-            <div className="grid grid-cols-3 text-center">
+            <div className="grid grid-cols-2 text-center sm:grid-cols-4">
               {[
                 { id: "details", label: "Product Details" },
                 { id: "reviews", label: "Rating & Reviews" },
                 { id: "faqs", label: "FAQs" },
+                { id: "shipping", label: "Shipping & Returns" },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -636,6 +698,17 @@ export function ProductDetailContent({
                   <p className="mt-2 text-sm leading-7 text-black/60">{faq.answer}</p>
                 </div>
               ))}
+              {product.faqs.length === 0 ? (
+                <div className="rounded-[1rem] border border-dashed border-black/10 bg-white px-5 py-8 text-sm leading-7 text-black/55">
+                  No FAQs have been added for this product yet.
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {activeTab === "shipping" ? (
+            <div className="mt-10 max-w-3xl">
+              <ShippingReturnSummary />
             </div>
           ) : null}
 

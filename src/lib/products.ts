@@ -252,7 +252,7 @@ function normalizeDiscountPercent(value: number | null | undefined) {
 }
 
 function prepareColorOptions(categoryId: string, colorOptions: ProductColorOptionInput[]) {
-  if (!isPaintCategory(categoryId)) {
+  if (!isPaintCategory(categoryId) && !isCanvasCategory(categoryId)) {
     return [];
   }
 
@@ -295,6 +295,7 @@ function buildStripeProductMetadata({
     skuSequence: String(skuSequence),
     discountPercent: discountPercent ? String(discountPercent) : "",
     hasColorOptions: colorOptions.length > 0 ? "true" : "false",
+    paintColors: colorOptions.length > 0 ? serializeColorOptionsMetadata(colorOptions) : "",
     colorOptions: colorOptions.length > 0 ? serializeColorOptionsMetadata(colorOptions) : "",
   };
 }
@@ -573,6 +574,86 @@ export async function getStorefrontProducts() {
     newArrivals,
     topSelling,
     themes,
+    categories,
+  };
+}
+
+export async function getStorefrontCategoryProducts({
+  categorySlug,
+  subcategorySlug,
+}: {
+  categorySlug: string;
+  subcategorySlug?: string;
+}) {
+  const [fetchedProducts, category] = await Promise.all([
+    prisma.product.findMany({
+      where: {
+        status: ProductStatus.ACTIVE,
+      },
+      include: storefrontProductInclude,
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
+    prisma.productCategory.findUnique({
+      where: {
+        slug: categorySlug,
+      },
+      include: {
+        subcategories: {
+          orderBy: {
+            name: "asc",
+          },
+        },
+      },
+    }),
+  ]);
+
+  const activeProducts = fetchedProducts.map((product) => ({
+    ...product,
+    imageUrls: ensurePaintKitImageUrls(product.categoryId, product.imageUrls),
+  }));
+
+  const categories = buildStorefrontCategories(activeProducts);
+
+  if (!category) {
+    return {
+      category: null,
+      subcategory: null,
+      products: [],
+      categories,
+    };
+  }
+
+  const subcategory = subcategorySlug
+    ? category.subcategories.find((item) => item.slug === subcategorySlug) ?? null
+    : null;
+
+  if (subcategorySlug && !subcategory) {
+    return {
+      category: null,
+      subcategory: null,
+      products: [],
+      categories,
+    };
+  }
+
+  const products = activeProducts.filter((product) => {
+    if (product.categoryId !== category.id) {
+      return false;
+    }
+
+    if (subcategory) {
+      return product.subcategoryId === subcategory.id;
+    }
+
+    return true;
+  });
+
+  return {
+    category,
+    subcategory,
+    products,
     categories,
   };
 }

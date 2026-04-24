@@ -18,6 +18,7 @@ import {
   CANVAS_DEFAULT_LARGE_PRICE,
   CANVAS_DEFAULT_MEDIUM_PRICE,
   COUPLES_SUBCATEGORY_SLUG,
+  PAINT_COLOR_CATEGORIES,
   PAINT_CATEGORY_ID,
   getCategoryBadgeLabel,
   getCategoryDisplayName,
@@ -44,6 +45,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 
 const MAX_PRODUCT_IMAGES = 8;
@@ -137,6 +144,7 @@ export function ProductForm({
   const [manualImageUrl, setManualImageUrl] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [activeColorCategoryBySlot, setActiveColorCategoryBySlot] = useState<Record<number, string>>({});
 
   const selectedCategory = useMemo(
     () => categories.find((category) => category.id === form.categoryId) ?? null,
@@ -209,6 +217,27 @@ export function ProductForm({
     }));
   }
 
+  function selectPaintKitColor(index: number, color: { label: string; hex: string }) {
+    setForm((current) => {
+      const nextColorOptions = [...current.colorOptions];
+      nextColorOptions[index] = {
+        id: nextColorOptions[index]?.id,
+        label: color.label,
+        hex: color.hex,
+      };
+
+      return {
+        ...current,
+        colorOptions: nextColorOptions,
+      };
+    });
+    setActiveColorCategoryBySlot((current) => {
+      const next = { ...current };
+      delete next[index];
+      return next;
+    });
+  }
+
   function handleCategoryChange(categoryId: string) {
     const nextCategory = categories.find((category) => category.id === categoryId) ?? null;
     const nextSubcategoryIds = new Set(nextCategory?.subcategories.map((item) => item.id) ?? []);
@@ -234,7 +263,7 @@ export function ProductForm({
             ? String(CANVAS_DEFAULT_LARGE_PRICE)
             : current.largePrice,
         colorOptions:
-          categoryId === PAINT_CATEGORY_ID || current.colorOptions.length === 0
+          categoryId === PAINT_CATEGORY_ID || categoryId === CANVASES_CATEGORY_ID || current.colorOptions.length === 0
             ? current.colorOptions
             : [],
       };
@@ -411,10 +440,10 @@ export function ProductForm({
       return;
     }
 
-    if (isPaintProduct && form.colorOptions.some((colorOption) => !colorOption.label.trim())) {
+    if ((isPaintProduct || isCanvasProduct) && form.colorOptions.some((colorOption) => !colorOption.label.trim())) {
       toast({
         title: "Color name required",
-        description: "Each color option needs a name before saving.",
+        description: "Each paint color needs a name before saving.",
         variant: "destructive",
       });
       return;
@@ -468,7 +497,7 @@ export function ProductForm({
               imageUrls: form.imageUrls,
               status: form.status,
               discountPercent,
-              colorOptions: isPaintProduct
+              colorOptions: isPaintProduct || isCanvasProduct
                 ? form.colorOptions.map((colorOption) => ({
                     label: colorOption.label,
                     hex: colorOption.hex,
@@ -763,7 +792,138 @@ export function ProductForm({
                 ) : null}
               </div>
 
-              {isPaintProduct || hasColorOptions ? (
+              {isCanvasProduct || isPaintProduct ? (
+                <div className="space-y-4 rounded-lg border bg-muted/15 p-4">
+                  <div>
+                    <Label className="text-base">
+                      {isPaintProduct ? "Color Options" : "Paint Colors"}
+                    </Label>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {isPaintProduct
+                        ? "Choose the paint colors customers can select at checkout. Colors do not change price."
+                        : "Choose the paint colors included in this kit. These show on the shop card and product details, but customers do not select them at checkout."}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    {[
+                      ...form.colorOptions,
+                      ...(form.colorOptions.length < 12 ? [{ id: undefined, label: "", hex: "" }] : []),
+                    ].map((colorOption, index) => {
+                      const isSelected = Boolean(colorOption.label && colorOption.hex);
+                      const activeCategoryName =
+                        activeColorCategoryBySlot[index] ?? PAINT_COLOR_CATEGORIES[0]?.name ?? "";
+                      const activeCategory =
+                        PAINT_COLOR_CATEGORIES.find((category) => category.name === activeCategoryName) ??
+                        PAINT_COLOR_CATEGORIES[0];
+                      const selectedLabels = new Set(
+                        form.colorOptions
+                          .filter((_, colorIndex) => colorIndex !== index)
+                          .map((selectedColor) => selectedColor.label.toLowerCase()),
+                      );
+
+                      return (
+                        <div key={colorOption.id ?? `paint-kit-color-${index}`} className="relative">
+                          <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                className={cn(
+                                  "flex h-12 w-12 items-center justify-center rounded-full border text-sm font-semibold transition",
+                                  isSelected
+                                    ? "border-black/20 text-white shadow-sm ring-2 ring-transparent hover:ring-black/20"
+                                    : "border-dashed border-black/25 bg-background text-black/55 hover:border-black/45 hover:text-black",
+                                )}
+                                style={isSelected ? { backgroundColor: colorOption.hex } : undefined}
+                                disabled={isSaving}
+                                aria-label={isSelected ? `Change ${colorOption.label}` : "Add paint color"}
+                              >
+                                {isSelected ? null : <Plus className="h-5 w-5" />}
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="w-72 p-3">
+                              <div className="grid grid-cols-2 gap-2">
+                                {PAINT_COLOR_CATEGORIES.map((category) => (
+                                  <button
+                                    key={category.name}
+                                    type="button"
+                                    onClick={() =>
+                                      setActiveColorCategoryBySlot((current) => ({
+                                        ...current,
+                                        [index]: category.name,
+                                      }))
+                                    }
+                                    className={cn(
+                                      "rounded-lg px-3 py-2 text-left text-xs font-medium transition",
+                                      activeCategoryName === category.name
+                                        ? "bg-black text-white"
+                                        : "bg-muted/60 text-foreground hover:bg-muted",
+                                    )}
+                                  >
+                                    {category.name}
+                                  </button>
+                                ))}
+                              </div>
+
+                              <div className="mt-3 max-h-72 space-y-1 overflow-y-auto border-t pt-3">
+                                {activeCategory?.colors.map((color) => {
+                                  const isDisabled = selectedLabels.has(color.label.toLowerCase());
+
+                                  return (
+                                    <DropdownMenuItem
+                                      key={`${activeCategory.name}-${color.label}`}
+                                      disabled={isDisabled}
+                                      onSelect={() => selectPaintKitColor(index, color)}
+                                      className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2"
+                                    >
+                                      <span
+                                        className="h-6 w-6 rounded-full border border-black/15"
+                                        style={{ backgroundColor: color.hex }}
+                                        aria-hidden="true"
+                                      />
+                                      <span className="min-w-0 flex-1">
+                                        <span className="block text-sm font-medium">{color.label}</span>
+                                        <span className="block text-xs text-muted-foreground">{color.hex}</span>
+                                      </span>
+                                    </DropdownMenuItem>
+                                  );
+                                })}
+                              </div>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+
+                          {isSelected ? (
+                            <button
+                              type="button"
+                              onClick={() => removeColorOption(index)}
+                              className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black text-white shadow-sm"
+                              disabled={isSaving}
+                              aria-label={`Remove ${colorOption.label}`}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {hasColorOptions ? (
+                    <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                      {form.colorOptions.map((colorOption) => (
+                        <span key={colorOption.label} className="inline-flex items-center gap-2 rounded-full border bg-background px-3 py-1">
+                          <span
+                            className="h-3 w-3 rounded-full border border-black/10"
+                            style={{ backgroundColor: colorOption.hex }}
+                            aria-hidden="true"
+                          />
+                          {colorOption.label}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : hasColorOptions ? (
                 <div className="space-y-4 rounded-lg border bg-muted/15 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>

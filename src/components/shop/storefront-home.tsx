@@ -14,6 +14,7 @@ import {
   ShopNewsletterSection,
   type StorefrontNavCategory,
 } from "@/components/shop/shop-shell";
+import { InstagramFeed } from "@/components/shop/instagram-feed";
 
 const stats = [
   { value: "10+", label: "Years in Business" },
@@ -46,6 +47,32 @@ const reviews = [
   },
 ];
 
+export function ShopReviewsSection() {
+  return (
+    <section className="px-4 py-12 sm:py-16">
+      <div className="mx-auto max-w-7xl">
+        <div className="flex items-end justify-between gap-4">
+          <h2 className="font-display text-4xl uppercase tracking-tight text-black sm:text-5xl">
+            Our Happy Customers
+          </h2>
+        </div>
+
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {reviews.map((review) => (
+            <article
+              key={review.name}
+              className="rounded-[1.5rem] border border-black/10 bg-white p-6 shadow-[0_18px_50px_rgba(0,0,0,0.04)]"
+            >
+              <p className="text-lg font-semibold text-black">{review.name}</p>
+              <p className="mt-3 text-sm leading-6 text-black/65">{review.quote}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 type StorefrontTheme = {
   id: string;
   name: string;
@@ -68,17 +95,22 @@ function ProductSection({
   }
 
   return (
-    <section id={id} className="px-4 py-12 sm:py-16">
+    <section id={id} className="overflow-hidden py-12 sm:py-16">
       <div className="mx-auto max-w-7xl">
-        <div className="text-center">
+        <div className="px-4 text-center">
           <h2 className="font-display text-4xl uppercase tracking-tight text-black sm:text-5xl">
             {title}
           </h2>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-4 sm:gap-y-8 lg:grid-cols-4 lg:gap-x-6">
+        <div className="no-scrollbar relative left-1/2 mt-10 flex w-screen -translate-x-1/2 snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-4 px-4 pb-4 sm:gap-5 sm:scroll-px-[max(1rem,calc((100vw-80rem)/2+1rem))] sm:px-[max(1rem,calc((100vw-80rem)/2+1rem))] lg:gap-6">
           {items.map((item) => (
-            <ShopProductCard key={item.id} product={item} />
+            <div
+              key={item.id}
+              className="w-[68vw] max-w-[260px] shrink-0 snap-start last:snap-end sm:w-[260px] lg:w-[290px] lg:max-w-[290px]"
+            >
+              <ShopProductCard product={item} />
+            </div>
           ))}
         </div>
       </div>
@@ -275,29 +307,10 @@ export function StorefrontHome({
           </section>
         ) : null}
 
-        <section className="px-4 py-12 sm:py-16">
-          <div className="mx-auto max-w-7xl">
-            <div className="flex items-end justify-between gap-4">
-              <h2 className="font-display text-4xl uppercase tracking-tight text-black sm:text-5xl">
-                Our Happy Customers
-              </h2>
-            </div>
-
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {reviews.map((review) => (
-                <article
-                  key={review.name}
-                  className="rounded-[1.5rem] border border-black/10 bg-white p-6 shadow-[0_18px_50px_rgba(0,0,0,0.04)]"
-                >
-                  <p className="text-lg font-semibold text-black">{review.name}</p>
-                  <p className="mt-3 text-sm leading-6 text-black/65">{review.quote}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
+        <ShopReviewsSection />
 
         <ShopNewsletterSection />
+        <InstagramFeed />
       </main>
 
       <ShopFooter />

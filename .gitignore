@@ -29,3 +29,8 @@ Thumbs.db
 
 # optional: turbopack cache
 .turbo/
+
+# local Codex/agent skills
+.agents/
+skills/
+skills-lock.json

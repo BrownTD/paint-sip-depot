@@ -7,12 +7,14 @@ export default auth((req) => {
   const isOnAuthPage =
     req.nextUrl.pathname.startsWith("/login") ||
     req.nextUrl.pathname.startsWith("/signup");
+  const isHostLoginCallback =
+    req.nextUrl.pathname === "/login" && req.nextUrl.searchParams.get("portal") === "host";
 
   if (isOnDashboard && !isLoggedIn) {
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
 
-  if (isOnAuthPage && isLoggedIn) {
+  if (isOnAuthPage && isLoggedIn && !isHostLoginCallback) {
     return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
   }
 

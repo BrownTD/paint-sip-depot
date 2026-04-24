@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ClipboardList, Calendar, LayoutDashboard } from "lucide-react";
+import { ClipboardList, Calendar, LayoutDashboard, Package } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/sign-out-button";
@@ -9,6 +9,7 @@ import { requireAdminSession } from "@/lib/admin";
 const navItems = [
   { href: "/admin/orders", label: "Orders", icon: "ticket" },
   { href: "/admin/events", label: "Events", icon: "calendar" },
+  { href: "/admin/products", label: "Products", icon: "package" },
   { href: "/dashboard", label: "Host Dashboard", icon: "dashboard" },
 ] as const;
 
@@ -16,6 +17,7 @@ const iconMap = {
   dashboard: LayoutDashboard,
   calendar: Calendar,
   ticket: ClipboardList,
+  package: Package,
 } as const;
 
 export default async function AdminLayout({

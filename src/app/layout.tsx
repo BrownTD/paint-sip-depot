@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
-import { Familjen_Grotesk, Oswald } from "next/font/google";
+import {
+  Familjen_Grotesk,
+  Oswald,
+} from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 

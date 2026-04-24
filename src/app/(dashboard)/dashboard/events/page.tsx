@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { getPaidTicketQuantitiesForEvents } from "@/lib/booking";
 import { generateEventQrCode } from "@/lib/event-qr";
 import { prisma } from "@/lib/prisma";
+import { getAbsoluteUrl } from "@/lib/utils";
 import Link from "next/link";
 import { Plus, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ type HostEventRecord = {
   slug: string;
   createdAt: Date;
   startDateTime: Date;
+  locationName: string;
   city: string | null;
   state: string | null;
   status: "DRAFT" | "PUBLISHED" | "ENDED" | "CANCELED";
@@ -25,12 +27,44 @@ type HostEventRecord = {
   canvasName: string | null;
   qrCodeImageUrl: string | null;
   eventCode: string | null;
+  organizerName: string | null;
+  liveEventUrl: string;
+};
+
+type HostEventQueryRecord = Omit<HostEventRecord, "organizerName" | "liveEventUrl"> & {
+  host: {
+    name: string | null;
+  };
 };
 
 async function getHostEvents(hostId: string) {
-  const events: HostEventRecord[] = await prisma.event.findMany({
+  const events: HostEventQueryRecord[] = await prisma.event.findMany({
     where: { hostId },
     orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      createdAt: true,
+      startDateTime: true,
+      locationName: true,
+      city: true,
+      state: true,
+      status: true,
+      visibility: true,
+      eventFormat: true,
+      capacity: true,
+      ticketPriceCents: true,
+      canvasImageUrl: true,
+      canvasName: true,
+      qrCodeImageUrl: true,
+      eventCode: true,
+      host: {
+        select: {
+          name: true,
+        },
+      },
+    },
   });
 
   const eventsMissingQr = events.filter(
@@ -67,6 +101,11 @@ async function getHostEvents(hostId: string) {
   return events
     .map((event) => ({
       ...event,
+      organizerName: event.host.name,
+      liveEventUrl:
+        event.visibility === "PRIVATE" && event.eventCode
+          ? getAbsoluteUrl(`/e/${event.slug}?code=${encodeURIComponent(event.eventCode)}`)
+          : getAbsoluteUrl(`/e/${event.slug}`),
       ticketsSold: paidByEventId.get(event.id) ?? 0,
     }))
     .sort((a, b) => {
@@ -86,13 +125,13 @@ export default async function EventsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold">Events</h1>
           <p className="text-muted-foreground mt-1">Manage your paint and sip events</p>
         </div>
         <Link href="/dashboard/events/new">
-          <Button>
+          <Button className="w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" />
             New Event
           </Button>

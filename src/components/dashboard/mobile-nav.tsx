@@ -5,11 +5,11 @@ import Link from "next/link";
 import {
   Menu,
   Plus,
-  Palette,
   LayoutDashboard,
   Calendar,
   Ticket,
   Image as ImageIcon,
+  Package,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ import { Brand } from "@/components/Brand";
 export type MobileNavItem = {
   href: string;
   label: string;
-  icon: "dashboard" | "calendar" | "ticket" | "image";
+  icon: "dashboard" | "calendar" | "ticket" | "image" | "package";
 };
 
 const iconMap = {
@@ -36,6 +36,7 @@ const iconMap = {
   calendar: Calendar,
   ticket: Ticket,
   image: ImageIcon,
+  package: Package,
 } as const;
 
 export function DashboardMobileNav({

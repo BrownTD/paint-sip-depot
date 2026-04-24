@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Loader2, QrCode } from "lucide-react";
+import { Download, Loader2, QrCode, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -12,10 +12,18 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/use-toast";
+import { formatDate, formatTime } from "@/lib/utils";
 
 type EventQrDownloadButtonProps = {
   fileName: string;
   qrCodeImageUrl: string;
+  organizerName?: string | null;
+  eventTitle: string;
+  startDateTime: Date;
+  locationName: string;
+  visibility: "PUBLIC" | "PRIVATE";
+  eventCode: string | null;
+  liveEventUrl: string;
 };
 
 async function svgUrlToPngBlob(qrCodeImageUrl: string) {
@@ -69,8 +77,26 @@ async function svgUrlToPngBlob(qrCodeImageUrl: string) {
 export function EventQrDownloadButton({
   fileName,
   qrCodeImageUrl,
+  organizerName,
+  eventTitle,
+  startDateTime,
+  locationName,
+  visibility,
+  eventCode,
+  liveEventUrl,
 }: EventQrDownloadButtonProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const canNativeShare =
+    typeof navigator !== "undefined" && typeof navigator.share === "function";
+  const formattedDate = formatDate(startDateTime);
+  const formattedTime = formatTime(startDateTime);
+
+  const shareText =
+    `${liveEventUrl}\n\n` +
+    `Hey! I'm hosting a Paint & Sip on ${formattedDate} at ${formattedTime} at ${locationName} and wanted to personally invite you. ` +
+    `I'd love for you to come out and join us - grab your ticket here to secure your spot.` +
+    (visibility === "PRIVATE" && eventCode ? ` Enter this event code: ${eventCode}.` : "");
 
   const handleDownload = async () => {
     setIsDownloading(true);
@@ -97,15 +123,49 @@ export function EventQrDownloadButton({
     }
   };
 
+  const handleShare = async () => {
+    if (!canNativeShare) {
+      toast({
+        title: "Sharing unavailable",
+        description: "Native sharing is not supported on this device.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSharing(true);
+
+    try {
+      await navigator.share({
+        text: shareText,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        return;
+      }
+
+      toast({
+        title: "Share failed",
+        description: error instanceof Error ? error.message : "Could not open the share menu.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   return (
     <Sheet>
       <SheetTrigger asChild>
         <Button variant="ghost" size="sm">
           <QrCode className="mr-1 h-4 w-4" />
-          Show QR Code
+          Share Event
         </Button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="rounded-t-3xl">
+      <SheetContent
+        side="bottom"
+        className="rounded-t-3xl [&>button]:top-5 [&>button]:right-4 [&>button]:h-10 [&>button]:w-10 [&>button]:rounded-full [&>button_svg]:h-5 [&>button_svg]:w-5"
+      >
         <SheetHeader className="mx-auto w-full max-w-xl text-center">
           <SheetTitle>Event QR Code</SheetTitle>
           <SheetDescription>
@@ -132,6 +192,25 @@ export function EventQrDownloadButton({
               <>
                 <Download className="mr-2 h-4 w-4" />
                 Download QR Code
+              </>
+            )}
+          </Button>
+
+          <Button
+            onClick={handleShare}
+            disabled={isSharing || !canNativeShare}
+            variant="outline"
+            className="w-full max-w-md"
+          >
+            {isSharing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Opening Share Menu...
+              </>
+            ) : (
+              <>
+                <Share2 className="mr-2 h-4 w-4" />
+                Share
               </>
             )}
           </Button>

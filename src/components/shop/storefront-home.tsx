@@ -1,30 +1,19 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import {
-  ChevronRight,
-  Menu,
-  Search,
-  ShoppingCart,
-  Star,
-  User,
-} from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-
-const navItems = [
-  { label: "Shop", href: "#new-arrivals" },
-  { label: "Canvases", href: "#browse-theme" },
-  { label: "Themes", href: "#browse-theme" },
-  { label: "Supplies", href: "#top-selling" },
-  { label: "New Arrivals", href: "#new-arrivals" },
-];
+  ShopProductCard,
+  type StorefrontProductCardData,
+} from "@/components/shop/shop-product-card";
+import {
+  ShopChrome,
+  ShopFooter,
+  ShopNewsletterSection,
+  type StorefrontNavCategory,
+} from "@/components/shop/shop-shell";
 
 const stats = [
   { value: "10+", label: "Years in Business" },
@@ -32,92 +21,8 @@ const stats = [
   { value: "1,000+", label: "Happy Customers" },
 ];
 
-const tickerItems = ["Canvases", "Easels", "Brushes", "Palettes", "Aprons"];
+const tickerItems = ["Canvases", "Easels", "Brushes", "Palettes", "Aprons", "Paint"];
 
-type StorefrontProduct = {
-  title: string;
-  image: string;
-  price: string;
-  originalPrice?: string;
-  rating: number;
-  sale?: string;
-};
-
-// Placeholder catalog data until the real shop feed is connected.
-const newArrivals: StorefrontProduct[] = [
-  {
-    title: "Floral Canvas Kit",
-    image: "/header/image.png",
-    price: "$38",
-    originalPrice: "$46",
-    rating: 4.8,
-    sale: "17% OFF",
-  },
-  {
-    title: "Kids Party Canvas",
-    image: "/header/tom.png",
-    price: "$32",
-    originalPrice: "$40",
-    rating: 4.7,
-    sale: "20% OFF",
-  },
-  {
-    title: "Date Night Canvas Set",
-    image: "/Misc/BackgroundHero.png",
-    price: "$58",
-    originalPrice: "$68",
-    rating: 4.9,
-  },
-  {
-    title: "Paint Party Apron",
-    image: "/Misc/blankCanvas.png",
-    price: "$18",
-    originalPrice: "$24",
-    rating: 4.6,
-    sale: "25% OFF",
-  },
-];
-
-const topSelling: StorefrontProduct[] = [
-  {
-    title: "Faith-Inspired Canvas",
-    image: "/header/delta.png",
-    price: "$42",
-    originalPrice: "$52",
-    rating: 4.9,
-    sale: "19% OFF",
-  },
-  {
-    title: "Brush Set Bundle",
-    image: "/Misc/example.svg",
-    price: "$24",
-    rating: 4.5,
-  },
-  {
-    title: "Blank Stretch Canvas",
-    image: "/Misc/blankCanvas.png",
-    price: "$16",
-    originalPrice: "$22",
-    rating: 4.7,
-    sale: "27% OFF",
-  },
-  {
-    title: "Acrylic Starter Kit",
-    image: "/header/tennis.png",
-    price: "$48",
-    rating: 4.8,
-  },
-];
-
-// These theme cards are wired for easy replacement when real theme imagery lands.
-const themes = [
-  { name: "Ladies", image: "/header/aka.png" },
-  { name: "Kids", image: "/header/tom.png" },
-  { name: "Couples", image: "/Misc/BackgroundHero.png" },
-  { name: "Faith", image: "/header/delta.png" },
-];
-
-// TODO: Replace these placeholders with Facebook-sourced reviews once that integration is ready.
 const reviews = [
   {
     name: "Sarah M.",
@@ -141,131 +46,13 @@ const reviews = [
   },
 ];
 
-const socialIcons = [
-  { name: "Facebook", href: "https://facebook.com", icon: "/social-icons/facebook.svg" },
-  { name: "Instagram", href: "https://instagram.com", icon: "/social-icons/instagram.svg" },
-  { name: "LinkedIn", href: "https://linkedin.com", icon: "/social-icons/linkedin.svg" },
-  { name: "TikTok", href: "https://tiktok.com", icon: "/social-icons/tiktok.svg" },
-  { name: "X", href: "https://x.com", icon: "/social-icons/X.svg" },
-];
-
-function Wordmark() {
-  return (
-    <Link href="/shop" className="inline-flex items-center gap-2 text-lg font-black tracking-tight">
-      <span className="font-display text-[1.35rem] uppercase leading-none">Paint &amp; Sip Depot</span>
-    </Link>
-  );
-}
-
-function HeaderActions() {
-  return (
-    <div className="flex items-center gap-1 text-foreground">
-      {[Search, ShoppingCart, User].map((Icon, index) => (
-        <button
-          key={index}
-          type="button"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-white transition hover:bg-black hover:text-white"
-          aria-label="Store action"
-        >
-          <Icon className="h-4 w-4" />
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function MobileNavigation() {
-  return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <button
-          type="button"
-          aria-label="Open shop menu"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-white"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-      </SheetTrigger>
-      <SheetContent side="left" className="w-[88%] max-w-sm rounded-r-[2rem] border-r-black/10 px-6 py-8">
-        <SheetHeader className="mb-8 space-y-3 text-left">
-          <SheetTitle className="font-display text-2xl uppercase tracking-tight">
-            Paint &amp; Sip Depot
-          </SheetTitle>
-          <p className="text-sm text-muted-foreground">
-            Shop canvases, kits, and supplies for your next paint night.
-          </p>
-        </SheetHeader>
-
-        <div className="space-y-3">
-          {navItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="flex items-center justify-between rounded-2xl border border-black/10 px-4 py-4 text-base font-medium transition hover:bg-muted"
-            >
-              {item.label}
-              <ChevronRight className="h-4 w-4" />
-            </Link>
-          ))}
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-function ProductCard({
-  title,
-  image,
-  price,
-  originalPrice,
-  rating,
-  sale,
-}: {
-  title: string;
-  image: string;
-  price: string;
-  originalPrice?: string;
-  rating: number;
-  sale?: string;
-}) {
-  return (
-    <article className="group">
-      <div className="relative overflow-hidden rounded-[1.75rem] bg-[#f3f1ef] p-4 sm:p-5">
-        <div className="relative aspect-[4/4.4] overflow-hidden rounded-[1.25rem]">
-          <Image
-            src={image}
-            alt={title}
-            fill
-            sizes="(max-width: 768px) 50vw, 25vw"
-            className="object-cover transition duration-500 group-hover:scale-[1.04]"
-          />
-        </div>
-      </div>
-      <div className="px-1 pt-4">
-        <h3 className="text-sm font-semibold text-foreground sm:text-base">{title}</h3>
-        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-          <div className="flex items-center gap-0.5 text-[#ffb000]">
-            {Array.from({ length: 5 }).map((_, index) => (
-              <Star key={index} className="h-3.5 w-3.5 fill-current stroke-0" />
-            ))}
-          </div>
-          <span>{rating.toFixed(1)}/5</span>
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="text-lg font-bold text-foreground">{price}</span>
-          {originalPrice ? (
-            <span className="text-sm text-muted-foreground line-through">{originalPrice}</span>
-          ) : null}
-          {sale ? (
-            <span className="rounded-full bg-[#fce6e6] px-2.5 py-1 text-[10px] font-semibold tracking-[0.16em] text-[#b64747]">
-              {sale}
-            </span>
-          ) : null}
-        </div>
-      </div>
-    </article>
-  );
-}
+type StorefrontTheme = {
+  id: string;
+  name: string;
+  slug: string;
+  imageUrls: string[];
+  productCount: number;
+};
 
 function ProductSection({
   id,
@@ -274,8 +61,12 @@ function ProductSection({
 }: {
   id: string;
   title: string;
-  items: StorefrontProduct[];
+  items: StorefrontProductCardData[];
 }) {
+  if (items.length === 0) {
+    return null;
+  }
+
   return (
     <section id={id} className="px-4 py-12 sm:py-16">
       <div className="mx-auto max-w-7xl">
@@ -285,183 +76,204 @@ function ProductSection({
           </h2>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-4 md:gap-x-6">
+        <div className="mt-10 grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-4 sm:gap-y-8 lg:grid-cols-4 lg:gap-x-6">
           {items.map((item) => (
-            <ProductCard key={item.title} {...item} />
+            <ShopProductCard key={item.id} product={item} />
           ))}
-        </div>
-
-        <div className="mt-10 flex justify-center">
-          <Button
-            variant="outline"
-            className="h-12 rounded-full border-black/10 px-10 text-sm font-semibold"
-          >
-            View All
-          </Button>
         </div>
       </div>
     </section>
   );
 }
 
-export function StorefrontHome() {
+export function StorefrontHome({
+  newArrivals,
+  topSelling,
+  themes,
+  categories,
+}: {
+  newArrivals: StorefrontProductCardData[];
+  topSelling: StorefrontProductCardData[];
+  themes: StorefrontTheme[];
+  categories: StorefrontNavCategory[];
+}) {
+  const hasProducts = newArrivals.length > 0 || topSelling.length > 0;
+  const [mobileTickerIndex, setMobileTickerIndex] = useState(0);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (mediaQuery.matches) {
+      setMobileTickerIndex(0);
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setMobileTickerIndex((current) => (current + 1) % tickerItems.length);
+    }, 400);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen bg-white text-black">
-      <div className="bg-black px-4 py-2 text-center text-xs font-medium text-white">
-        Shop canvases, kits, and supplies for your next paint night.
-      </div>
-
-      <header className="sticky top-0 z-40 border-b border-black/5 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-6">
-          <div className="flex items-center gap-3 lg:hidden">
-            <MobileNavigation />
-            <Wordmark />
-          </div>
-
-          <div className="hidden items-center gap-8 lg:flex">
-            <Wordmark />
-            <nav className="flex items-center gap-5 text-sm font-medium text-black/75">
-              {navItems.map((item) => (
-                <Link key={item.label} href={item.href} className="transition hover:text-black">
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
-
-          <div className="hidden lg:block">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-black/45" />
-              <Input
-                aria-label="Search products"
-                placeholder="Search for canvases, kits, or supplies..."
-                className="h-12 w-full min-w-[360px] rounded-full border-black/5 bg-[#f4f4f4] pl-11 pr-4 text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-2">
-            <div className="lg:hidden">
-              <HeaderActions />
-            </div>
-            <div className="hidden lg:flex">
-              <HeaderActions />
-            </div>
-          </div>
-        </div>
-      </header>
-
+    <ShopChrome categories={categories}>
       <main>
-        <section className="relative overflow-hidden bg-[#f4f1ee] px-4 pb-10 pt-8 sm:pt-10 md:pb-14">
-          <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[2.25rem] border border-black/10 bg-white shadow-[0_28px_90px_rgba(0,0,0,0.08)]">
-            <Image
-              src="/Misc/BackgroundHero.png"
-              alt="Paint & Sip Depot storefront hero"
-              fill
-              priority
-              sizes="100vw"
-              className="object-cover object-center"
-            />
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(244,241,238,0.96)_0%,rgba(244,241,238,0.92)_34%,rgba(244,241,238,0.5)_58%,rgba(244,241,238,0.18)_100%)] sm:bg-[linear-gradient(90deg,rgba(244,241,238,0.97)_0%,rgba(244,241,238,0.9)_36%,rgba(244,241,238,0.48)_60%,rgba(244,241,238,0.12)_100%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(0,0,0,0.08),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(0,0,0,0.05),transparent_28%)]" />
-            <div className="relative z-10 min-h-[540px] px-6 py-8 sm:min-h-[620px] sm:px-8 sm:py-10 lg:min-h-[660px] lg:px-12 lg:py-12">
-              <div className="max-w-2xl">
-              <span className="inline-flex rounded-full border border-black/10 bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-black/70">
-                Curated for events, gifting, and paint nights
-              </span>
-              <h1 className="mt-6 max-w-[13.5ch] font-display text-[3.35rem] uppercase leading-[0.9] tracking-tight text-black sm:text-[4.6rem] lg:text-[5.35rem]">
-                Find A Canvas
-                <br />
-                For Any Occasion
-              </h1>
-              <p className="mt-5 max-w-xl text-base leading-7 text-black/68 sm:text-lg">
-                Browse our curated collection of canvases, paint party essentials, and creative
-                supplies designed for events, classrooms, celebrations, and unforgettable paint
-                and sip experiences.
-              </p>
+        <section className="relative overflow-hidden bg-[#f4f1ee] pb-10 pt-8 sm:pt-10 md:pb-14">
+          <Image
+            src="/Misc/backgroundmobile.png"
+            alt="Paint & Sip Depot storefront hero"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-[center_bottom] md:hidden"
+          />
+          <Image
+            src="/Misc/BackgroundHero.png"
+            alt="Paint & Sip Depot storefront hero"
+            fill
+            priority
+            sizes="100vw"
+            className="hidden object-cover object-center md:block"
+          />
+          <div className="absolute inset-0 hidden sm:block sm:bg-[linear-gradient(90deg,rgba(244,241,238,0.97)_0%,rgba(244,241,238,0.88)_35%,rgba(244,241,238,0.28)_60%,rgba(244,241,238,0.02)_100%)]" />
+          <div className="absolute inset-0 hidden sm:block sm:bg-[radial-gradient(circle_at_top_right,rgba(0,0,0,0.08),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(0,0,0,0.05),transparent_28%)]" />
+          <div className="relative z-10 mx-auto max-w-7xl px-4">
+            <div className="flex min-h-[92svh] items-start justify-center py-6 sm:min-h-[620px] sm:items-start sm:justify-start sm:py-10 lg:min-h-[660px] lg:py-12">
+              <div className="relative mx-auto mt-2 max-w-[340px] rounded-[2rem] border border-white/35 bg-white/10 px-6 py-8 text-center shadow-[0_20px_70px_rgba(0,0,0,0.1)] backdrop-blur-xl before:absolute before:inset-[1px] before:rounded-[calc(2rem-1px)] before:bg-[linear-gradient(140deg,rgba(255,255,255,0.3)_0%,rgba(255,255,255,0.08)_42%,rgba(255,255,255,0.16)_100%)] before:content-[''] after:absolute after:-right-6 after:top-5 after:h-24 after:w-24 after:rounded-full after:bg-white/14 after:blur-2xl after:content-[''] sm:mx-0 sm:mt-0 sm:max-w-2xl sm:rounded-none sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:text-left sm:shadow-none sm:backdrop-blur-0 sm:before:hidden sm:after:hidden">
+                <div className="relative z-10">
+                  <h1 className="mx-auto mt-2 max-w-[13.5ch] font-display text-[3.35rem] uppercase leading-[0.9] tracking-tight text-black sm:mx-0 sm:mt-6 sm:text-[4.6rem] lg:text-[5.35rem]">
+                    Find A Canvas
+                    <br />
+                    For Any Occasion
+                  </h1>
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button asChild className="h-12 rounded-full px-8 text-sm font-semibold sm:min-w-[170px]">
-                  <Link href="#new-arrivals">Shop Now</Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  className="h-12 rounded-full border-black/10 bg-white px-8 text-sm font-semibold"
-                >
-                  <Link href="#browse-theme">Browse Themes</Link>
-                </Button>
-              </div>
+                  <p className="mt-5 text-base leading-7 text-black/72 sm:hidden">
+                    All-in-one paint &amp; sip kits, pre-drawn canvases, and supplies-ready to
+                    go, no prep required. Start creating today.
+                  </p>
 
-              <div className="mt-10 grid grid-cols-1 gap-6 border-t border-black/10 pt-7 sm:grid-cols-3 sm:gap-4">
-                {stats.map((stat) => (
-                  <div key={stat.label} className="sm:border-r sm:border-black/10 sm:pr-4 last:sm:border-r-0">
-                    <p className="font-display text-4xl uppercase tracking-tight text-black">
-                      {stat.value}
-                    </p>
-                    <p className="mt-1 text-sm text-black/60">{stat.label}</p>
+                  <div className="mt-6 flex justify-center sm:justify-start">
+                    <Button
+                      asChild
+                      className="h-12 min-w-[190px] rounded-full bg-black px-8 text-sm font-semibold text-white hover:bg-white hover:text-black active:bg-white active:text-black sm:min-w-[240px] sm:px-10"
+                    >
+                      <Link href="#new-arrivals">Shop Now</Link>
+                    </Button>
                   </div>
-                ))}
+                </div>
+                <div className="mt-10 hidden grid-cols-1 gap-6 border-t border-black/10 pt-7 sm:grid sm:grid-cols-3 sm:gap-4">
+                  {stats.map((stat) => (
+                    <div
+                      key={stat.label}
+                      className="sm:border-r sm:border-black/10 sm:pr-4 last:sm:border-r-0"
+                    >
+                      <p className="font-display text-4xl uppercase tracking-tight text-black">
+                        {stat.value}
+                      </p>
+                      <p className="mt-1 text-sm text-black/60">{stat.label}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
             </div>
           </div>
         </section>
 
         <section className="bg-black px-4 py-5">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-8 gap-y-4 text-center font-display text-[1.7rem] uppercase tracking-tight text-white sm:text-[2.1rem]">
-            {tickerItems.map((item) => (
-              <span key={item}>{item}</span>
-            ))}
-          </div>
-        </section>
-
-        <ProductSection id="new-arrivals" title="New Arrivals" items={newArrivals} />
-
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="h-px bg-black/10" />
-        </div>
-
-        <ProductSection id="top-selling" title="Top Selling" items={topSelling} />
-
-        <section id="browse-theme" className="px-4 py-12 sm:py-16">
-          <div className="mx-auto max-w-7xl rounded-[2rem] bg-[#f3f1ef] px-5 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
-            <div className="text-center">
-              <h2 className="font-display text-4xl uppercase tracking-tight text-black sm:text-5xl">
-                Browse by Theme
-              </h2>
+          <div className="sm:hidden">
+            <div className="relative h-11 overflow-hidden">
+              <div className="absolute inset-0 flex items-center justify-center text-center font-display text-[2.45rem] uppercase tracking-tight text-white">
+                <span className="block w-full">{tickerItems[mobileTickerIndex]}</span>
+              </div>
             </div>
+          </div>
 
-            <div className="mt-8 grid gap-4 md:grid-cols-2">
-              {themes.map((theme, index) => (
-                <Link
-                  key={theme.name}
-                  href="#"
-                  className={[
-                    "group relative overflow-hidden rounded-[1.6rem] bg-white p-4 sm:p-5",
-                    index === 2 ? "md:col-span-1" : "",
-                  ].join(" ")}
-                >
-                  <div className="relative aspect-[1.55/1] overflow-hidden rounded-[1.3rem]">
-                    <Image
-                      src={theme.image}
-                      alt={theme.name}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                      className="object-cover transition duration-500 group-hover:scale-[1.04]"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/40 to-transparent" />
-                    <div className="absolute left-5 top-5">
-                      <p className="font-display text-3xl uppercase tracking-tight text-black sm:text-4xl">
-                        {theme.name}
-                      </p>
-                    </div>
-                  </div>
-                </Link>
+          <div className="hidden overflow-hidden sm:block">
+            <div className="shop-marquee-track flex w-max items-center whitespace-nowrap font-display text-[2.1rem] uppercase tracking-tight text-white">
+              {[0, 1].map((groupIndex) => (
+                <div key={groupIndex} className="flex flex-none items-center">
+                  {tickerItems.map((item) => (
+                    <span key={`${groupIndex}-${item}`} className="inline-flex items-center px-5">
+                      <span>{item}</span>
+                      <span className="ml-5 text-white/70">•</span>
+                    </span>
+                  ))}
+                </div>
               ))}
             </div>
           </div>
         </section>
+
+        {!hasProducts ? (
+          <section className="px-4 py-14 sm:py-20">
+            <div className="mx-auto max-w-4xl rounded-[2rem] border border-dashed bg-[#f8f7f5] px-6 py-16 text-center">
+              <h2 className="font-display text-4xl uppercase tracking-tight text-black sm:text-5xl">
+                Shop Opening Soon
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-black/65">
+                No active shop products are live yet. Add products from the admin dashboard to
+                publish them here automatically.
+              </p>
+            </div>
+          </section>
+        ) : (
+          <>
+            <ProductSection id="new-arrivals" title="New Arrivals" items={newArrivals} />
+
+            {topSelling.length > 0 ? (
+              <>
+                <div className="mx-auto max-w-7xl px-4">
+                  <div className="h-px bg-black/10" />
+                </div>
+                <ProductSection id="top-selling" title="Top Selling" items={topSelling} />
+              </>
+            ) : null}
+          </>
+        )}
+
+        {themes.length > 0 ? (
+          <section id="browse-theme" className="px-4 py-12 sm:py-16">
+            <div className="mx-auto max-w-7xl rounded-[2rem] bg-[#f3f1ef] px-5 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
+              <div className="text-center">
+                <h2 className="font-display text-4xl uppercase tracking-tight text-black sm:text-5xl">
+                  Browse by Category
+                </h2>
+              </div>
+
+              <div className="mt-8 grid gap-4 md:grid-cols-2">
+                {themes.map((theme) => (
+                  <Link
+                    key={theme.id}
+                    href="#new-arrivals"
+                    className="group relative overflow-hidden rounded-[1.6rem] bg-white p-4 sm:p-5"
+                  >
+                    <div className="relative aspect-[1.55/1] overflow-hidden rounded-[1.3rem]">
+                      {theme.imageUrls[0] ? (
+                        <img
+                          src={theme.imageUrls[0]}
+                          alt={theme.name}
+                          className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-muted text-sm text-muted-foreground">
+                          Theme image
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/40 to-transparent" />
+                      <div className="absolute left-5 top-5">
+                        <p className="font-display text-3xl uppercase tracking-tight text-black sm:text-4xl">
+                          {theme.name}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         <section className="px-4 py-12 sm:py-16">
           <div className="mx-auto max-w-7xl">
@@ -469,22 +281,6 @@ export function StorefrontHome() {
               <h2 className="font-display text-4xl uppercase tracking-tight text-black sm:text-5xl">
                 Our Happy Customers
               </h2>
-              <div className="hidden items-center gap-2 sm:flex">
-                <button
-                  type="button"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white text-lg"
-                  aria-label="Previous reviews"
-                >
-                  ←
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white text-lg"
-                  aria-label="Next reviews"
-                >
-                  →
-                </button>
-              </div>
             </div>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -493,12 +289,7 @@ export function StorefrontHome() {
                   key={review.name}
                   className="rounded-[1.5rem] border border-black/10 bg-white p-6 shadow-[0_18px_50px_rgba(0,0,0,0.04)]"
                 >
-                  <div className="flex items-center gap-0.5 text-[#ffb000]">
-                    {Array.from({ length: 5 }).map((_, index) => (
-                      <Star key={index} className="h-4 w-4 fill-current stroke-0" />
-                    ))}
-                  </div>
-                  <p className="mt-4 text-lg font-semibold text-black">{review.name}</p>
+                  <p className="text-lg font-semibold text-black">{review.name}</p>
                   <p className="mt-3 text-sm leading-6 text-black/65">{review.quote}</p>
                 </article>
               ))}
@@ -506,91 +297,10 @@ export function StorefrontHome() {
           </div>
         </section>
 
-        <section className="px-4 pb-14 pt-6 sm:pb-20">
-          <div className="mx-auto max-w-7xl rounded-[2rem] bg-black px-6 py-8 text-white sm:px-10 sm:py-10">
-            <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-              <div className="max-w-2xl">
-                <h2 className="font-display text-4xl uppercase tracking-tight text-white sm:text-5xl">
-                  Want to Host Your Own Paint and Sip Event?
-                </h2>
-                <p className="mt-4 text-base leading-7 text-white/70">
-                  Start planning your own unforgettable paint and sip experience.
-                </p>
-              </div>
-
-              <Button
-                asChild
-                className="h-12 rounded-full bg-white px-8 text-sm font-semibold text-black hover:bg-white/90"
-              >
-                <Link href="https://host.paintsipdepot.com">Visit Host Portal</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
+        <ShopNewsletterSection />
       </main>
 
-      <footer className="border-t border-black/10 bg-[#f8f7f5] px-4 py-12 sm:py-16">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid gap-10 lg:grid-cols-[1.25fr_repeat(3,0.8fr)]">
-            <div>
-              <p className="font-display text-3xl uppercase tracking-tight text-black">
-                Paint &amp; Sip Depot
-              </p>
-              <p className="mt-4 max-w-sm text-sm leading-6 text-black/60">
-                We offer canvases, kits, and event supplies to help you create unforgettable
-                paint and sip experiences.
-              </p>
-              <div className="mt-6 flex items-center gap-3">
-                {socialIcons.map((item) => (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-white transition hover:-translate-y-0.5"
-                    aria-label={item.name}
-                  >
-                    <Image src={item.icon} alt={item.name} width={16} height={16} />
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {[
-              {
-                title: "Company",
-                links: ["About", "Shop", "Themes", "Host an Event"],
-              },
-              {
-                title: "Help",
-                links: ["Customer Support", "Shipping", "Returns", "FAQ"],
-              },
-              {
-                title: "Resources",
-                links: ["Blog", "Event Ideas", "Canvas Guide", "Contact"],
-              },
-            ].map((column) => (
-              <div key={column.title}>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-black/55">
-                  {column.title}
-                </p>
-                <ul className="mt-5 space-y-3 text-sm text-black/65">
-                  {column.links.map((link) => (
-                    <li key={link}>
-                      <Link href="#" className="transition hover:text-black">
-                        {link}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-10 flex flex-col gap-4 border-t border-black/10 pt-6 text-sm text-black/50 sm:flex-row sm:items-center sm:justify-between">
-            <p>Paint &amp; Sip Depot © {new Date().getFullYear()}. All Rights Reserved.</p>
-            <p>Secure checkout and product collections coming soon.</p>
-          </div>
-        </div>
-      </footer>
-    </div>
+      <ShopFooter />
+    </ShopChrome>
   );
 }

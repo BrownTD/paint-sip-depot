@@ -60,6 +60,10 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   * {
     @apply border-border;
   }
@@ -67,6 +71,42 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .shop-marquee-track {
+    animation: none;
+    transform: none;
+  }
+
+  .shop-announcement-marquee-track {
+    animation: none;
+    transform: none;
+  }
+}
+
+@keyframes shop-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.shop-marquee-track {
+  animation: shop-marquee 24s linear infinite;
+  will-change: transform;
+}
+
+.shop-announcement-marquee-track {
+  animation: shop-marquee 36s linear infinite;
+  will-change: transform;
 }
 
 ::-webkit-scrollbar {

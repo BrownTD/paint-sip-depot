@@ -15,11 +15,24 @@ type SendEmailOptions = {
 
 type EventCreatedEmailInput = {
   recipientName?: string | null;
+  organizerName?: string | null;
+  organizerEmail?: string | null;
   eventTitle: string;
   eventUrl: string;
+  previewUrl?: string | null;
   startDateTime: Date;
+  endDateTime?: Date | null;
   locationName: string;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  eventFormat?: "IN_PERSON" | "VIRTUAL";
   visibility: "PUBLIC" | "PRIVATE";
+  eventCode?: string | null;
+  capacity?: number;
+  ticketPriceCents?: number;
+  status?: "DRAFT" | "PUBLISHED" | "ENDED" | "CANCELED";
 };
 
 type VerificationEmailInput = {
@@ -30,10 +43,21 @@ type VerificationEmailInput = {
 
 type OrderNotificationInput = {
   recipientName?: string | null;
+  organizerName?: string | null;
+  organizerEmail?: string | null;
+  bookingId?: string | null;
+  purchasedAt?: Date | null;
   eventTitle: string;
   eventUrl: string;
+  previewUrl?: string | null;
   startDateTime: Date;
   locationName: string;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  visibility?: "PUBLIC" | "PRIVATE";
+  eventCode?: string | null;
   quantity: number;
   purchaserName: string;
   purchaserEmail: string;
@@ -73,14 +97,39 @@ function centsToDollars(cents: number) {
   }).format(cents / 100);
 }
 
+function formatEventFormatLabel(eventFormat: "IN_PERSON" | "VIRTUAL") {
+  return eventFormat === "VIRTUAL" ? "Virtual" : "In Person";
+}
+
+function formatEventStatusLabel(status: "DRAFT" | "PUBLISHED" | "ENDED" | "CANCELED") {
+  return status.charAt(0) + status.slice(1).toLowerCase();
+}
+
+function formatAddressLine({
+  address,
+  city,
+  state,
+  zip,
+}: {
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+}) {
+  const parts = [address?.trim(), [city?.trim(), state?.trim()].filter(Boolean).join(", "), zip?.trim()]
+    .filter(Boolean);
+
+  return parts.join(", ");
+}
+
 function emailShell(title: string, eyebrow: string, bodyHtml: string) {
-  const logoUrl = getAbsoluteUrl("/Misc/psd_logo.png");
+  const logoUrl = "https://www.paintsipdepot.com/Misc/psd_logo.png";
 
   return `
-    <div style="margin:0;padding:24px;background:#000000;font-family:Arial,sans-serif;color:#000000;">
+    <div style="margin:0;padding:24px;background:#ffffff;font-family:Arial,sans-serif;color:#111111;">
       <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid #1f1f1f;">
         <div style="padding:28px 32px;background:#000000;border-bottom:4px solid #feaa08;">
-          <img src="${logoUrl}" alt="Paint & Sip Depot" style="height:36px;width:auto;display:block;margin-bottom:12px;" />
+          <img src="${logoUrl}" alt="Paint & Sip Depot" style="height:42px;width:auto;display:block;margin-bottom:14px;" />
           <div style="font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#feaa08;font-weight:700;">${eyebrow}</div>
           <h1 style="margin:8px 0 0;font-size:28px;line-height:1.15;color:#ffffff;">${title}</h1>
         </div>
@@ -170,6 +219,12 @@ async function sendEmail(
 }
 
 export async function sendAdminEventCreatedEmail(input: EventCreatedEmailInput) {
+  const organizerLine = [input.organizerName?.trim(), input.organizerEmail?.trim()]
+    .filter(Boolean)
+    .join(" ");
+  const addressLine = formatAddressLine(input);
+  const privateEventCode =
+    input.visibility === "PRIVATE" && input.eventCode ? input.eventCode : null;
   const subject = `New event created: ${input.eventTitle}`;
   const html = emailShell(
     "New event created",
@@ -177,16 +232,37 @@ export async function sendAdminEventCreatedEmail(input: EventCreatedEmailInput) 
     `
       <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">A new event has been created on Paint &amp; Sip Depot.</p>
       <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        ${organizerLine ? `<p style="margin:0 0 10px;"><strong>Organizer:</strong> ${organizerLine}</p>` : ""}
         <p style="margin:0 0 10px;"><strong>Event:</strong> ${input.eventTitle}</p>
-        <p style="margin:0 0 10px;"><strong>Date:</strong> ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}</p>
+        ${input.status ? `<p style="margin:0 0 10px;"><strong>Status:</strong> ${formatEventStatusLabel(input.status)}</p>` : ""}
+        ${input.eventFormat ? `<p style="margin:0 0 10px;"><strong>Format:</strong> ${formatEventFormatLabel(input.eventFormat)}</p>` : ""}
+        <p style="margin:0 0 10px;"><strong>Visibility:</strong> ${input.visibility}</p>
+        ${privateEventCode ? `<p style="margin:0 0 10px;"><strong>Event code:</strong> ${privateEventCode}</p>` : ""}
+        <p style="margin:0 0 10px;"><strong>Starts:</strong> ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}</p>
+        ${input.endDateTime ? `<p style="margin:0 0 10px;"><strong>Ends:</strong> ${formatDate(input.endDateTime)} at ${formatTime(input.endDateTime)}</p>` : ""}
         <p style="margin:0 0 10px;"><strong>Location:</strong> ${input.locationName}</p>
-        <p style="margin:0;"><strong>Visibility:</strong> ${input.visibility}</p>
+        ${addressLine ? `<p style="margin:0 0 10px;"><strong>Address:</strong> ${addressLine}</p>` : ""}
+        ${typeof input.capacity === "number" ? `<p style="margin:0 0 10px;"><strong>Capacity:</strong> ${input.capacity}</p>` : ""}
+        ${typeof input.ticketPriceCents === "number" ? `<p style="margin:0;"><strong>Ticket price:</strong> ${centsToDollars(input.ticketPriceCents)}</p>` : ""}
       </div>
       <p style="margin:20px 0 0;"><a href="${input.eventUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">View Event</a></p>
     `
   );
 
-  const text = `New event created: ${input.eventTitle}\nDate: ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}\nLocation: ${input.locationName}\nVisibility: ${input.visibility}\n${input.eventUrl}`;
+  const text =
+    `New event created: ${input.eventTitle}\n` +
+    `${organizerLine ? `Organizer: ${organizerLine}\n` : ""}` +
+    `${input.status ? `Status: ${formatEventStatusLabel(input.status)}\n` : ""}` +
+    `${input.eventFormat ? `Format: ${formatEventFormatLabel(input.eventFormat)}\n` : ""}` +
+    `Visibility: ${input.visibility}\n` +
+    `${privateEventCode ? `Event code: ${privateEventCode}\n` : ""}` +
+    `Starts: ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}\n` +
+    `${input.endDateTime ? `Ends: ${formatDate(input.endDateTime)} at ${formatTime(input.endDateTime)}\n` : ""}` +
+    `Location: ${input.locationName}\n` +
+    `${addressLine ? `Address: ${addressLine}\n` : ""}` +
+    `${typeof input.capacity === "number" ? `Capacity: ${input.capacity}\n` : ""}` +
+    `${typeof input.ticketPriceCents === "number" ? `Ticket price: ${centsToDollars(input.ticketPriceCents)}\n` : ""}` +
+    `${input.eventUrl}`;
 
   await sendEmail({
     to: getAdminEmail(),
@@ -199,6 +275,9 @@ export async function sendAdminEventCreatedEmail(input: EventCreatedEmailInput) 
 export async function sendHostEventCreatedEmail(input: EventCreatedEmailInput & { to: string }) {
   const subject = `Your event is live in Paint & Sip Depot`;
   const greeting = input.recipientName ? `Hi ${input.recipientName},` : "Hi,";
+  const privateEventCode =
+    input.visibility === "PRIVATE" && input.eventCode ? input.eventCode : null;
+  const previewUrl = input.previewUrl || input.eventUrl;
   const html = emailShell(
     "Your event has been created",
     "Host Update",
@@ -208,13 +287,21 @@ export async function sendHostEventCreatedEmail(input: EventCreatedEmailInput & 
       <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
         <p style="margin:0 0 10px;"><strong>Date:</strong> ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}</p>
         <p style="margin:0 0 10px;"><strong>Location:</strong> ${input.locationName}</p>
+        ${privateEventCode ? `<p style="margin:0 0 10px;"><strong>Event code:</strong> ${privateEventCode}</p>` : ""}
         <p style="margin:0;"><strong>Visibility:</strong> ${input.visibility}</p>
       </div>
-      <p style="margin:20px 0 0;"><a href="${input.eventUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">View Event Page</a></p>
+      <p style="margin:20px 0 0;"><a href="${previewUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">Preview Event Page</a></p>
     `
   );
 
-  const text = `${greeting}\nYour event "${input.eventTitle}" has been created successfully.\nDate: ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}\nLocation: ${input.locationName}\nVisibility: ${input.visibility}\n${input.eventUrl}`;
+  const text =
+    `${greeting}\n` +
+    `Your event "${input.eventTitle}" has been created successfully.\n` +
+    `Date: ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}\n` +
+    `Location: ${input.locationName}\n` +
+    `${privateEventCode ? `Event code: ${privateEventCode}\n` : ""}` +
+    `Visibility: ${input.visibility}\n` +
+    `Preview: ${previewUrl}`;
 
   await sendEmail({
     to: input.to,
@@ -225,6 +312,12 @@ export async function sendHostEventCreatedEmail(input: EventCreatedEmailInput & 
 }
 
 export async function sendAdminOrderCreatedEmail(input: OrderNotificationInput) {
+  const organizerLine = [input.organizerName?.trim(), input.organizerEmail?.trim()]
+    .filter(Boolean)
+    .join(" ");
+  const addressLine = formatAddressLine(input);
+  const privateEventCode =
+    input.visibility === "PRIVATE" && input.eventCode ? input.eventCode : null;
   const subject = `New order: ${input.quantity} ticket${input.quantity > 1 ? "s" : ""} for ${input.eventTitle}`;
   const html = emailShell(
     "New order received",
@@ -232,17 +325,36 @@ export async function sendAdminOrderCreatedEmail(input: OrderNotificationInput) 
     `
       <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">A new paid booking has been completed.</p>
       <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        ${organizerLine ? `<p style="margin:0 0 10px;"><strong>Organizer:</strong> ${organizerLine}</p>` : ""}
         <p style="margin:0 0 10px;"><strong>Event:</strong> ${input.eventTitle}</p>
+        <p style="margin:0 0 10px;"><strong>Event date:</strong> ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}</p>
+        ${privateEventCode ? `<p style="margin:0 0 10px;"><strong>Event code:</strong> ${privateEventCode}</p>` : ""}
+        <p style="margin:0 0 10px;"><strong>Location:</strong> ${input.locationName}</p>
+        ${addressLine ? `<p style="margin:0 0 10px;"><strong>Address:</strong> ${addressLine}</p>` : ""}
         <p style="margin:0 0 10px;"><strong>Customer:</strong> ${input.purchaserName} (${input.purchaserEmail})</p>
         <p style="margin:0 0 10px;"><strong>Tickets:</strong> ${input.quantity}</p>
         <p style="margin:0 0 10px;"><strong>Total:</strong> ${centsToDollars(input.amountPaidCents)}</p>
-        <p style="margin:0;"><strong>Event date:</strong> ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}</p>
+        ${input.purchasedAt ? `<p style="margin:0 0 10px;"><strong>Purchased at:</strong> ${formatDate(input.purchasedAt)} at ${formatTime(input.purchasedAt)}</p>` : ""}
+        ${input.bookingId ? `<p style="margin:0;"><strong>Booking ID:</strong> ${input.bookingId}</p>` : ""}
       </div>
       <p style="margin:20px 0 0;"><a href="${input.eventUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">View Event</a></p>
     `
   );
 
-  const text = `New paid booking\nEvent: ${input.eventTitle}\nCustomer: ${input.purchaserName} (${input.purchaserEmail})\nTickets: ${input.quantity}\nTotal: ${centsToDollars(input.amountPaidCents)}\nEvent date: ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}\n${input.eventUrl}`;
+  const text =
+    `New paid booking\n` +
+    `${organizerLine ? `Organizer: ${organizerLine}\n` : ""}` +
+    `Event: ${input.eventTitle}\n` +
+    `Event date: ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}\n` +
+    `${privateEventCode ? `Event code: ${privateEventCode}\n` : ""}` +
+    `Location: ${input.locationName}\n` +
+    `${addressLine ? `Address: ${addressLine}\n` : ""}` +
+    `Customer: ${input.purchaserName} (${input.purchaserEmail})\n` +
+    `Tickets: ${input.quantity}\n` +
+    `Total: ${centsToDollars(input.amountPaidCents)}\n` +
+    `${input.purchasedAt ? `Purchased at: ${formatDate(input.purchasedAt)} at ${formatTime(input.purchasedAt)}\n` : ""}` +
+    `${input.bookingId ? `Booking ID: ${input.bookingId}\n` : ""}` +
+    `${input.eventUrl}`;
 
   await sendEmail({
     to: getAdminEmail(),
@@ -255,30 +367,50 @@ export async function sendAdminOrderCreatedEmail(input: OrderNotificationInput) 
 export async function sendHostOrderCreatedEmail(input: OrderNotificationInput & { to: string }) {
   const subject = `New ticket purchase for ${input.eventTitle}`;
   const greeting = input.recipientName ? `Hi ${input.recipientName},` : "Hi,";
+  const privateEventCode =
+    input.visibility === "PRIVATE" && input.eventCode ? input.eventCode : null;
+  const previewUrl = input.previewUrl || input.eventUrl;
+  const dashboardUrl = getAbsoluteUrl("/login");
   const html = emailShell(
-    "A new order came in",
+    "New Ticket Purchased",
     "Host Update",
     `
       <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${greeting}</p>
-      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">You have a new paid booking for <strong>${input.eventTitle}</strong>.</p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">A ticket was just purchased for <strong>${input.eventTitle}</strong>.</p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Check your dashboard to view the details.</p>
       <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
         <p style="margin:0 0 10px;"><strong>Customer:</strong> ${input.purchaserName} (${input.purchaserEmail})</p>
         <p style="margin:0 0 10px;"><strong>Tickets:</strong> ${input.quantity}</p>
         <p style="margin:0 0 10px;"><strong>Total:</strong> ${centsToDollars(input.amountPaidCents)}</p>
-        <p style="margin:0;"><strong>Event date:</strong> ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}</p>
+        <p style="margin:0 0 10px;"><strong>Event date:</strong> ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}</p>
+        ${privateEventCode ? `<p style="margin:0;"><strong>Event code:</strong> ${privateEventCode}</p>` : ""}
       </div>
-      <p style="margin:20px 0 0;"><a href="${input.eventUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">View Event Page</a></p>
+      <div style="margin:20px 0 0;">
+        <a href="${previewUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">Preview Event Page</a>
+        <a href="${dashboardUrl}" style="display:inline-block;margin-left:12px;padding:12px 18px;border-radius:999px;background:#000000;color:#ffffff;text-decoration:none;font-weight:700;">View Dashboard</a>
+      </div>
     `
   );
 
-  const text = `${greeting}\nYou have a new paid booking for "${input.eventTitle}".\nCustomer: ${input.purchaserName} (${input.purchaserEmail})\nTickets: ${input.quantity}\nTotal: ${centsToDollars(input.amountPaidCents)}\nEvent date: ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}\n${input.eventUrl}`;
+  const text =
+    `${greeting}\n` +
+    `A ticket was just purchased for "${input.eventTitle}".\n` +
+    `Check your dashboard to view the details.\n` +
+    `Customer: ${input.purchaserName} (${input.purchaserEmail})\n` +
+    `Tickets: ${input.quantity}\n` +
+    `Total: ${centsToDollars(input.amountPaidCents)}\n` +
+    `Event date: ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}\n` +
+    `${privateEventCode ? `Event code: ${privateEventCode}\n` : ""}` +
+    `Preview: ${previewUrl}\n` +
+    `Dashboard: ${dashboardUrl}`;
 
   await sendEmail({
     to: input.to,
     subject,
     html,
     text,
-  }, { enabled: false });
+    replyTo: getReplyToEmail(),
+  });
 }
 
 export async function sendExpiredCheckoutEmail(input: ExpiredCheckoutEmailInput) {

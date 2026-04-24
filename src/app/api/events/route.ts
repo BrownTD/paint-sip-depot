@@ -109,7 +109,11 @@ export async function POST(request: Request) {
       data: { qrCodeImageUrl },
     });
 
-    const eventUrl = getAbsoluteUrl(`/e/${event.slug}`);
+    const eventUrl =
+      event.visibility === "PRIVATE" && event.eventCode
+        ? getAbsoluteUrl(`/e/${event.slug}?code=${encodeURIComponent(event.eventCode)}`)
+        : getAbsoluteUrl(`/e/${event.slug}`);
+    const previewUrl = getAbsoluteUrl(`/dashboard/events/${event.id}/preview`);
 
     void Promise.allSettled([
       session.user.email
@@ -118,18 +122,33 @@ export async function POST(request: Request) {
             recipientName: session.user.name,
             eventTitle: event.title,
             eventUrl,
+            previewUrl,
             startDateTime: event.startDateTime,
             locationName: event.locationName,
             visibility: event.visibility,
+            eventCode: event.eventCode,
           })
         : Promise.resolve(),
       sendAdminEventCreatedEmail({
         recipientName: "Admin",
+        organizerName: session.user.name,
+        organizerEmail: session.user.email,
         eventTitle: event.title,
         eventUrl,
+        previewUrl,
         startDateTime: event.startDateTime,
+        endDateTime: event.endDateTime,
         locationName: event.locationName,
+        address: event.address,
+        city: event.city,
+        state: event.state,
+        zip: event.zip,
+        eventFormat: event.eventFormat,
         visibility: event.visibility,
+        eventCode: event.eventCode,
+        capacity: event.capacity,
+        ticketPriceCents: event.ticketPriceCents,
+        status: event.status,
       }),
     ]).then((results) => {
       const rejected = results.filter((result) => result.status === "rejected");

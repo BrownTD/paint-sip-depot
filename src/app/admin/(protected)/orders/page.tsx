@@ -83,7 +83,7 @@ export default async function AdminOrdersPage() {
           </CardContent>
         </Card>
         <Card>
-              <CardHeader className="pb-2">
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Paid Orders</CardTitle>
           </CardHeader>
           <CardContent>

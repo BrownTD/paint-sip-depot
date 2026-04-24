@@ -180,7 +180,7 @@ export function getAbsoluteUrl(path: string): string {
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXTAUTH_URL ||
     vercelUrl ||
-    (process.env.NODE_ENV === "production" ? "https://paint-sip-depot.vercel.app" : undefined) ||
+    (process.env.NODE_ENV === "production" ? "https://paintsipdepot.com" : undefined) ||
     "http://localhost:3000";
 
   const normalizedBase = base.replace(/\/+$/, "");

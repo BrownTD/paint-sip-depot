@@ -24,9 +24,9 @@ type UpcomingEventsSectionProps = {
 
 export function UpcomingEventsSection({ events }: UpcomingEventsSectionProps) {
   return (
-    <section className="px-4 py-24 md:py-32">
-      <div className="container mx-auto">
-        <div className="rounded-[36px] border border-border/70 bg-gradient-to-br from-background via-muted/25 to-accent/10 p-8 shadow-[0_30px_90px_rgba(15,23,42,0.08)] md:p-12">
+    <section className="px-2 pb-24 pt-0 sm:px-4 md:pb-32 md:pt-0">
+      <div className="mx-auto w-full max-w-[1400px]">
+        <div className="rounded-[36px] border border-border/70 bg-gradient-to-br from-background via-muted/25 to-accent/10 p-6 shadow-[0_30px_90px_rgba(15,23,42,0.08)] sm:p-8 md:p-12">
           <div className="mx-auto max-w-3xl text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.26em] text-primary">
               Discovery

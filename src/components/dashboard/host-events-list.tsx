@@ -17,6 +17,7 @@ export type HostEventsListItem = {
   slug: string;
   createdAt: Date;
   startDateTime: Date;
+  locationName: string;
   city: string | null;
   state: string | null;
   status: "DRAFT" | "PUBLISHED" | "ENDED" | "CANCELED";
@@ -29,6 +30,8 @@ export type HostEventsListItem = {
   qrCodeImageUrl: string | null;
   eventCode: string | null;
   ticketsSold: number;
+  organizerName: string | null;
+  liveEventUrl: string;
 };
 
 type DisplayStatus = HostEventsListItem["status"] | "COMPLETED";
@@ -65,7 +68,7 @@ function EventCard({ event }: { event: HostEventsListItem }) {
         </div>
 
         <div className="flex-1 p-4">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-center">
                 <h3 className="text-lg font-semibold">{event.title}</h3>
@@ -88,7 +91,7 @@ function EventCard({ event }: { event: HostEventsListItem }) {
                   </Badge>
                 </div>
               </div>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:gap-4">
                 <span className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
                   {formatDate(event.startDateTime)} at {formatTime(event.startDateTime)}
@@ -105,7 +108,7 @@ function EventCard({ event }: { event: HostEventsListItem }) {
                 </div>
               ) : null}
             </div>
-            <div className="shrink-0 text-right">
+            <div className="shrink-0 text-left sm:text-right">
               <p className="font-semibold">{formatAmountForDisplay(event.ticketPriceCents)}</p>
               <p className="text-sm text-muted-foreground">
                 <Users className="mr-1 inline h-3 w-3" />
@@ -114,7 +117,7 @@ function EventCard({ event }: { event: HostEventsListItem }) {
             </div>
           </div>
 
-          <div className="mt-4 flex items-center gap-2">
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             {isRelaunchable ? (
               <Link href={`/dashboard/events/${event.id}?relaunch=1`}>
                 <Button variant="outline" size="sm">
@@ -132,10 +135,10 @@ function EventCard({ event }: { event: HostEventsListItem }) {
             {event.eventCode ? <EventCodeCopyButton eventCode={event.eventCode} /> : null}
 
             {event.status === "PUBLISHED" ? (
-              <Link href={`/e/${event.slug}`} target="_blank">
+              <Link href={`/dashboard/events/${event.id}/preview`}>
                 <Button variant="ghost" size="sm">
                   <ExternalLink className="mr-1 h-4 w-4" />
-                  View Event Page
+                  Preview Event Page
                 </Button>
               </Link>
             ) : null}
@@ -144,6 +147,13 @@ function EventCard({ event }: { event: HostEventsListItem }) {
               <EventQrDownloadButton
                 fileName={`${event.slug}-qr.png`}
                 qrCodeImageUrl={event.qrCodeImageUrl}
+                organizerName={event.organizerName}
+                eventTitle={event.title}
+                startDateTime={event.startDateTime}
+                locationName={event.locationName}
+                visibility={event.visibility}
+                eventCode={event.eventCode}
+                liveEventUrl={event.liveEventUrl}
               />
             ) : null}
           </div>

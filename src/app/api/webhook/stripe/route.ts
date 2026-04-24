@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
+import { ShopOrderStatus } from "@prisma/client";
 import {
   sendAdminOrderCreatedEmail,
   sendHostOrderCreatedEmail,
@@ -45,6 +46,29 @@ export async function POST(request: Request) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.payment_status === "paid") {
+          if (
+            session.metadata?.checkoutType === "SHOP_PRODUCT" ||
+            session.metadata?.checkoutType === "SHOP_CART"
+          ) {
+            const shopOrderId = session.metadata.shopOrderId;
+            if (!shopOrderId) {
+              break;
+            }
+
+            await prisma.shopOrder.updateMany({
+              where: {
+                id: shopOrderId,
+                status: ShopOrderStatus.PENDING,
+              },
+              data: {
+                status: ShopOrderStatus.PAID,
+                stripePaymentIntentId: session.payment_intent as string,
+              },
+            });
+
+            break;
+          }
+
           const updateResult = await prisma.booking.updateMany({
             where: {
               stripeCheckoutSessionId: session.id,
@@ -75,15 +99,30 @@ export async function POST(request: Request) {
             });
 
             if (booking) {
-              const eventUrl = getAbsoluteUrl(`/e/${booking.event.slug}`);
+              const eventUrl =
+                booking.event.visibility === "PRIVATE" && booking.event.eventCode
+                  ? getAbsoluteUrl(`/e/${booking.event.slug}?code=${encodeURIComponent(booking.event.eventCode)}`)
+                  : getAbsoluteUrl(`/e/${booking.event.slug}`);
+              const previewUrl = getAbsoluteUrl(`/dashboard/events/${booking.event.id}/preview`);
 
               const notifications = [
                 sendAdminOrderCreatedEmail({
                   recipientName: "Admin",
+                  organizerName: booking.event.host.name,
+                  organizerEmail: booking.event.host.email,
+                  bookingId: booking.id,
+                  purchasedAt: booking.createdAt,
                   eventTitle: booking.event.title,
                   eventUrl,
+                  previewUrl,
                   startDateTime: booking.event.startDateTime,
                   locationName: booking.event.locationName,
+                  address: booking.event.address,
+                  city: booking.event.city,
+                  state: booking.event.state,
+                  zip: booking.event.zip,
+                  visibility: booking.event.visibility,
+                  eventCode: booking.event.eventCode,
                   quantity: booking.quantity,
                   purchaserName: booking.purchaserName,
                   purchaserEmail: booking.purchaserEmail,
@@ -98,8 +137,11 @@ export async function POST(request: Request) {
                     recipientName: booking.event.host.name,
                     eventTitle: booking.event.title,
                     eventUrl,
+                    previewUrl,
                     startDateTime: booking.event.startDateTime,
                     locationName: booking.event.locationName,
+                    visibility: booking.event.visibility,
+                    eventCode: booking.event.eventCode,
                     quantity: booking.quantity,
                     purchaserName: booking.purchaserName,
                     purchaserEmail: booking.purchaserEmail,
@@ -123,6 +165,22 @@ export async function POST(request: Request) {
 
       case "checkout.session.expired": {
         const session = event.data.object as Stripe.Checkout.Session;
+        if (
+          session.metadata?.checkoutType === "SHOP_PRODUCT" ||
+          session.metadata?.checkoutType === "SHOP_CART"
+        ) {
+          await prisma.shopOrder.updateMany({
+            where: {
+              stripeCheckoutSessionId: session.id,
+              status: ShopOrderStatus.PENDING,
+            },
+            data: {
+              status: ShopOrderStatus.EXPIRED,
+            },
+          });
+          break;
+        }
+
         await expireBookingsForCheckoutSession(prisma, session.id);
         console.log(`Booking expired (session expired): ${session.id}`);
         break;
@@ -134,6 +192,10 @@ export async function POST(request: Request) {
         await prisma.booking.updateMany({
           where: { stripePaymentIntentId: paymentIntentId, status: BOOKING_STATUS.paid },
           data: { status: BOOKING_STATUS.refunded },
+        });
+        await prisma.shopOrder.updateMany({
+          where: { stripePaymentIntentId: paymentIntentId, status: ShopOrderStatus.PAID },
+          data: { status: ShopOrderStatus.REFUNDED },
         });
         console.log(`Booking refunded for payment intent: ${paymentIntentId}`);
         break;

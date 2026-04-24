@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 
 export function SocialAuthButtons({
   disabled,
+  callbackUrl = "/dashboard",
 }: {
   disabled?: boolean;
+  callbackUrl?: string;
 }) {
   const [enabledProviders, setEnabledProviders] = useState<Record<string, boolean>>({});
 
@@ -28,7 +30,7 @@ export function SocialAuthButtons({
 
   const handleSocialSignIn = async (provider: "google" | "facebook") => {
     await signIn(provider, {
-      callbackUrl: "/dashboard",
+      callbackUrl,
     });
   };
 

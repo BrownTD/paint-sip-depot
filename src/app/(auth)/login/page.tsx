@@ -1,23 +1,56 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
-import { getSession } from "next-auth/react";
-import { Palette, Loader2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { getSession, signIn, signOut } from "next-auth/react";
+import { Loader2 } from "lucide-react";
 import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
 import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
+
+  useEffect(() => {
+    if (searchParams.get("portal") !== "host") return;
+
+    let cancelled = false;
+
+    const handleHostPortalCallback = async () => {
+      const session = await getSession();
+      if (!session?.user || cancelled) return;
+
+      if (session.user.role === "ADMIN") {
+        await signOut({ redirect: false });
+        if (cancelled) return;
+        toast({
+          title: "Admin login moved",
+          description: "Use /admin to access the admin panel.",
+          variant: "destructive",
+        });
+        router.replace("/login");
+        router.refresh();
+        return;
+      }
+
+      router.replace("/dashboard");
+      router.refresh();
+    };
+
+    handleHostPortalCallback();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +67,16 @@ export default function LoginPage() {
         toast({ title: "Error", description: "Invalid email or password", variant: "destructive" });
       } else {
         const session = await getSession();
-        router.push(session?.user?.role === "ADMIN" ? "/admin/orders" : "/dashboard");
+        if (session?.user?.role === "ADMIN") {
+          await signOut({ redirect: false });
+          toast({
+            title: "Admin login moved",
+            description: "Use /admin to access the admin panel.",
+            variant: "destructive",
+          });
+          return;
+        }
+        router.push("/dashboard");
         router.refresh();
       }
     } catch {
@@ -66,10 +108,9 @@ export default function LoginPage() {
         <Card>
           <CardHeader>
             <CardTitle>Sign In</CardTitle>
-            <CardDescription>Sign in with Google, Facebook, or email credentials</CardDescription>
           </CardHeader>
           <CardContent>
-            <SocialAuthButtons disabled={isLoading} />
+            <SocialAuthButtons disabled={isLoading} callbackUrl="/login?portal=host" />
 
             <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
               <div className="h-px flex-1 bg-border" />

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ReturnSubmissionForm } from "@/components/returns/return-submission-form";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
@@ -21,14 +20,7 @@ export default function ReturnSubmissionPage() {
             </p>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Return Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ReturnSubmissionForm />
-            </CardContent>
-          </Card>
+          <ReturnSubmissionForm />
 
           <div className="flex justify-center">
             <Button asChild variant="outline">

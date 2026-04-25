@@ -83,6 +83,9 @@ export default async function AdminReturnsPage() {
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="secondary">{submission.status}</Badge>
                   <Badge variant="outline">{submission.issueType}</Badge>
+                  {submission.didNotReceiveOrder ? (
+                    <Badge variant="outline">Not received</Badge>
+                  ) : null}
                 </div>
               </CardHeader>
               <CardContent className="grid gap-6 p-6 lg:grid-cols-[0.8fr_1.2fr]">

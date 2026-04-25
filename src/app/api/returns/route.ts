@@ -7,15 +7,26 @@ import {
 } from "@/lib/email";
 import { getAbsoluteUrl } from "@/lib/utils";
 
-const returnSubmissionSchema = z.object({
-  orderNumber: z.string().trim().min(1, "Order number is required").max(120),
-  customerName: z.string().trim().min(2, "Name is required").max(120),
-  customerEmail: z.string().trim().email("Valid email is required").max(180),
-  phoneNumber: z.string().trim().max(40).optional().nullable(),
-  issueType: z.enum(["Damaged item", "Wrong order", "Shipping error", "Other"]),
-  description: z.string().trim().min(10, "Description must be at least 10 characters").max(3000),
-  photoUrls: z.array(z.string().url()).max(6).default([]),
-});
+const returnSubmissionSchema = z
+  .object({
+    orderNumber: z.string().trim().min(1, "Order number is required").max(120),
+    customerName: z.string().trim().min(2, "Name is required").max(120),
+    customerEmail: z.string().trim().email("Valid email is required").max(180),
+    phoneNumber: z.string().trim().min(7, "Phone number is required").max(40),
+    issueType: z.enum(["Damaged item", "Wrong order", "Shipping error", "Other"]),
+    description: z.string().trim().min(10, "Description must be at least 10 characters").max(3000),
+    photoUrls: z.array(z.string().url()).max(6).default([]),
+    didNotReceiveOrder: z.boolean().default(false),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.didNotReceiveOrder && data.photoUrls.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["photoUrls"],
+        message: "Upload at least one photo or select I didn't receive this order.",
+      });
+    }
+  });
 
 export async function POST(request: Request) {
   try {
@@ -45,6 +56,7 @@ export async function POST(request: Request) {
       issueType: submission.issueType,
       description: submission.description,
       photoUrls: submission.photoUrls,
+      didNotReceiveOrder: submission.didNotReceiveOrder,
       adminUrl: getAbsoluteUrl("/admin/returns"),
     };
 

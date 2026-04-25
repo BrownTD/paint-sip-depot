@@ -144,6 +144,7 @@ type ReturnSubmissionEmailInput = {
   issueType: string;
   description: string;
   photoUrls: string[];
+  didNotReceiveOrder?: boolean;
   adminUrl: string;
 };
 
@@ -791,6 +792,7 @@ export async function sendAdminReturnSubmissionEmail(input: ReturnSubmissionEmai
         <p style="margin:0 0 10px;"><strong>Email:</strong> ${input.customerEmail}</p>
         ${input.phoneNumber ? `<p style="margin:0 0 10px;"><strong>Phone:</strong> ${input.phoneNumber}</p>` : ""}
         <p style="margin:0 0 10px;"><strong>Issue:</strong> ${input.issueType}</p>
+        ${input.didNotReceiveOrder ? `<p style="margin:0 0 10px;"><strong>Order received:</strong> No</p>` : ""}
         <p style="margin:0 0 10px;"><strong>Description:</strong></p>
         <p style="margin:0 0 10px;white-space:pre-line;">${input.description}</p>
         <p style="margin:0 0 10px;"><strong>Photos:</strong></p>
@@ -808,6 +810,7 @@ export async function sendAdminReturnSubmissionEmail(input: ReturnSubmissionEmai
     `Email: ${input.customerEmail}\n` +
     `${input.phoneNumber ? `Phone: ${input.phoneNumber}\n` : ""}` +
     `Issue: ${input.issueType}\n` +
+    `${input.didNotReceiveOrder ? "Order received: No\n" : ""}` +
     `Description: ${input.description}\n` +
     `Photos: ${input.photoUrls.length ? input.photoUrls.join(", ") : "No photos provided"}\n` +
     `Review: ${input.adminUrl}`;
@@ -835,6 +838,7 @@ export async function sendCustomerReturnSubmissionEmail(input: ReturnSubmissionE
       <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
         <p style="margin:0 0 10px;"><strong>Order number:</strong> ${input.orderNumber}</p>
         <p style="margin:0 0 10px;"><strong>Issue:</strong> ${input.issueType}</p>
+        ${input.didNotReceiveOrder ? `<p style="margin:0 0 10px;"><strong>Order received:</strong> No</p>` : ""}
         <p style="margin:0 0 10px;"><strong>Description:</strong></p>
         <p style="margin:0;white-space:pre-line;">${input.description}</p>
       </div>
@@ -847,6 +851,7 @@ export async function sendCustomerReturnSubmissionEmail(input: ReturnSubmissionE
     `We received your return request and our team will review it.\n\n` +
     `Order number: ${input.orderNumber}\n` +
     `Issue: ${input.issueType}\n` +
+    `${input.didNotReceiveOrder ? "Order received: No\n" : ""}` +
     `Description: ${input.description}\n` +
     `Return submission ID: ${input.id}`;
 

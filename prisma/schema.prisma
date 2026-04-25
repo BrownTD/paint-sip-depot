@@ -326,6 +326,7 @@ model ReturnSubmission {
   issueType     String
   description   String
   photoUrls     String[]
+  didNotReceiveOrder Boolean @default(false)
   status        String   @default("SUBMITTED")
   adminNotes    String?
   createdAt     DateTime @default(now())

@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { ClipboardList, Calendar, LayoutDashboard, Package, RotateCcw } from "lucide-react";
+import { ClipboardList, Calendar, Package, RotateCcw } from "lucide-react";
 import { Brand } from "@/components/Brand";
-import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/sign-out-button";
 import { DashboardMobileNav } from "@/components/dashboard/mobile-nav";
 import { requireAdminSession } from "@/lib/admin";
@@ -11,11 +10,9 @@ const navItems = [
   { href: "/admin/events", label: "Events", icon: "calendar" },
   { href: "/admin/products", label: "Products", icon: "package" },
   { href: "/admin/returns", label: "Returns", icon: "returns" },
-  { href: "/dashboard", label: "Host Dashboard", icon: "dashboard" },
 ] as const;
 
 const iconMap = {
-  dashboard: LayoutDashboard,
   calendar: Calendar,
   ticket: ClipboardList,
   package: Package,
@@ -52,12 +49,6 @@ export default async function AdminLayout({
               );
             })}
           </nav>
-
-          <div className="border-t p-4">
-            <Button asChild variant="outline" className="w-full">
-              <Link href="/dashboard">Go to Host Dashboard</Link>
-            </Button>
-          </div>
 
           <div className="border-t p-4">
             <div className="flex items-center gap-3">

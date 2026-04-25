@@ -23,6 +23,8 @@ function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
+  const flow = searchParams.get("flow") === "admin" ? "admin" : "host";
+  const loginHref = flow === "admin" ? "/admin" : "/login";
   const [digits, setDigits] = useState(Array.from({ length: CODE_LENGTH }, () => ""));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
@@ -81,6 +83,7 @@ function VerifyEmailContent() {
         email,
         password: "__verification_code__",
         verificationCode: code,
+        authFlow: flow,
         redirect: false,
       });
 
@@ -89,12 +92,12 @@ function VerifyEmailContent() {
           title: "Email verified",
           description: "Sign in manually to continue.",
         });
-        router.push("/login");
+        router.push(loginHref);
         return;
       }
 
       toast({ title: "Email verified", description: "You are now signed in." });
-      router.push("/dashboard");
+      router.push(flow === "admin" ? "/admin/orders" : "/dashboard");
       router.refresh();
     } catch (error) {
       toast({
@@ -198,7 +201,7 @@ function VerifyEmailContent() {
             >
               {isResending ? "Sending new code..." : "Send a new code"}
             </button>
-            <Link href="/login" className="font-medium text-primary hover:underline">
+            <Link href={loginHref} className="font-medium text-primary hover:underline">
               Back to login
             </Link>
           </div>

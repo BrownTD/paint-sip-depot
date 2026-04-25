@@ -33,10 +33,46 @@ export function AdminLoginForm() {
       const result = await signIn("credentials", {
         email: formData.email,
         password: formData.password,
+        authFlow: "admin",
         redirect: false,
       });
 
       if (!result || result.error || result.ok === false) {
+        const verificationResponse = await fetch("/api/auth/verification-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: formData.email }),
+        }).catch(() => null);
+        const verificationData = verificationResponse?.ok
+          ? await verificationResponse.json().catch(() => null)
+          : null;
+
+        if (verificationData?.needsVerification) {
+          const resendResponse = await fetch("/api/auth/resend-verification", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: formData.email }),
+          }).catch(() => null);
+
+          if (!resendResponse?.ok) {
+            const message = "This admin email needs verification, but the code could not be sent.";
+            setErrorMessage(message);
+            toast({
+              title: "Verification needed",
+              description: message,
+              variant: "destructive",
+            });
+            return;
+          }
+
+          toast({
+            title: "Verify your email",
+            description: "Enter the code we sent before signing in.",
+          });
+          router.push(`/verify-email?email=${encodeURIComponent(formData.email)}&flow=admin`);
+          return;
+        }
+
         const message = "Invalid admin email or password.";
         setErrorMessage(message);
         toast({

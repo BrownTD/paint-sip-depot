@@ -39,12 +39,11 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const navItems = [
-    ...baseNavItems,
-    ...(session.user.role === "ADMIN"
-      ? [{ href: "/admin/orders", label: "Admin Panel", icon: "dashboard" as const }]
-      : []),
-  ];
+  if (session.user.role === "ADMIN") {
+    redirect("/admin/orders");
+  }
+
+  const navItems = [...baseNavItems];
 
   return (
     <div className="min-h-screen bg-muted/30">

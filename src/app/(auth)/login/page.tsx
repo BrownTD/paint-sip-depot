@@ -69,6 +69,7 @@ function LoginPageContent() {
       const result = await signIn("credentials", {
         email: formData.email,
         password: formData.password,
+        authFlow: "host",
         redirect: false,
       });
 
@@ -87,7 +88,7 @@ function LoginPageContent() {
             title: "Verify your email",
             description: "Enter the code we sent before signing in.",
           });
-          router.push(`/verify-email?email=${encodeURIComponent(formData.email)}`);
+          router.push(`/verify-email?email=${encodeURIComponent(formData.email)}&flow=host`);
           return;
         }
 

@@ -33,8 +33,10 @@ const providers = [
       email: { label: "Email", type: "email" },
       password: { label: "Password", type: "password" },
       verificationCode: { label: "Verification Code", type: "text" },
+      authFlow: { label: "Auth Flow", type: "text" },
     },
     async authorize(credentials) {
+      const authFlow = credentials?.authFlow === "admin" ? "admin" : "host";
       const verificationCode =
         typeof credentials?.verificationCode === "string" ? credentials.verificationCode : "";
 
@@ -64,6 +66,8 @@ const providers = [
         });
 
         if (!verifiedUser?.emailVerified) return null;
+        if (authFlow === "admin" && verifiedUser.role !== "ADMIN") return null;
+        if (authFlow === "host" && verifiedUser.role === "ADMIN") return null;
 
         return {
           id: verifiedUser.id,
@@ -92,6 +96,8 @@ const providers = [
       const ok = await bcrypt.compare(parsed.data.password, user.passwordHash);
       if (!ok) return null;
       if (!user.emailVerified) return null;
+      if (authFlow === "admin" && user.role !== "ADMIN") return null;
+      if (authFlow === "host" && user.role === "ADMIN") return null;
 
       return {
         id: user.id,

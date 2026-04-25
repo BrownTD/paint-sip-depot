@@ -65,6 +65,8 @@ export async function POST(request: Request) {
               data: {
                 status: ShopOrderStatus.PAID,
                 stripePaymentIntentId: session.payment_intent as string,
+                amountSubtotalCents: session.amount_subtotal ?? undefined,
+                amountTotalCents: session.amount_total ?? undefined,
               },
             });
 
@@ -94,6 +96,7 @@ export async function POST(request: Request) {
             data: {
               status: BOOKING_STATUS.paid,
               stripePaymentIntentId: session.payment_intent as string,
+              amountPaidCents: session.amount_total ?? undefined,
               reservationExpiresAt: null,
             },
           });

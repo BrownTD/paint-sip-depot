@@ -144,10 +144,10 @@ export async function PATCH(
     }
 
     const allowedUpdates: Record<string, string[]> = {
-      DRAFT: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "capacity", "salesCutoffHours", "canvasImageUrl", "canvasName", "visibility", "eventFormat"],
-      PUBLISHED: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "capacity", "salesCutoffHours", "canvasImageUrl", "canvasName", "visibility", "eventFormat"],
-      ENDED: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "capacity", "salesCutoffHours", "canvasImageUrl", "canvasName", "visibility", "eventFormat"],
-      CANCELED: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "capacity", "salesCutoffHours", "canvasImageUrl", "canvasName", "visibility", "eventFormat"],
+      DRAFT: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "shippingRecipientName", "shippingAddress", "shippingCity", "shippingState", "shippingZip", "fulfillmentMethod", "capacity", "salesCutoffHours", "canvasImageUrl", "canvasName", "visibility", "eventFormat"],
+      PUBLISHED: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "shippingRecipientName", "shippingAddress", "shippingCity", "shippingState", "shippingZip", "fulfillmentMethod", "capacity", "salesCutoffHours", "canvasImageUrl", "canvasName", "visibility", "eventFormat"],
+      ENDED: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "shippingRecipientName", "shippingAddress", "shippingCity", "shippingState", "shippingZip", "fulfillmentMethod", "capacity", "salesCutoffHours", "canvasImageUrl", "canvasName", "visibility", "eventFormat"],
+      CANCELED: ["status", "title", "description", "startDateTime", "endDateTime", "locationName", "address", "city", "state", "zip", "shippingRecipientName", "shippingAddress", "shippingCity", "shippingState", "shippingZip", "fulfillmentMethod", "capacity", "salesCutoffHours", "canvasImageUrl", "canvasName", "visibility", "eventFormat"],
     };
 
     const allowed = allowedUpdates[existingEvent.status] || [];
@@ -170,6 +170,12 @@ export async function PATCH(
         city: body.city ?? existingEvent.city ?? "",
         state: body.state ?? existingEvent.state ?? "",
         zip: body.zip ?? existingEvent.zip ?? "",
+        shippingRecipientName: body.shippingRecipientName ?? existingEvent.shippingRecipientName ?? "",
+        shippingAddress: body.shippingAddress ?? existingEvent.shippingAddress ?? "",
+        shippingCity: body.shippingCity ?? existingEvent.shippingCity ?? "",
+        shippingState: body.shippingState ?? existingEvent.shippingState ?? "",
+        shippingZip: body.shippingZip ?? existingEvent.shippingZip ?? "",
+        fulfillmentMethod: body.fulfillmentMethod ?? existingEvent.fulfillmentMethod ?? "SHIP_TO_HOST",
         ticketPriceCents: FIXED_TICKET_PRICE_CENTS,
         capacity: body.capacity ?? existingEvent.capacity,
         salesCutoffHours: body.salesCutoffHours ?? existingEvent.salesCutoffHours,

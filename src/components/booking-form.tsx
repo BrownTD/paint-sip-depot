@@ -149,6 +149,12 @@ export function BookingForm({ eventId, maxQuantity, ticketPrice }: BookingFormPr
           <span className="text-muted-foreground">Processing Fee</span>
           <span>{formatAmountForDisplay(pricing.processingFeeCents)}</span>
         </div>
+        {pricing.shippingFeeCents > 0 ? (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Shipping to Host</span>
+            <span>{formatAmountForDisplay(pricing.shippingFeeCents)}</span>
+          </div>
+        ) : null}
         <div className="flex items-center justify-between border-t pt-3">
           <span className="font-medium">Total</span>
           <span className="text-xl font-bold">{formatAmountForDisplay(pricing.totalCents)}</span>

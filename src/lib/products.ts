@@ -28,6 +28,7 @@ const PRODUCT_VARIANT_ORDER: ProductVariantSize[] = [
   ProductVariantSize.LARGE,
 ];
 const PAINT_KIT_TRAILING_IMAGE_PATH = "/Misc/supllies.png";
+const DEFAULT_STRIPE_PRODUCT_TAX_CODE = "txcd_99999999";
 
 export class ProductServiceError extends Error {
   status: number;
@@ -748,6 +749,7 @@ export async function createProductWithStripe(input: ProductInput) {
       description,
       images: buildStripeProductImages(imageUrls),
       active: status === PRODUCT_STATUS.active,
+      tax_code: DEFAULT_STRIPE_PRODUCT_TAX_CODE,
       metadata: buildStripeProductMetadata({
         categoryId: input.categoryId,
         subcategoryId: subcategory?.id ?? null,
@@ -910,6 +912,7 @@ export async function updateProductWithStripe(productId: string, input: ProductI
       description,
       images: buildStripeProductImages(imageUrls),
       active: status === PRODUCT_STATUS.active,
+      tax_code: DEFAULT_STRIPE_PRODUCT_TAX_CODE,
       metadata: buildStripeProductMetadata({
         categoryId: input.categoryId,
         subcategoryId: subcategory?.id ?? null,

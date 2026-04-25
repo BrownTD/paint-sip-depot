@@ -78,6 +78,12 @@ model Event {
   city                    String?
   state                   String?
   zip                     String?
+  shippingRecipientName   String?
+  shippingAddress         String?
+  shippingCity            String?
+  shippingState           String?
+  shippingZip             String?
+  fulfillmentMethod       EventFulfillmentMethod @default(SHIP_TO_HOST)
   ticketPriceCents        Int
   capacity                Int
   salesCutoffHours        Int             @default(48)
@@ -388,4 +394,9 @@ enum EventVisibility {
 enum EventFormat {
   IN_PERSON
   VIRTUAL
+}
+
+enum EventFulfillmentMethod {
+  SHIP_TO_HOST
+  PICKUP
 }

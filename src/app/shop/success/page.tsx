@@ -60,6 +60,8 @@ async function getOrderDetails(sessionId: string) {
         status: ShopOrderStatus.PAID,
         stripePaymentIntentId:
           typeof session.payment_intent === "string" ? session.payment_intent : null,
+        amountSubtotalCents: session.amount_subtotal ?? undefined,
+        amountTotalCents: session.amount_total ?? undefined,
       },
       include: {
         items: {

@@ -52,6 +52,12 @@ export type EventEditFormInitialData = {
   city: string;
   state: string;
   zip: string;
+  shippingRecipientName: string;
+  shippingAddress: string;
+  shippingCity: string;
+  shippingState: string;
+  shippingZip: string;
+  fulfillmentMethod: "SHIP_TO_HOST" | "PICKUP";
   ticketPrice: string; // whole dollars as string
   capacity: string;
   refundPolicyText: string;
@@ -133,6 +139,12 @@ export function EventEditForm({
     city: initialData?.city ?? "",
     state: initialData?.state ?? "",
     zip: initialData?.zip ?? "",
+    shippingRecipientName: initialData?.shippingRecipientName ?? "",
+    shippingAddress: initialData?.shippingAddress ?? "",
+    shippingCity: initialData?.shippingCity ?? "",
+    shippingState: initialData?.shippingState ?? "",
+    shippingZip: initialData?.shippingZip ?? "",
+    fulfillmentMethod: initialData?.fulfillmentMethod ?? "SHIP_TO_HOST",
     ticketPrice: FIXED_TICKET_PRICE_DOLLARS,
     capacity: initialData?.capacity ?? "",
     refundPolicyText: FIXED_REFUND_POLICY,
@@ -748,6 +760,159 @@ router.refresh();
                   Guests will see this event as virtual. Share your meeting link and access instructions after booking.
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Shipping */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Shipping Address</CardTitle>
+              <CardDescription>
+                Supplies for this event ship to the host. This address is used for guest checkout
+                shipping costs.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, fulfillmentMethod: "SHIP_TO_HOST" })}
+                  className={`rounded-xl border p-4 text-left transition ${
+                    formData.fulfillmentMethod === "SHIP_TO_HOST"
+                      ? "border-primary bg-primary/5"
+                      : "border-border bg-background hover:bg-muted/40"
+                  }`}
+                >
+                  <span className="block font-medium">Ship supplies to me</span>
+                  <span className="mt-1 block text-sm text-muted-foreground">
+                    Guest checkout includes the event shipping cost.
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      fulfillmentMethod: "PICKUP",
+                      shippingRecipientName: "Paint & Sip Depot",
+                      shippingAddress: "9600 Two Notch Rd Suite 5 #1348",
+                      shippingCity: "Columbia",
+                      shippingState: "SC",
+                      shippingZip: "29223",
+                    })
+                  }
+                  className={`rounded-xl border p-4 text-left transition ${
+                    formData.fulfillmentMethod === "PICKUP"
+                      ? "border-primary bg-primary/5"
+                      : "border-border bg-background hover:bg-muted/40"
+                  }`}
+                >
+                  <span className="block font-medium">Pick up from Paint &amp; Sip Depot</span>
+                  <span className="mt-1 block text-sm text-muted-foreground">
+                    Guest checkout will not include the event shipping cost.
+                  </span>
+                </button>
+              </div>
+
+              {formData.fulfillmentMethod === "PICKUP" ? (
+                <div className="rounded-2xl border bg-muted/30 p-4 text-sm leading-6 text-muted-foreground">
+                  <p className="font-medium text-foreground">Pickup location</p>
+                  <p>9600 Two Notch Rd</p>
+                  <p>Suite 5 #1348</p>
+                  <p>Columbia, SC 29223 United States</p>
+                </div>
+              ) : null}
+
+              {formData.eventFormat === "IN_PERSON" && formData.address ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={formData.fulfillmentMethod === "PICKUP"}
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      shippingRecipientName: formData.shippingRecipientName || formData.locationName,
+                      shippingAddress: formData.address,
+                      shippingCity: formData.city,
+                      shippingState: formData.state,
+                      shippingZip: formData.zip,
+                    })
+                  }
+                >
+                  Use venue address
+                </Button>
+              ) : null}
+
+              {formData.fulfillmentMethod === "SHIP_TO_HOST" ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="shippingRecipientName">Recipient Name</Label>
+                    <Input
+                      id="shippingRecipientName"
+                      placeholder="Host or venue contact"
+                      value={formData.shippingRecipientName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, shippingRecipientName: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="shippingAddress">Street Address</Label>
+                    <Input
+                      id="shippingAddress"
+                      placeholder="123 Main Street"
+                      value={formData.shippingAddress}
+                      onChange={(e) => setFormData({ ...formData, shippingAddress: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="shippingCity">City</Label>
+                      <Input
+                        id="shippingCity"
+                        placeholder="Columbia"
+                        value={formData.shippingCity}
+                        onChange={(e) => setFormData({ ...formData, shippingCity: e.target.value })}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="shippingState">State</Label>
+                      <Select
+                        value={formData.shippingState}
+                        onValueChange={(value) => setFormData({ ...formData, shippingState: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {US_STATES.map((st) => (
+                            <SelectItem key={st} value={st}>
+                              {st}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="shippingZip">ZIP Code</Label>
+                      <Input
+                        id="shippingZip"
+                        placeholder="29229"
+                        value={formData.shippingZip}
+                        onChange={(e) => setFormData({ ...formData, shippingZip: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : null}
             </CardContent>
           </Card>
 

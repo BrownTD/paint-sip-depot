@@ -82,7 +82,9 @@ async function reserveBookingForCheckout({
       }
 
       const availability = await getRemainingTickets(tx, event.id, event.capacity, now);
-      const pricing = getCheckoutTotalCents(event.ticketPriceCents, quantity);
+      const pricing = getCheckoutTotalCents(event.ticketPriceCents, quantity, {
+        includeShipping: event.fulfillmentMethod !== "PICKUP",
+      });
 
       if (quantity > availability.remaining) {
         throw new CheckoutError(
@@ -166,39 +168,71 @@ export async function POST(request: Request) {
             )
           : getAbsoluteRequestUrl(request, `/e/${event.slug}?canceled=true`);
 
+      const pricing = getCheckoutTotalCents(event.ticketPriceCents, quantity);
+      const lineItems = [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: event.title,
+              description: `${quantity} ticket${quantity > 1 ? "s" : ""} for ${event.title}`,
+              tax_code: "txcd_99999999",
+              images: getCheckoutImageUrl(request, event.canvasImageUrl)
+                ? [getCheckoutImageUrl(request, event.canvasImageUrl)!]
+                : [],
+            },
+            unit_amount: event.ticketPriceCents,
+          },
+          quantity,
+        },
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: "Processing Fee",
+              description: "Stripe payment processing fee",
+              tax_code: "txcd_99999999",
+            },
+            unit_amount: pricing.processingFeeCents,
+          },
+          quantity: 1,
+        },
+        ...(pricing.shippingFeeCents > 0
+          ? [
+              {
+                price_data: {
+                  currency: "usd",
+                  product_data: {
+                    name: "Event Kit Shipping",
+                    description: `Supplies ship to ${event.shippingRecipientName || "the host"} for this event`,
+                    tax_code: "txcd_99999999",
+                  },
+                  unit_amount: pricing.shippingFeeCents,
+                },
+                quantity: 1,
+              },
+            ]
+          : []),
+      ];
+
       const checkoutSession = await stripe.checkout.sessions.create({
         mode: "payment",
         payment_method_types: ["card"],
+        automatic_tax: { enabled: true },
+        billing_address_collection: "required",
         expires_at: Math.floor(reservationExpiresAt.getTime() / 1000),
-        line_items: [
-          {
-            price_data: {
-              currency: "usd",
-              product_data: {
-                name: event.title,
-                description: `${quantity} ticket${quantity > 1 ? "s" : ""} for ${event.title}`,
-                images: getCheckoutImageUrl(request, event.canvasImageUrl)
-                  ? [getCheckoutImageUrl(request, event.canvasImageUrl)!]
-                  : [],
-              },
-              unit_amount: event.ticketPriceCents,
-            },
-            quantity,
-          },
-          {
-            price_data: {
-              currency: "usd",
-              product_data: {
-                name: "Processing Fee",
-                description: "Stripe payment processing fee",
-              },
-              unit_amount: getCheckoutTotalCents(event.ticketPriceCents, quantity).processingFeeCents,
-            },
-            quantity: 1,
-          },
-        ],
+        line_items: lineItems,
         customer_email: purchaserEmail,
-        metadata: { bookingId: booking.id, eventId: event.id, purchaserName },
+        metadata: {
+          bookingId: booking.id,
+          eventId: event.id,
+          purchaserName,
+          shippingRecipientName: event.shippingRecipientName || "",
+          shippingAddress: event.shippingAddress || "",
+          shippingCity: event.shippingCity || "",
+          shippingState: event.shippingState || "",
+          shippingZip: event.shippingZip || "",
+        },
         success_url: getAbsoluteRequestUrl(
           request,
           `/booking/success?session_id={CHECKOUT_SESSION_ID}`

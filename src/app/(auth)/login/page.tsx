@@ -72,6 +72,24 @@ function LoginPageContent() {
       });
 
       if (result?.error) {
+        const verificationResponse = await fetch("/api/auth/verification-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: formData.email }),
+        }).catch(() => null);
+        const verificationData = verificationResponse?.ok
+          ? await verificationResponse.json().catch(() => null)
+          : null;
+
+        if (verificationData?.needsVerification) {
+          toast({
+            title: "Verify your email",
+            description: "Enter the code we sent before signing in.",
+          });
+          router.push(`/verify-email?email=${encodeURIComponent(formData.email)}`);
+          return;
+        }
+
         toast({ title: "Error", description: "Invalid email or password", variant: "destructive" });
       } else {
         const session = await getSession();

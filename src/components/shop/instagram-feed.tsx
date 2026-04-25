@@ -111,7 +111,7 @@ export function InstagramFeed() {
           </div>
 
           <Link
-            href="https://www.instagram.com/"
+            href="https://www.instagram.com/paintsipdepot/"
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2 text-sm font-semibold text-black transition hover:text-black/65"

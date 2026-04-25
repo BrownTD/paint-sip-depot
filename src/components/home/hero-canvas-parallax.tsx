@@ -8,7 +8,7 @@ const canvases = [
   {
     src: "/header/aka.png",
     alt: "Floating paint canvas illustration",
-    position: "left-[2%] top-[10%] w-[120px] sm:w-[150px] md:w-[170px] lg:w-[190px] xl:w-[220px]",
+    position: "left-[2%] top-[16%] w-[138px] sm:left-[8%] sm:top-[18%] sm:w-[170px] md:left-[2%] md:top-[10%] md:w-[170px] lg:top-[16%] lg:w-[215px] xl:top-[10%] xl:w-[220px]",
     parallax: 0.08,
     duration: "11.5s",
     rotate: "-4deg",
@@ -18,7 +18,7 @@ const canvases = [
   {
     src: "/header/delta.png",
     alt: "Floating paint canvas illustration",
-    position: "right-[6%] top-[12%] w-[110px] sm:w-[128px] md:w-[150px] lg:w-[185px] xl:w-[215px]",
+    position: "right-[6%] top-[18%] w-[128px] sm:right-[10%] sm:top-[20%] sm:w-[148px] md:right-[6%] md:top-[12%] md:w-[150px] lg:top-[18%] lg:w-[210px] xl:top-[12%] xl:w-[215px]",
     parallax: 0.12,
     duration: "9.5s",
     rotate: "3deg",
@@ -28,7 +28,7 @@ const canvases = [
   {
     src: "/header/image.png",
     alt: "Floating paint canvas illustration",
-    position: "left-[10%] bottom-[-4%] xl:bottom-[10px] w-[130px] sm:w-[160px] md:w-[190px] lg:w-[220px] xl:w-[255px]",
+    position: "left-[10%] bottom-[6%] w-[150px] sm:left-[8%] sm:w-[182px] md:left-[10%] md:w-[190px] lg:bottom-[8%] lg:w-[245px] xl:bottom-[10px] xl:w-[255px]",
     parallax: 0.16,
     duration: "10.5s",
     rotate: "5deg",
@@ -38,7 +38,7 @@ const canvases = [
   {
     src: "/header/tennis.png",
     alt: "Floating paint canvas illustration",
-    position: "right-[12%] bottom-[8%] xl:bottom-[32px] w-[128px] sm:w-[150px] md:w-[180px] lg:w-[220px] xl:w-[255px]",
+    position: "right-[12%] bottom-[8%] w-[148px] sm:right-[8%] sm:w-[172px] md:right-[12%] md:w-[180px] lg:w-[245px] xl:bottom-[32px] xl:w-[255px]",
     parallax: 0.2,
     duration: "8.8s",
     rotate: "-6deg",
@@ -48,7 +48,7 @@ const canvases = [
   {
     src: "/header/tom.png",
     alt: "Floating paint canvas illustration",
-    position: "left-[calc(50%-30px)] top-[4%] -translate-x-1/2 w-[96px] sm:w-[112px] md:w-[135px] lg:w-[165px] xl:w-[190px]",
+    position: "left-[calc(50%-30px)] top-[10%] -translate-x-1/2 w-[112px] sm:top-[11%] sm:w-[128px] md:top-[4%] md:w-[135px] lg:top-[10%] lg:w-[185px] xl:top-[4%] xl:w-[190px]",
     parallax: 0.1,
     duration: "12s",
     rotate: "-9deg",

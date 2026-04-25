@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ShopProductCard,
@@ -14,6 +13,7 @@ import {
   ShopNewsletterSection,
   type StorefrontNavCategory,
 } from "@/components/shop/shop-shell";
+import { GoogleReviewsSection } from "@/components/shop/google-reviews-section";
 import { InstagramFeed } from "@/components/shop/instagram-feed";
 
 const stats = [
@@ -23,55 +23,8 @@ const stats = [
 ];
 
 const tickerItems = ["Canvases", "Easels", "Brushes", "Palettes", "Aprons", "Paint"];
-
-const reviews = [
-  {
-    name: "Sarah M.",
-    quote:
-      "The canvas quality and packaging felt premium. Everything arrived ready for our ladies night and the photos looked incredible.",
-  },
-  {
-    name: "Malik C.",
-    quote:
-      "We ordered a mix of canvases and supplies for a team event and the whole setup felt polished from start to finish.",
-  },
-  {
-    name: "Jasmine L.",
-    quote:
-      "The themed options made it easy to plan a birthday paint party fast. The kids kits were a huge hit.",
-  },
-  {
-    name: "Alicia & Devon",
-    quote:
-      "Perfect for date night. The collection felt curated, the checkout was simple, and the final setup looked elevated.",
-  },
-];
-
-export function ShopReviewsSection() {
-  return (
-    <section className="px-4 py-12 sm:py-16">
-      <div className="mx-auto max-w-7xl">
-        <div className="flex items-end justify-between gap-4">
-          <h2 className="font-display text-4xl uppercase tracking-tight text-black sm:text-5xl">
-            Our Happy Customers
-          </h2>
-        </div>
-
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {reviews.map((review) => (
-            <article
-              key={review.name}
-              className="rounded-[1.5rem] border border-black/10 bg-white p-6 shadow-[0_18px_50px_rgba(0,0,0,0.04)]"
-            >
-              <p className="text-lg font-semibold text-black">{review.name}</p>
-              <p className="mt-3 text-sm leading-6 text-black/65">{review.quote}</p>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
+const showShopReviews = true;
+const showInstagramFeed = false;
 
 type StorefrontTheme = {
   id: string;
@@ -130,23 +83,6 @@ export function StorefrontHome({
   categories: StorefrontNavCategory[];
 }) {
   const hasProducts = newArrivals.length > 0 || topSelling.length > 0;
-  const [mobileTickerIndex, setMobileTickerIndex] = useState(0);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (mediaQuery.matches) {
-      setMobileTickerIndex(0);
-      return;
-    }
-
-    const intervalId = window.setInterval(() => {
-      setMobileTickerIndex((current) => (current + 1) % tickerItems.length);
-    }, 400);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, []);
 
   return (
     <ShopChrome categories={categories}>
@@ -174,7 +110,7 @@ export function StorefrontHome({
             <div className="flex min-h-[92svh] items-start justify-center py-6 sm:min-h-[620px] sm:items-start sm:justify-start sm:py-10 lg:min-h-[660px] lg:py-12">
               <div className="relative mx-auto mt-2 max-w-[340px] rounded-[2rem] border border-white/35 bg-white/10 px-6 py-8 text-center shadow-[0_20px_70px_rgba(0,0,0,0.1)] backdrop-blur-xl before:absolute before:inset-[1px] before:rounded-[calc(2rem-1px)] before:bg-[linear-gradient(140deg,rgba(255,255,255,0.3)_0%,rgba(255,255,255,0.08)_42%,rgba(255,255,255,0.16)_100%)] before:content-[''] after:absolute after:-right-6 after:top-5 after:h-24 after:w-24 after:rounded-full after:bg-white/14 after:blur-2xl after:content-[''] sm:mx-0 sm:mt-0 sm:max-w-2xl sm:rounded-none sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:text-left sm:shadow-none sm:backdrop-blur-0 sm:before:hidden sm:after:hidden">
                 <div className="relative z-10">
-                  <h1 className="mx-auto mt-2 max-w-[13.5ch] font-display text-[3.35rem] uppercase leading-[0.9] tracking-tight text-black sm:mx-0 sm:mt-6 sm:text-[4.6rem] lg:text-[5.35rem]">
+                  <h1 className="mx-auto mt-2 max-w-[13.5ch] font-display text-[3.35rem] font-bold uppercase leading-[0.9] tracking-tight text-black sm:mx-0 sm:mt-6 sm:text-[4.6rem] lg:text-[5.35rem]">
                     Find A Canvas
                     <br />
                     For Any Occasion
@@ -213,15 +149,7 @@ export function StorefrontHome({
         </section>
 
         <section className="bg-black px-4 py-5">
-          <div className="sm:hidden">
-            <div className="relative h-11 overflow-hidden">
-              <div className="absolute inset-0 flex items-center justify-center text-center font-display text-[2.45rem] uppercase tracking-tight text-white">
-                <span className="block w-full">{tickerItems[mobileTickerIndex]}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="hidden overflow-hidden sm:block">
+          <div className="overflow-hidden">
             <div className="shop-marquee-track flex w-max items-center whitespace-nowrap font-display text-[2.1rem] uppercase tracking-tight text-white">
               {[0, 1].map((groupIndex) => (
                 <div key={groupIndex} className="flex flex-none items-center">
@@ -307,10 +235,10 @@ export function StorefrontHome({
           </section>
         ) : null}
 
-        <ShopReviewsSection />
+        {showShopReviews ? <GoogleReviewsSection /> : null}
 
         <ShopNewsletterSection />
-        <InstagramFeed />
+        {showInstagramFeed ? <InstagramFeed /> : null}
       </main>
 
       <ShopFooter />

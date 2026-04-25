@@ -51,7 +51,7 @@ export function SocialAuthButtons({
           {disabled ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
-            <Image src="/Misc/googleLogo.png" alt="Google" width={16} height={16} className="mr-2" />
+            <Image src="/Misc/google_logo.svg" alt="Google" width={16} height={16} className="mr-2" />
           )}
           Continue with Google
         </Button>

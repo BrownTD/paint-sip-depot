@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { GoogleReviewsSection } from "@/components/shop/google-reviews-section";
 import { ShopProductCard } from "@/components/shop/shop-product-card";
-import { ShopReviewsSection } from "@/components/shop/storefront-home";
 import {
   ShopChrome,
   ShopFooter,
@@ -155,7 +155,7 @@ export default async function ShopCategoryPage({
           </div>
         </section>
 
-        <ShopReviewsSection />
+        <GoogleReviewsSection />
         <ShopNewsletterSection />
       </main>
 

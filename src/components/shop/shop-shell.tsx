@@ -39,11 +39,25 @@ const shopAnnouncement =
   "🎨 Shop Paint Kits & Supplies · Everything You Need for Your Next Paint & Sip";
 
 const socialIcons = [
-  { name: "Facebook", href: "https://facebook.com", icon: "/social-icons/facebook.svg" },
-  { name: "Instagram", href: "https://instagram.com", icon: "/social-icons/instagram.svg" },
+  {
+    name: "Facebook",
+    href: "https://www.facebook.com/MillenniumStudios1/",
+    icon: "/social-icons/facebook.svg",
+    iconSize: 14,
+  },
+  {
+    name: "Instagram",
+    href: "https://www.instagram.com/paintsipdepot/",
+    icon: "/social-icons/instagram.svg",
+    iconSize: 16,
+  },
   { name: "LinkedIn", href: "https://linkedin.com", icon: "/social-icons/linkedin.svg" },
-  { name: "TikTok", href: "https://tiktok.com", icon: "/social-icons/tiktok.svg" },
-  { name: "X", href: "https://x.com", icon: "/social-icons/X.svg" },
+  {
+    name: "TikTok",
+    href: "https://www.tiktok.com/@millenniumstudios",
+    icon: "/social-icons/tiktok.svg",
+    iconSize: 16,
+  },
 ];
 
 export type StorefrontNavCategory = {
@@ -643,19 +657,16 @@ export function ShopFooter() {
     {
       title: "Help",
       links: [
-        { label: "Customer Support", href: "/contact" },
+        { label: "Contact", href: "/contact" },
         { label: "Shipping", href: "/shipping-policy" },
         { label: "Returns", href: "/returns" },
-        { label: "Submit a Return", href: "/returns/submit" },
       ],
     },
     {
       title: "Resources",
       links: [
-        { label: "Event Ideas", href: "/events" },
         { label: "Privacy Policy", href: "/privacy-policy" },
         { label: "Terms", href: "/terms" },
-        { label: "Contact", href: "/contact" },
       ],
     },
   ];
@@ -684,7 +695,12 @@ export function ShopFooter() {
                   className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-white transition hover:-translate-y-0.5"
                   aria-label={item.name}
                 >
-                  <Image src={item.icon} alt={item.name} width={16} height={16} />
+                  <Image
+                    src={item.icon}
+                    alt={item.name}
+                    width={item.iconSize ?? 16}
+                    height={item.iconSize ?? 16}
+                  />
                 </Link>
               ))}
             </div>

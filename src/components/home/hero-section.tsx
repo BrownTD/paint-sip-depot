@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-visible px-4 pb-20 pt-32 md:pb-28 md:pt-36">
-      <div className="absolute inset-0 z-0 overflow-hidden">
+    <section className="relative flex min-h-screen items-center justify-center overflow-visible px-4 py-20">
+      <div className="absolute inset-x-0 bottom-0 top-[73px] z-0 overflow-hidden">
         <Image
           src="/header/background.png"
           alt=""
@@ -16,7 +16,7 @@ export function HeroSection() {
         />
       </div>
 
-      <div className="absolute inset-0 z-[1] bg-gradient-to-b from-black/30 via-black/20 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 top-[73px] z-[1] bg-gradient-to-b from-black/30 via-black/20 to-transparent" />
       <div className="absolute inset-x-0 bottom-[-1px] z-0 overflow-hidden leading-none">
         <svg
           viewBox="0 0 1440 220"

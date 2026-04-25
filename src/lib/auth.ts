@@ -4,6 +4,7 @@ import Facebook from "next-auth/providers/facebook";
 import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
+import { verifyEmailCode } from "@/lib/email-verification";
 import { signInSchema } from "@/lib/validations";
 import { normalizeEmail } from "@/lib/utils";
 import bcrypt from "bcryptjs";
@@ -31,8 +32,47 @@ const providers = [
     credentials: {
       email: { label: "Email", type: "email" },
       password: { label: "Password", type: "password" },
+      verificationCode: { label: "Verification Code", type: "text" },
     },
     async authorize(credentials) {
+      const verificationCode =
+        typeof credentials?.verificationCode === "string" ? credentials.verificationCode : "";
+
+      if (verificationCode) {
+        const email = typeof credentials?.email === "string" ? normalizeEmail(credentials.email) : "";
+        const userForVerification = await prisma.user.findFirst({
+          where: {
+            email: {
+              equals: email,
+              mode: "insensitive",
+            },
+          },
+        });
+
+        if (!userForVerification || !userForVerification.passwordHash) {
+          return null;
+        }
+
+        if (!userForVerification.emailVerified) {
+          const result = await verifyEmailCode(email, verificationCode);
+
+          if (!result.ok) return null;
+        }
+
+        const verifiedUser = await prisma.user.findUnique({
+          where: { id: userForVerification.id },
+        });
+
+        if (!verifiedUser?.emailVerified) return null;
+
+        return {
+          id: verifiedUser.id,
+          email: verifiedUser.email,
+          name: verifiedUser.name,
+          role: verifiedUser.role,
+        };
+      }
+
       const parsed = signInSchema.safeParse(credentials);
       if (!parsed.success) return null;
 
@@ -51,6 +91,7 @@ const providers = [
 
       const ok = await bcrypt.compare(parsed.data.password, user.passwordHash);
       if (!ok) return null;
+      if (!user.emailVerified) return null;
 
       return {
         id: user.id,

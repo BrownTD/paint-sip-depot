@@ -34,3 +34,5 @@ Thumbs.db
 .agents/
 skills/
 skills-lock.json
+
+src/lib/paint-sip-depot.code-workspace

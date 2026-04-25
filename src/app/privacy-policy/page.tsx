@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { BasicFooter } from "@/components/public/basic-footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -52,21 +53,12 @@ export default function PrivacyPolicyPage() {
       <main className="container mx-auto px-4 py-12 md:py-16">
         <div className="mx-auto max-w-4xl space-y-8">
           <div className="space-y-4 text-center">
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">
-              Privacy Policy
-            </p>
-            <h1 className="font-display text-4xl font-bold md:text-5xl">
-              Your information, handled simply.
-            </h1>
-            <p className="mx-auto max-w-2xl text-muted-foreground">
-              This page explains what information Paint &amp; Sip Depot collects, how it is
-              used, and the limited ways it may be shared to operate the platform.
-            </p>
+            <h1 className="font-display text-5xl font-bold md:text-7xl">Privacy Policy</h1>
           </div>
 
           <Card className="border-border/70 shadow-sm">
             <CardHeader>
-              <CardTitle>Paint &amp; Sip Depot Privacy Policy</CardTitle>
+              <CardTitle>Effective Date</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <p className="text-sm text-muted-foreground">
@@ -93,6 +85,7 @@ export default function PrivacyPolicyPage() {
           </div>
         </div>
       </main>
+      <BasicFooter hidePrivacyPolicy />
     </div>
   );
 }

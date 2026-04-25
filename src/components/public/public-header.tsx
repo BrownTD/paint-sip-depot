@@ -19,12 +19,14 @@ export function PublicHeader({
   ctaHref = "/signup",
   ctaLabel = "Become a Host",
   showFindEventLink = true,
+  showBorder = true,
 }: {
   links?: PublicHeaderLink[];
   navLinks?: PublicHeaderLink[];
   ctaHref?: string;
   ctaLabel?: string;
   showFindEventLink?: boolean;
+  showBorder?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -57,7 +59,12 @@ export function PublicHeader({
   }, []);
 
   return (
-    <nav className="fixed top-0 w-full z-50 border-b bg-background/80 backdrop-blur-md">
+    <nav
+      className={[
+        "fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md",
+        showBorder ? "border-b" : "",
+      ].join(" ")}
+    >
       <div className="container mx-auto flex items-center justify-between px-4 py-4">
         <Brand href="/" className="gap-2" />
 

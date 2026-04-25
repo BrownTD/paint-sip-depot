@@ -2,7 +2,7 @@ import { HeroCanvasParallax } from "@/components/home/hero-canvas-parallax";
 
 export function FloatingCanvasSection() {
   return (
-    <section className="relative -mt-6 h-[340px] overflow-visible md:-mt-10 md:h-[420px] lg:h-[500px]">
+    <section className="relative h-screen overflow-hidden">
       <div className="absolute inset-0">
         <HeroCanvasParallax />
       </div>

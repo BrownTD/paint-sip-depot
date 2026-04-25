@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Mail } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
+import { BasicFooter } from "@/components/public/basic-footer";
 import { PublicHeader } from "@/components/public/public-header";
 import { Button } from "@/components/ui/button";
 
@@ -23,13 +24,21 @@ export default function ContactPage() {
           <p className="mt-4 text-lg leading-8 text-muted-foreground">
             Questions about paint kits, hosting, or an order? Reach out and we&apos;ll help.
           </p>
-          <div className="mt-8">
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="rounded-full px-8">
               <Link href="mailto:info@paintsipdepot.com">info@paintsipdepot.com</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="gap-2 rounded-full px-8">
+              <Link href="tel:+18039384775">
+                <Phone className="h-4 w-4" />
+                803-938-4775
+              </Link>
             </Button>
           </div>
         </section>
       </main>
+
+      <BasicFooter />
     </div>
   );
 }

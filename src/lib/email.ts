@@ -38,7 +38,8 @@ type EventCreatedEmailInput = {
 type VerificationEmailInput = {
   to: string;
   recipientName?: string | null;
-  verificationUrl: string;
+  code: string;
+  expires: Date;
 };
 
 type OrderNotificationInput = {
@@ -536,19 +537,17 @@ export async function sendVerificationEmail(input: VerificationEmailInput) {
     "Account Setup",
     `
       <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${greeting}</p>
-      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Please verify your email address to activate your Paint &amp; Sip Depot host account.</p>
-      <p style="margin:20px 0;">
-        <a href="${input.verificationUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">Verify Email</a>
-      </p>
-      <p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#525252;">If you did not create this account, you can ignore this email.</p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Enter this code on Paint &amp; Sip Depot to activate your host account.</p>
+      <div style="margin:20px 0;padding:18px;border:1px solid #111111;border-radius:18px;background:#ffffff;text-align:center;font-size:34px;letter-spacing:0.28em;font-weight:800;color:#111111;">${input.code}</div>
+      <p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#525252;">This code expires at ${formatTime(input.expires)}. If you did not create this account, you can ignore this email.</p>
     `
   );
-  const text = `${greeting}\nPlease verify your Paint & Sip Depot account:\n${input.verificationUrl}`;
+  const text = `${greeting}\nEnter this code to verify your Paint & Sip Depot account: ${input.code}\nThis code expires at ${formatTime(input.expires)}.`;
 
   await sendEmail({
     to: input.to,
     subject,
     html,
     text,
-  }, { enabled: false });
+  });
 }

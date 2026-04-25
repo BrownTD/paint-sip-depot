@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
 
+import { RecaptchaCheckbox } from "@/components/auth/recaptcha-checkbox";
 import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ import { toast } from "@/components/ui/use-toast";
 export default function SignUpPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -41,6 +43,7 @@ export default function SignUpPage() {
           name: formData.name,
           email: formData.email,
           password: formData.password,
+          recaptchaToken,
         }),
       });
 
@@ -52,10 +55,10 @@ export default function SignUpPage() {
 
       toast({
         title: "Success!",
-        description: "Account created. Check your email to verify your account before signing in.",
+        description: "Account created. Enter the verification code we sent to your email.",
       });
 
-      router.push("/login");
+      router.push(`/verify-email?email=${encodeURIComponent(data.email || formData.email)}`);
     } catch (error) {
       toast({
         title: "Error",
@@ -148,6 +151,8 @@ export default function SignUpPage() {
                   disabled={isLoading}
                 />
               </div>
+
+              <RecaptchaCheckbox onChange={setRecaptchaToken} />
 
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (

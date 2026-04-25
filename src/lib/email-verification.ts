@@ -1,14 +1,14 @@
-import { randomBytes } from "crypto";
+import { randomInt } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendVerificationEmail } from "@/lib/email";
-import { getAbsoluteUrl, normalizeEmail } from "@/lib/utils";
+import { normalizeEmail } from "@/lib/utils";
 
-const EMAIL_VERIFICATION_TTL_HOURS = 24;
+const EMAIL_VERIFICATION_TTL_MINUTES = 15;
 
-export async function createEmailVerificationToken(identifier: string) {
+export async function createEmailVerificationCode(identifier: string) {
   const normalizedIdentifier = normalizeEmail(identifier);
-  const token = randomBytes(24).toString("hex");
-  const expires = new Date(Date.now() + EMAIL_VERIFICATION_TTL_HOURS * 60 * 60 * 1000);
+  const code = randomInt(100000, 1000000).toString();
+  const expires = new Date(Date.now() + EMAIL_VERIFICATION_TTL_MINUTES * 60 * 1000);
 
   await prisma.verificationToken.deleteMany({
     where: { identifier: normalizedIdentifier },
@@ -17,12 +17,12 @@ export async function createEmailVerificationToken(identifier: string) {
   await prisma.verificationToken.create({
     data: {
       identifier: normalizedIdentifier,
-      token,
+      token: code,
       expires,
     },
   });
 
-  return { token, expires };
+  return { code, expires };
 }
 
 export async function sendEmailVerification({
@@ -33,25 +33,29 @@ export async function sendEmailVerification({
   name?: string | null;
 }) {
   const normalizedEmail = normalizeEmail(email);
-  const { token } = await createEmailVerificationToken(normalizedEmail);
-  const verificationUrl = getAbsoluteUrl(
-    `/verify-email?token=${encodeURIComponent(token)}&email=${encodeURIComponent(normalizedEmail)}`
-  );
+  const { code, expires } = await createEmailVerificationCode(normalizedEmail);
 
   await sendVerificationEmail({
     to: normalizedEmail,
     recipientName: name,
-    verificationUrl,
+    code,
+    expires,
   });
 }
 
-export async function verifyEmailToken(email: string, token: string) {
+export async function verifyEmailCode(email: string, token: string) {
   const normalizedEmail = normalizeEmail(email);
+  const code = token.trim();
+
+  if (!/^\d{6}$/.test(code)) {
+    return { ok: false as const, reason: "invalid" as const };
+  }
+
   const record = await prisma.verificationToken.findUnique({
     where: {
       identifier_token: {
         identifier: normalizedEmail,
-        token,
+        token: code,
       },
     },
   });
@@ -65,7 +69,7 @@ export async function verifyEmailToken(email: string, token: string) {
       where: {
         identifier_token: {
           identifier: normalizedEmail,
-          token,
+          token: code,
         },
       },
     });
@@ -90,7 +94,7 @@ export async function verifyEmailToken(email: string, token: string) {
       where: {
         identifier_token: {
           identifier: normalizedEmail,
-          token,
+          token: code,
         },
       },
     }),

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { BasicFooter } from "@/components/public/basic-footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -88,6 +89,7 @@ export default function ReturnsPage() {
           </Card>
         </div>
       </main>
+      <BasicFooter />
     </div>
   );
 }

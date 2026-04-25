@@ -23,11 +23,10 @@ export async function sendPasswordResetLink(email: string) {
     select: {
       email: true,
       name: true,
-      passwordHash: true,
     },
   });
 
-  if (!user?.passwordHash) {
+  if (!user) {
     return;
   }
 

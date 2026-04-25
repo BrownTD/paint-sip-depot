@@ -171,16 +171,33 @@ export function generateRandomSlug(prefix: string = "evt"): string {
   return `${prefix}-${randomBytes(4).toString("hex")}`;
 }
 
-export function getAbsoluteUrl(path: string): string {
-  const vercelUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL.replace(/^https?:\/\//, "")}`
-    : undefined;
+const PRODUCTION_APP_URL = "https://www.paintsipdepot.com";
+const LEGACY_HOST_DOMAINS = new Set(["host.paintsipdepot.com"]);
 
+function normalizeBaseUrl(url: string | undefined) {
+  if (!url) return undefined;
+
+  const withProtocol = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+
+  try {
+    const parsed = new URL(withProtocol);
+    if (LEGACY_HOST_DOMAINS.has(parsed.hostname.toLowerCase())) {
+      return undefined;
+    }
+
+    return parsed.origin;
+  } catch {
+    return undefined;
+  }
+}
+
+export function getAbsoluteUrl(path: string): string {
   const base =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXTAUTH_URL ||
-    vercelUrl ||
-    (process.env.NODE_ENV === "production" ? "https://www.paintsipdepot.com" : undefined) ||
+    normalizeBaseUrl(process.env.NEXT_PUBLIC_APP_URL) ||
+    normalizeBaseUrl(process.env.NEXTAUTH_URL) ||
+    normalizeBaseUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL) ||
+    normalizeBaseUrl(process.env.VERCEL_URL) ||
+    (process.env.NODE_ENV === "production" ? PRODUCTION_APP_URL : undefined) ||
     "http://localhost:3000";
 
   const normalizedBase = base.replace(/\/+$/, "");

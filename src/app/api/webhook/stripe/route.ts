@@ -8,6 +8,7 @@ import {
 } from "@/lib/email";
 import { expireBookingsForCheckoutSession } from "@/lib/booking";
 import { prisma } from "@/lib/prisma";
+import { sendShopOrderConfirmationEmails } from "@/lib/shop-order-emails";
 import { stripe } from "@/lib/stripe";
 import { getAbsoluteUrl } from "@/lib/utils";
 import Stripe from "stripe";
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
               break;
             }
 
-            await prisma.shopOrder.updateMany({
+            const updateResult = await prisma.shopOrder.updateMany({
               where: {
                 id: shopOrderId,
                 status: ShopOrderStatus.PENDING,
@@ -66,6 +67,21 @@ export async function POST(request: Request) {
                 stripePaymentIntentId: session.payment_intent as string,
               },
             });
+
+            if (updateResult.count > 0) {
+              const shopOrder = await prisma.shopOrder.findUnique({
+                where: { id: shopOrderId },
+                include: {
+                  items: {
+                    orderBy: { createdAt: "asc" },
+                  },
+                },
+              });
+
+              if (shopOrder) {
+                await sendShopOrderConfirmationEmails(shopOrder);
+              }
+            }
 
             break;
           }

@@ -11,6 +11,7 @@ type SendEmailOptions = {
   html: string;
   text: string;
   replyTo?: string | string[];
+  from?: string;
 };
 
 type EventCreatedEmailInput = {
@@ -33,6 +34,28 @@ type EventCreatedEmailInput = {
   capacity?: number;
   ticketPriceCents?: number;
   status?: "DRAFT" | "PUBLISHED" | "ENDED" | "CANCELED";
+};
+
+type EventUpdateChange = {
+  label: string;
+  previousValue: string;
+  nextValue: string;
+};
+
+type EventUpdatedEmailInput = {
+  to: string | string[];
+  recipientName?: string | null;
+  audience: "admin" | "host" | "guest";
+  eventTitle: string;
+  eventUrl: string;
+  previewUrl?: string | null;
+  startDateTime: Date;
+  locationName: string;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  changes: EventUpdateChange[];
 };
 
 type VerificationEmailInput = {
@@ -94,6 +117,24 @@ type ShopExpiredCheckoutEmailInput = {
   }>;
 };
 
+type ShopOrderConfirmationEmailInput = {
+  orderId: string;
+  customerName: string;
+  customerEmail: string;
+  amountSubtotalCents: number;
+  amountTotalCents: number;
+  currency: string;
+  orderUrl: string;
+  items: Array<{
+    productName: string;
+    variantLabel?: string | null;
+    colorLabel?: string | null;
+    quantity: number;
+    unitPriceCents: number;
+    totalPriceCents: number;
+  }>;
+};
+
 type ReturnSubmissionEmailInput = {
   id: string;
   orderNumber: string;
@@ -112,6 +153,26 @@ function getResendApiKey() {
 
 function getFromEmail() {
   return process.env.RESEND_FROM_EMAIL || DEFAULT_FROM_EMAIL;
+}
+
+function getTicketsFromEmail() {
+  return process.env.RESEND_TICKETS_FROM_EMAIL || getFromEmail();
+}
+
+function getEventsFromEmail() {
+  return process.env.RESEND_EVENTS_FROM_EMAIL || getFromEmail();
+}
+
+function getAccountFromEmail() {
+  return process.env.RESEND_ACCOUNT_FROM_EMAIL || getFromEmail();
+}
+
+function getReturnsFromEmail() {
+  return process.env.RESEND_RETURNS_FROM_EMAIL || getFromEmail();
+}
+
+function getOrdersFromEmail() {
+  return process.env.RESEND_ORDERS_FROM_EMAIL || getFromEmail();
 }
 
 function getAdminEmail() {
@@ -195,14 +256,16 @@ function getFirstName(name?: string | null) {
 }
 
 async function sendEmail(
-  { to, subject, html, text, replyTo }: SendEmailOptions,
+  { to, subject, html, text, replyTo, from }: SendEmailOptions,
   options?: { enabled?: boolean }
 ) {
+  const fromEmail = from || getFromEmail();
+
   if (options?.enabled === false) {
     console.info("Email delivery disabled.", {
       to,
       subject,
-      from: getFromEmail(),
+      from: fromEmail,
       replyTo,
     });
     return { skipped: true as const, reason: "disabled" as const };
@@ -212,7 +275,7 @@ async function sendEmail(
     disabled: false,
     to,
     subject,
-    from: getFromEmail(),
+    from: fromEmail,
     replyTo,
   });
 
@@ -229,7 +292,7 @@ async function sendEmail(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: getFromEmail(),
+      from: fromEmail,
       to: Array.isArray(to) ? to : [to],
       subject,
       html,
@@ -301,6 +364,7 @@ export async function sendAdminEventCreatedEmail(input: EventCreatedEmailInput) 
     subject,
     html,
     text,
+    from: getEventsFromEmail(),
   });
 }
 
@@ -340,7 +404,8 @@ export async function sendHostEventCreatedEmail(input: EventCreatedEmailInput & 
     subject,
     html,
     text,
-  }, { enabled: false });
+    from: getEventsFromEmail(),
+  });
 }
 
 export async function sendAdminOrderCreatedEmail(input: OrderNotificationInput) {
@@ -393,6 +458,7 @@ export async function sendAdminOrderCreatedEmail(input: OrderNotificationInput) 
     subject,
     html,
     text,
+    from: getTicketsFromEmail(),
   });
 }
 
@@ -442,6 +508,7 @@ export async function sendHostOrderCreatedEmail(input: OrderNotificationInput & 
     html,
     text,
     replyTo: getReplyToEmail(),
+    from: getTicketsFromEmail(),
   });
 }
 
@@ -497,6 +564,7 @@ export async function sendExpiredCheckoutEmail(input: ExpiredCheckoutEmailInput)
     html,
     text,
     replyTo: getReplyToEmail(),
+    from: getTicketsFromEmail(),
   });
 }
 
@@ -562,6 +630,146 @@ export async function sendShopExpiredCheckoutEmail(input: ShopExpiredCheckoutEma
     html,
     text,
     replyTo: getReplyToEmail(),
+    from: getOrdersFromEmail(),
+  });
+}
+
+function buildShopOrderItems(input: ShopOrderConfirmationEmailInput) {
+  const html = input.items
+    .map((item) => {
+      const details = [
+        item.variantLabel && item.variantLabel !== "Standard" ? item.variantLabel : null,
+        item.colorLabel ? `Color: ${item.colorLabel}` : null,
+      ].filter(Boolean);
+
+      return `
+        <tr>
+          <td style="padding:12px;border-bottom:1px solid #e5e5e5;">
+            <strong>${item.productName}</strong>
+            ${details.length ? `<br /><span style="color:#525252;font-size:13px;">${details.join(" · ")}</span>` : ""}
+          </td>
+          <td align="center" style="padding:12px;border-bottom:1px solid #e5e5e5;">${item.quantity}</td>
+          <td align="right" style="padding:12px;border-bottom:1px solid #e5e5e5;">${centsToDollars(item.unitPriceCents)}</td>
+          <td align="right" style="padding:12px;border-bottom:1px solid #e5e5e5;">${centsToDollars(item.totalPriceCents)}</td>
+        </tr>
+      `;
+    })
+    .join("");
+  const text = input.items
+    .map((item) => {
+      const details = [
+        item.variantLabel && item.variantLabel !== "Standard" ? item.variantLabel : null,
+        item.colorLabel ? `Color: ${item.colorLabel}` : null,
+      ].filter(Boolean);
+      const detailText = details.length ? ` (${details.join(", ")})` : "";
+
+      return `- ${item.quantity} x ${item.productName}${detailText}: ${centsToDollars(item.totalPriceCents)}`;
+    })
+    .join("\n");
+
+  return { html, text };
+}
+
+export async function sendCustomerShopOrderConfirmationEmail(input: ShopOrderConfirmationEmailInput) {
+  const firstName = getFirstName(input.customerName);
+  const greeting = `Hi ${firstName},`;
+  const subject = `Order confirmation: ${input.orderId}`;
+  const itemRows = buildShopOrderItems(input);
+  const html = emailShell(
+    "Order confirmed",
+    "Order Update",
+    `
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${greeting}</p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Your Paint &amp; Sip Depot order has been paid successfully. We have included the order details below.</p>
+      <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        <p style="margin:0 0 10px;"><strong>Order:</strong> ${input.orderId}</p>
+        <p style="margin:0;"><strong>Customer:</strong> ${input.customerName} (${input.customerEmail})</p>
+      </div>
+      <table style="margin-top:20px;width:100%;border-collapse:collapse;border:1px solid #e5e5e5;background:#ffffff;font-size:14px;line-height:1.5;">
+        <thead>
+          <tr>
+            <th align="left" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">Item</th>
+            <th align="center" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">Qty</th>
+            <th align="right" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">Price</th>
+            <th align="right" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">Total</th>
+          </tr>
+        </thead>
+        <tbody>${itemRows.html}</tbody>
+      </table>
+      <div style="margin:20px 0 0;padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        <p style="margin:0 0 10px;"><strong>Subtotal:</strong> ${centsToDollars(input.amountSubtotalCents)}</p>
+        <p style="margin:0;font-size:18px;"><strong>Total paid:</strong> ${centsToDollars(input.amountTotalCents)}</p>
+      </div>
+      <p style="margin:20px 0 0;"><a href="${input.orderUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">View Order</a></p>
+      ${signatureBlock()}
+    `
+  );
+  const text =
+    `${greeting}\n\n` +
+    `Your Paint & Sip Depot order has been paid successfully.\n\n` +
+    `Order: ${input.orderId}\n` +
+    `Customer: ${input.customerName} (${input.customerEmail})\n\n` +
+    `${itemRows.text}\n\n` +
+    `Subtotal: ${centsToDollars(input.amountSubtotalCents)}\n` +
+    `Total paid: ${centsToDollars(input.amountTotalCents)}\n\n` +
+    `View order: ${input.orderUrl}`;
+
+  return sendEmail({
+    to: input.customerEmail,
+    subject,
+    html,
+    text,
+    replyTo: getReplyToEmail(),
+    from: getOrdersFromEmail(),
+  });
+}
+
+export async function sendAdminShopOrderConfirmationEmail(input: ShopOrderConfirmationEmailInput) {
+  const subject = `New shop order: ${input.orderId}`;
+  const itemRows = buildShopOrderItems(input);
+  const html = emailShell(
+    "New shop order",
+    "Admin Alert",
+    `
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">A customer completed a shop checkout.</p>
+      <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        <p style="margin:0 0 10px;"><strong>Order:</strong> ${input.orderId}</p>
+        <p style="margin:0;"><strong>Customer:</strong> ${input.customerName} (${input.customerEmail})</p>
+      </div>
+      <table style="margin-top:20px;width:100%;border-collapse:collapse;border:1px solid #e5e5e5;background:#ffffff;font-size:14px;line-height:1.5;">
+        <thead>
+          <tr>
+            <th align="left" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">Item</th>
+            <th align="center" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">Qty</th>
+            <th align="right" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">Price</th>
+            <th align="right" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">Total</th>
+          </tr>
+        </thead>
+        <tbody>${itemRows.html}</tbody>
+      </table>
+      <div style="margin:20px 0 0;padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        <p style="margin:0 0 10px;"><strong>Subtotal:</strong> ${centsToDollars(input.amountSubtotalCents)}</p>
+        <p style="margin:0;font-size:18px;"><strong>Total paid:</strong> ${centsToDollars(input.amountTotalCents)}</p>
+      </div>
+      <p style="margin:20px 0 0;"><a href="${input.orderUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">View Order</a></p>
+    `
+  );
+  const text =
+    `New shop order\n\n` +
+    `Order: ${input.orderId}\n` +
+    `Customer: ${input.customerName} (${input.customerEmail})\n\n` +
+    `${itemRows.text}\n\n` +
+    `Subtotal: ${centsToDollars(input.amountSubtotalCents)}\n` +
+    `Total paid: ${centsToDollars(input.amountTotalCents)}\n\n` +
+    `View order: ${input.orderUrl}`;
+
+  return sendEmail({
+    to: getAdminEmail(),
+    subject,
+    html,
+    text,
+    replyTo: input.customerEmail,
+    from: getOrdersFromEmail(),
   });
 }
 
@@ -610,6 +818,123 @@ export async function sendAdminReturnSubmissionEmail(input: ReturnSubmissionEmai
     html,
     text,
     replyTo: input.customerEmail,
+    from: getReturnsFromEmail(),
+  });
+}
+
+export async function sendCustomerReturnSubmissionEmail(input: ReturnSubmissionEmailInput) {
+  const firstName = getFirstName(input.customerName);
+  const greeting = `Hi ${firstName},`;
+  const subject = `We received your return request for ${input.orderNumber}`;
+  const html = emailShell(
+    "Return request received",
+    "Returns Update",
+    `
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${greeting}</p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">We received your return request and our team will review it.</p>
+      <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        <p style="margin:0 0 10px;"><strong>Order number:</strong> ${input.orderNumber}</p>
+        <p style="margin:0 0 10px;"><strong>Issue:</strong> ${input.issueType}</p>
+        <p style="margin:0 0 10px;"><strong>Description:</strong></p>
+        <p style="margin:0;white-space:pre-line;">${input.description}</p>
+      </div>
+      <p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#525252;">Return submission ID: ${input.id}</p>
+      ${signatureBlock()}
+    `
+  );
+  const text =
+    `${greeting}\n\n` +
+    `We received your return request and our team will review it.\n\n` +
+    `Order number: ${input.orderNumber}\n` +
+    `Issue: ${input.issueType}\n` +
+    `Description: ${input.description}\n` +
+    `Return submission ID: ${input.id}`;
+
+  return sendEmail({
+    to: input.customerEmail,
+    subject,
+    html,
+    text,
+    replyTo: getReplyToEmail(),
+    from: getReturnsFromEmail(),
+  });
+}
+
+export async function sendEventUpdatedEmail(input: EventUpdatedEmailInput) {
+  const greeting = input.recipientName ? `Hi ${input.recipientName},` : "Hi,";
+  const subject = `Event update: ${input.eventTitle}`;
+  const addressLine = formatAddressLine(input);
+  const detailUrl = input.audience === "host" || input.audience === "admin"
+    ? input.previewUrl || input.eventUrl
+    : input.eventUrl;
+  const changeRows = input.changes
+    .map(
+      (change) => `
+        <tr>
+          <td style="padding:12px;border-bottom:1px solid #e5e5e5;font-weight:700;vertical-align:top;">${change.label}</td>
+          <td style="padding:12px;border-bottom:1px solid #e5e5e5;color:#525252;vertical-align:top;">${change.previousValue}</td>
+          <td style="padding:12px;border-bottom:1px solid #e5e5e5;vertical-align:top;">${change.nextValue}</td>
+        </tr>
+      `
+    )
+    .join("");
+  const textChanges = input.changes
+    .map((change) => `${change.label}: ${change.previousValue} -> ${change.nextValue}`)
+    .join("\n");
+
+  const html = emailShell(
+    "Event details updated",
+    "Event Update",
+    `
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${greeting}</p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Important details changed for <strong>${input.eventTitle}</strong>.</p>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e5e5e5;background:#ffffff;font-size:14px;line-height:1.5;">
+        <thead>
+          <tr>
+            <th align="left" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">Changed</th>
+            <th align="left" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">Previous</th>
+            <th align="left" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">New</th>
+          </tr>
+        </thead>
+        <tbody>${changeRows}</tbody>
+      </table>
+      <div style="margin:20px 0 0;padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        <p style="margin:0 0 10px;"><strong>Current date:</strong> ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}</p>
+        <p style="margin:0 0 10px;"><strong>Current location:</strong> ${input.locationName}</p>
+        ${addressLine ? `<p style="margin:0;"><strong>Current address:</strong> ${addressLine}</p>` : ""}
+      </div>
+      <p style="margin:20px 0 0;"><a href="${detailUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">View Event</a></p>
+      ${signatureBlock()}
+    `
+  );
+
+  const text =
+    `${greeting}\n\n` +
+    `Important details changed for ${input.eventTitle}.\n\n` +
+    `${textChanges}\n\n` +
+    `Current date: ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}\n` +
+    `Current location: ${input.locationName}\n` +
+    `${addressLine ? `Current address: ${addressLine}\n` : ""}` +
+    `View event: ${detailUrl}`;
+
+  return sendEmail({
+    to: input.to,
+    subject,
+    html,
+    text,
+    from: getEventsFromEmail(),
+    replyTo: getReplyToEmail(),
+  });
+}
+
+export async function sendAdminEventUpdatedEmail(
+  input: Omit<EventUpdatedEmailInput, "to" | "audience">
+) {
+  return sendEventUpdatedEmail({
+    ...input,
+    to: getAdminEmail(),
+    recipientName: "Admin",
+    audience: "admin",
   });
 }
 
@@ -633,6 +958,7 @@ export async function sendVerificationEmail(input: VerificationEmailInput) {
     subject,
     html,
     text,
+    from: getAccountFromEmail(),
   });
 }
 
@@ -658,5 +984,6 @@ export async function sendPasswordResetEmail(input: PasswordResetEmailInput) {
     subject,
     html,
     text,
+    from: getAccountFromEmail(),
   });
 }

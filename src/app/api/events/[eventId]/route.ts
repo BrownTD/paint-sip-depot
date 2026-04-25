@@ -1,13 +1,86 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import {
+  sendAdminEventUpdatedEmail,
+  sendEventUpdatedEmail,
+} from "@/lib/email";
 import { generateEventQrCode } from "@/lib/event-qr";
 import { prisma } from "@/lib/prisma";
 import { eventSchema } from "@/lib/validations";
 import { resolveEventCodeForVisibility } from "@/lib/event-discovery";
+import { formatDate, formatTime, getAbsoluteUrl } from "@/lib/utils";
 
 const FIXED_TICKET_PRICE_CENTS = 3500;
 const FIXED_REFUND_POLICY =
   "Refunds are not available within 7 days of the event due to preparation and supply costs.\n\nIf you are unable to attend, your pre-drawn canvas and materials can be shipped to you so you can still complete the painting at home. Shipping fees may apply.\n\nIf the event is canceled by the organizer, all pre-drawn canvases and materials will be shipped to guests so they can still complete the painting at home. Guests will be contacted with additional details if necessary.";
+
+function formatEventDateTime(value: Date | null) {
+  return value ? `${formatDate(value)} at ${formatTime(value)}` : "Not set";
+}
+
+function normalizeTextValue(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed || "Not set";
+}
+
+function buildEventUpdateChanges(
+  previous: {
+    startDateTime: Date;
+    endDateTime: Date | null;
+    locationName: string;
+    address: string | null;
+    city: string | null;
+    state: string | null;
+    zip: string | null;
+  },
+  next: {
+    startDateTime: Date;
+    endDateTime: Date | null;
+    locationName: string;
+    address: string | null;
+    city: string | null;
+    state: string | null;
+    zip: string | null;
+  }
+) {
+  const changes: Array<{ label: string; previousValue: string; nextValue: string }> = [];
+
+  if (previous.startDateTime.getTime() !== next.startDateTime.getTime()) {
+    changes.push({
+      label: "Date and time",
+      previousValue: formatEventDateTime(previous.startDateTime),
+      nextValue: formatEventDateTime(next.startDateTime),
+    });
+  }
+
+  if ((previous.endDateTime?.getTime() || 0) !== (next.endDateTime?.getTime() || 0)) {
+    changes.push({
+      label: "End time",
+      previousValue: formatEventDateTime(previous.endDateTime),
+      nextValue: formatEventDateTime(next.endDateTime),
+    });
+  }
+
+  const locationFields = [
+    ["Location", previous.locationName, next.locationName],
+    ["Address", previous.address, next.address],
+    ["City", previous.city, next.city],
+    ["State", previous.state, next.state],
+    ["ZIP", previous.zip, next.zip],
+  ] as const;
+
+  for (const [label, previousValue, nextValue] of locationFields) {
+    if (normalizeTextValue(previousValue) !== normalizeTextValue(nextValue)) {
+      changes.push({
+        label,
+        previousValue: normalizeTextValue(previousValue),
+        nextValue: normalizeTextValue(nextValue),
+      });
+    }
+  }
+
+  return changes;
+}
 
 export async function GET(
   request: NextRequest,
@@ -54,6 +127,16 @@ export async function PATCH(
 
     const existingEvent = await prisma.event.findFirst({
       where: { id: eventId, hostId: session.user.id },
+      include: {
+        host: { select: { name: true, email: true } },
+        bookings: {
+          where: { status: "PAID" },
+          select: {
+            purchaserName: true,
+            purchaserEmail: true,
+          },
+        },
+      },
     });
 
     if (!existingEvent) {
@@ -127,19 +210,75 @@ export async function PATCH(
       updateData.eventCode = await resolveEventCodeForVisibility(nextVisibility, existingEvent.eventCode);
     }
 
-    const event = await prisma.event.update({
+    let event = await prisma.event.update({
       where: { id: eventId },
       data: updateData,
     });
 
     if (!event.qrCodeImageUrl || event.qrCodeImageUrl.endsWith(".png")) {
       const qrCodeImageUrl = await generateEventQrCode(event.id, event.slug);
-      const eventWithQr = await prisma.event.update({
+      event = await prisma.event.update({
         where: { id: event.id },
         data: { qrCodeImageUrl },
       });
+    }
 
-      return NextResponse.json({ event: eventWithQr });
+    const changes = buildEventUpdateChanges(existingEvent, event);
+
+    if (changes.length > 0) {
+      const eventUrl =
+        event.visibility === "PRIVATE" && event.eventCode
+          ? getAbsoluteUrl(`/e/${event.slug}?code=${encodeURIComponent(event.eventCode)}`)
+          : getAbsoluteUrl(`/e/${event.slug}`);
+      const previewUrl = getAbsoluteUrl(`/dashboard/events/${event.id}/preview`);
+      const guestRecipients = Array.from(
+        new Map(
+          existingEvent.bookings
+            .filter((booking) => booking.purchaserEmail)
+            .map((booking) => [
+              booking.purchaserEmail.trim().toLowerCase(),
+              booking,
+            ])
+        ).values()
+      );
+      const notificationBase = {
+        eventTitle: event.title,
+        eventUrl,
+        previewUrl,
+        startDateTime: event.startDateTime,
+        locationName: event.locationName,
+        address: event.address,
+        city: event.city,
+        state: event.state,
+        zip: event.zip,
+        changes,
+      };
+      const notifications = [
+        sendAdminEventUpdatedEmail(notificationBase),
+        existingEvent.host.email
+          ? sendEventUpdatedEmail({
+              ...notificationBase,
+              to: existingEvent.host.email,
+              recipientName: existingEvent.host.name,
+              audience: "host",
+            })
+          : Promise.resolve(),
+        ...guestRecipients.map((booking) =>
+          sendEventUpdatedEmail({
+            ...notificationBase,
+            to: booking.purchaserEmail,
+            recipientName: booking.purchaserName,
+            audience: "guest",
+          })
+        ),
+      ];
+
+      void Promise.allSettled(notifications).then((results) => {
+        const rejected = results.filter((result) => result.status === "rejected");
+        if (rejected.length > 0) {
+          console.error("Event update notification email failed:", rejected);
+        }
+      });
     }
 
     return NextResponse.json({ event });

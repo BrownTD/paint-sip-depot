@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { sendAdminReturnSubmissionEmail } from "@/lib/email";
+import {
+  sendAdminReturnSubmissionEmail,
+  sendCustomerReturnSubmissionEmail,
+} from "@/lib/email";
 import { getAbsoluteUrl } from "@/lib/utils";
 
 const returnSubmissionSchema = z.object({
@@ -33,7 +36,7 @@ export async function POST(request: Request) {
       },
     });
 
-    await sendAdminReturnSubmissionEmail({
+    const emailPayload = {
       id: submission.id,
       orderNumber: submission.orderNumber,
       customerName: submission.customerName,
@@ -43,6 +46,16 @@ export async function POST(request: Request) {
       description: submission.description,
       photoUrls: submission.photoUrls,
       adminUrl: getAbsoluteUrl("/admin/returns"),
+    };
+
+    await Promise.allSettled([
+      sendAdminReturnSubmissionEmail(emailPayload),
+      sendCustomerReturnSubmissionEmail(emailPayload),
+    ]).then((results) => {
+      const rejected = results.filter((result) => result.status === "rejected");
+      if (rejected.length > 0) {
+        console.error("Return submission email failed:", rejected);
+      }
     });
 
     return NextResponse.json({ id: submission.id });

@@ -414,6 +414,14 @@ function buildStripeProductImages(imageUrls: string[]) {
   return [...stripeImageUrls.slice(0, 7), trailingImageUrl];
 }
 
+function isStripeMissingResourceError(error: unknown) {
+  const stripeError = error as { code?: string; statusCode?: number; message?: string };
+  return (
+    stripeError.code === "resource_missing" ||
+    (stripeError.statusCode === 404 && Boolean(stripeError.message?.includes("No such")))
+  );
+}
+
 function getDefaultVariant<T extends { size: ProductVariantSize }>(variants: T[]) {
   const mediumVariant = variants.find((variant) => variant.size === ProductVariantSize.MEDIUM);
   if (!mediumVariant) {
@@ -870,13 +878,6 @@ export async function updateProductWithStripe(productId: string, input: ProductI
     throw new ProductServiceError("Product not found.", 404);
   }
 
-  if (!existingProduct.stripeProductId) {
-    throw new ProductServiceError(
-      "This product is missing its Stripe Product ID and cannot be edited safely.",
-      409,
-    );
-  }
-
   const name = sanitizePlainText(input.name);
   const normalizedName = normalizeProductName(input.name);
   const description = normalizeDescription(input.description);
@@ -899,9 +900,12 @@ export async function updateProductWithStripe(productId: string, input: ProductI
   );
   const stripeClient = getStripeProductClient();
   const nextIsCanvas = isCanvasCategory(input.categoryId);
+  let stripeProductId = existingProduct.stripeProductId;
+  let stripeProductWasRecreated = !stripeProductId;
+  let createdStripeProductId: string | null = null;
 
   try {
-    await stripeClient.products.update(existingProduct.stripeProductId, {
+    const stripeProductPayload = {
       name,
       description,
       images: buildStripeProductImages(imageUrls),
@@ -914,7 +918,32 @@ export async function updateProductWithStripe(productId: string, input: ProductI
         discountPercent,
         colorOptions: preparedColorOptions,
       }),
-    });
+    };
+
+    if (stripeProductId) {
+      try {
+        await stripeClient.products.update(stripeProductId, stripeProductPayload);
+      } catch (error) {
+        if (!isStripeMissingResourceError(error)) {
+          throw error;
+        }
+
+        const stripeProduct = await stripeClient.products.create(stripeProductPayload);
+        stripeProductId = stripeProduct.id;
+        stripeProductWasRecreated = true;
+        createdStripeProductId = stripeProduct.id;
+      }
+    } else {
+      const stripeProduct = await stripeClient.products.create(stripeProductPayload);
+      stripeProductId = stripeProduct.id;
+      stripeProductWasRecreated = true;
+      createdStripeProductId = stripeProduct.id;
+    }
+
+    if (!stripeProductId) {
+      throw new ProductServiceError("Failed to sync product with Stripe.", 500);
+    }
+    const syncedStripeProductId = stripeProductId;
 
     const nextVariants = nextIsCanvas
       ? await Promise.all(
@@ -925,13 +954,14 @@ export async function updateProductWithStripe(productId: string, input: ProductI
               existingVariant?.priceCents !== variant.priceCents ||
               normalizeCurrency(existingVariant?.currency ?? variant.currency) !== variant.currency ||
               !existingVariant?.stripePriceId ||
-              !isCanvasCategory(existingProduct.categoryId);
+              !isCanvasCategory(existingProduct.categoryId) ||
+              stripeProductWasRecreated;
 
-            let stripePriceId = existingVariant?.stripePriceId ?? null;
+            let stripePriceId = stripeProductWasRecreated ? null : existingVariant?.stripePriceId ?? null;
 
             if (priceChanged) {
               const stripePrice = await stripeClient.prices.create({
-                product: existingProduct.stripeProductId!,
+                product: syncedStripeProductId,
                 unit_amount: variant.priceCents,
                 currency: variant.currency,
                 metadata: {
@@ -962,18 +992,19 @@ export async function updateProductWithStripe(productId: string, input: ProductI
 
     let defaultStripePriceId = nextIsCanvas
       ? getDefaultVariant(nextVariants).stripePriceId
-      : existingProduct.stripePriceId;
+      : stripeProductWasRecreated ? null : existingProduct.stripePriceId;
 
     if (!nextIsCanvas) {
       const basePriceChanged =
         existingProduct.priceCents !== basePriceCents ||
         normalizeCurrency(existingProduct.currency) !== baseCurrency ||
         !existingProduct.stripePriceId ||
-        isCanvasCategory(existingProduct.categoryId);
+        isCanvasCategory(existingProduct.categoryId) ||
+        stripeProductWasRecreated;
 
       if (basePriceChanged) {
         const stripePrice = await stripeClient.prices.create({
-          product: existingProduct.stripeProductId!,
+          product: syncedStripeProductId,
           unit_amount: basePriceCents,
           currency: baseCurrency,
           metadata: {
@@ -1000,6 +1031,7 @@ export async function updateProductWithStripe(productId: string, input: ProductI
           priceCents: basePriceCents,
           discountPercent,
           currency: baseCurrency,
+          stripeProductId: syncedStripeProductId,
           stripePriceId: defaultStripePriceId,
           status,
           archivedAt: status === PRODUCT_STATUS.archived ? new Date() : null,
@@ -1100,6 +1132,10 @@ export async function updateProductWithStripe(productId: string, input: ProductI
       });
     });
   } catch (error) {
+    if (createdStripeProductId) {
+      await deactivateStripeProductSafely(createdStripeProductId);
+    }
+
     if (error instanceof ProductServiceError) {
       throw error;
     }

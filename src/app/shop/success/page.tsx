@@ -5,6 +5,7 @@ import { ShopOrderStatus } from "@prisma/client";
 import Stripe from "stripe";
 import { CheckCircle2, Package2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { sendShopOrderConfirmationEmails } from "@/lib/shop-order-emails";
 import { formatCurrencyAmount } from "@/lib/money";
 import { formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -53,14 +54,28 @@ async function getOrderDetails(sessionId: string) {
   }
 
   if (order.status === ShopOrderStatus.PENDING) {
-    await prisma.shopOrder.update({
+    const updatedOrder = await prisma.shopOrder.update({
       where: { id: order.id },
       data: {
         status: ShopOrderStatus.PAID,
         stripePaymentIntentId:
           typeof session.payment_intent === "string" ? session.payment_intent : null,
       },
+      include: {
+        items: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
     });
+
+    await sendShopOrderConfirmationEmails(updatedOrder);
+
+    return {
+      session,
+      order: updatedOrder,
+    };
   }
 
   return {

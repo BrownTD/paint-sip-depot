@@ -16,7 +16,10 @@ const canvasImageUrlSchema = z.union([
   z.literal(""),
 ]);
 
-const productImageUrlSchema = z.string().url("Product images must be valid URLs");
+const productImageUrlSchema = z.union([
+  z.string().url("Product images must be valid URLs"),
+  z.string().regex(/^\/(?!\/).+/, "Product images must be valid URLs"),
+]);
 const reviewImageUrlSchema = z.string().url("Review image must be a valid URL");
 
 export const signUpSchema = z.object({

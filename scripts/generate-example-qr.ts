@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { buildQrSvg } from "../src/lib/event-qr";
 
-const EXAMPLE_URL = "https://host.paintsipdepot.com";
+const EXAMPLE_URL = "https://www.paintsipdepot.com";
 const OUTPUT_PATH = path.join(process.cwd(), "public", "Misc", "example.svg");
 
 async function main() {

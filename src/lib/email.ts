@@ -42,6 +42,13 @@ type VerificationEmailInput = {
   expires: Date;
 };
 
+type PasswordResetEmailInput = {
+  to: string;
+  recipientName?: string | null;
+  resetUrl: string;
+  expires: Date;
+};
+
 type OrderNotificationInput = {
   recipientName?: string | null;
   organizerName?: string | null;
@@ -620,6 +627,31 @@ export async function sendVerificationEmail(input: VerificationEmailInput) {
     `
   );
   const text = `${greeting}\nEnter this code to verify your Paint & Sip Depot account: ${input.code}\nThis code expires at ${formatTime(input.expires)}.`;
+
+  await sendEmail({
+    to: input.to,
+    subject,
+    html,
+    text,
+  });
+}
+
+export async function sendPasswordResetEmail(input: PasswordResetEmailInput) {
+  const greeting = input.recipientName ? `Hi ${input.recipientName},` : "Hi,";
+  const subject = "Reset your Paint & Sip Depot password";
+  const html = emailShell(
+    "Reset your password",
+    "Account Security",
+    `
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${greeting}</p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Use the secure link below to choose a new password for your Paint &amp; Sip Depot account.</p>
+      <p style="margin:20px 0;">
+        <a href="${input.resetUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">Reset Password</a>
+      </p>
+      <p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#525252;">This link expires at ${formatTime(input.expires)}. If you did not request a password reset, you can ignore this email.</p>
+    `
+  );
+  const text = `${greeting}\nUse this link to reset your Paint & Sip Depot password:\n${input.resetUrl}\n\nThis link expires at ${formatTime(input.expires)}.`;
 
   await sendEmail({
     to: input.to,

@@ -16,14 +16,12 @@ model User {
   image         String?
   passwordHash  String?
   role          UserRole  @default(HOST)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  events        Event[]
+  sessions      Session[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  accounts Account[]
-  events   Event[]
-  sessions Session[]
   @@map("users")
 }
 
@@ -32,19 +30,16 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-
-  refresh_token String?
-  access_token  String?
-  expires_at    Int?
-  token_type    String?
-  scope         String?
-  id_token      String?
-  session_state String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([provider, providerAccountId])
   @@map("accounts")
@@ -54,11 +49,9 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
@@ -73,41 +66,34 @@ model VerificationToken {
 }
 
 model Event {
-  id          String  @id @default(cuid())
-  hostId      String
-  title       String
-  description String?
-  slug        String  @unique
-  eventCode   String? @unique
-
-  startDateTime DateTime
-  endDateTime   DateTime?
-
-  locationName String
-  address      String?
-  city         String?
-  state        String?
-  zip          String?
-  visibility   EventVisibility @default(PUBLIC)
-  eventFormat  EventFormat     @default(IN_PERSON)
-
-  ticketPriceCents Int
-  capacity         Int
-  salesCutoffHours Int     @default(48)
+  id                      String          @id @default(cuid())
+  hostId                  String
+  title                   String
+  description             String?
+  slug                    String          @unique
+  startDateTime           DateTime
+  endDateTime             DateTime?
+  locationName            String
+  address                 String?
+  city                    String?
+  state                   String?
+  zip                     String?
+  ticketPriceCents        Int
+  capacity                Int
+  salesCutoffHours        Int             @default(48)
+  refundPolicyText        String?
+  canvasImageUrl          String?
+  status                  EventStatus     @default(DRAFT)
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+  eventCode               String?         @unique
+  visibility              EventVisibility @default(PUBLIC)
+  eventFormat             EventFormat     @default(IN_PERSON)
+  canvasName              String?
+  qrCodeImageUrl          String?
   bookingCutoffOverrideAt DateTime?
-  refundPolicyText String?
-
-  canvasImageUrl String?
-  canvasName     String?
-  qrCodeImageUrl String?
-
-  status    EventStatus @default(DRAFT)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-
-  bookings Booking[]
-
-  host   User    @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  bookings                Booking[]
+  host                    User            @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
   @@index([hostId])
   @@index([status])
@@ -117,29 +103,27 @@ model Event {
 }
 
 model ProductCategory {
-  id        String   @id
-  name      String   @unique
-  slug      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  products      Product[]
+  id            String               @id
+  name          String               @unique
+  slug          String               @unique
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
   subcategories ProductSubcategory[]
+  products      Product[]
 
   @@index([createdAt])
   @@map("product_categories")
 }
 
 model ProductSubcategory {
-  id         String   @id
+  id         String          @id
   categoryId String
   name       String
   slug       String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  category ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  products Product[]
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  category   ProductCategory @relation(fields: [categoryId], references: [id])
+  products   Product[]
 
   @@unique([categoryId, slug])
   @@index([categoryId])
@@ -147,49 +131,47 @@ model ProductSubcategory {
 }
 
 model Product {
-  id             String        @id @default(cuid())
-  name           String
-  normalizedName String        @unique
-  sku            String        @unique
-  skuSequence    Int
-  description    String
-  imageUrls      String[]
-  priceCents     Int
+  id              String               @id @default(cuid())
+  name            String
+  normalizedName  String               @unique
+  description     String
+  imageUrls       String[]
+  priceCents      Int
+  currency        String               @default("usd")
+  stripeProductId String?              @unique
+  stripePriceId   String?              @unique
+  status          ProductStatus        @default(ACTIVE)
+  archivedAt      DateTime?
+  categoryId      String
+  subcategoryId   String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  sku             String               @unique
+  skuSequence     Int
   discountPercent Int?
-  currency       String        @default("usd")
-  stripeProductId String?      @unique
-  stripePriceId  String?       @unique
-  status         ProductStatus @default(ACTIVE)
-  archivedAt     DateTime?
-  categoryId     String
-  subcategoryId  String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  colorOptions    ProductColorOption[]
+  reviews         ProductReview[]
+  variants        ProductVariant[]
+  category        ProductCategory      @relation(fields: [categoryId], references: [id])
+  subcategory     ProductSubcategory?  @relation(fields: [subcategoryId], references: [id], onDelete: Restrict)
+  orderItems      ShopOrderItem[]
 
-  category    ProductCategory    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  subcategory ProductSubcategory? @relation(fields: [subcategoryId], references: [id], onDelete: Restrict)
-  colorOptions ProductColorOption[]
-  reviews     ProductReview[]
-  variants    ProductVariant[]
-  orderItems  ShopOrderItem[]
-
+  @@unique([categoryId, skuSequence])
   @@index([categoryId])
   @@index([subcategoryId])
   @@index([status, createdAt])
   @@index([createdAt])
-  @@unique([categoryId, skuSequence])
   @@map("products")
 }
 
 model ProductColorOption {
-  id        String   @id @default(cuid())
-  productId String
-  label     String
-  hex       String
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id         String          @id @default(cuid())
+  productId  String
+  label      String
+  hex        String
+  sortOrder  Int             @default(0)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
   product    Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
   orderItems ShopOrderItem[]
 
@@ -202,7 +184,6 @@ model ProductVariant {
   id            String             @id @default(cuid())
   productId     String
   size          ProductVariantSize
-  sku           String             @unique
   label         String
   widthInches   Int
   heightInches  Int
@@ -212,9 +193,9 @@ model ProductVariant {
   isDefault     Boolean            @default(false)
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
-
-  product    Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
-  orderItems ShopOrderItem[]
+  sku           String             @unique
+  product       Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems    ShopOrderItem[]
 
   @@unique([productId, size])
   @@index([productId])
@@ -222,18 +203,17 @@ model ProductVariant {
 }
 
 model ProductReview {
-  id               String   @id @default(cuid())
-  productId        String
-  reviewerName     String
-  reviewerEmail    String
-  rating           Int
-  body             String
-  imageUrl         String?
-  isVerifiedPurchase Boolean @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id                 String   @id @default(cuid())
+  productId          String
+  reviewerName       String
+  reviewerEmail      String
+  rating             Int
+  body               String
+  imageUrl           String?
+  isVerifiedPurchase Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId, createdAt])
   @@index([productId, rating])
@@ -241,45 +221,21 @@ model ProductReview {
   @@map("product_reviews")
 }
 
-model ReturnSubmission {
-  id          String   @id @default(cuid())
-  orderNumber String
-  customerName String
-  customerEmail String
-  phoneNumber String?
-  issueType   String
-  description String
-  photoUrls   String[]
-  status      String   @default("SUBMITTED")
-  adminNotes  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([status, createdAt])
-  @@index([customerEmail])
-  @@index([orderNumber])
-  @@map("return_submissions")
-}
-
 model Booking {
-  id String @id @default(cuid())
-
+  id                      String            @id @default(cuid())
   eventId                 String
-  stripeCheckoutSessionId String? @unique
+  stripeCheckoutSessionId String?           @unique
   stripePaymentIntentId   String?
+  purchaserName           String
+  purchaserEmail          String
+  quantity                Int
+  amountPaidCents         Int
+  status                  BookingStatus     @default(PENDING)
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
   reservationExpiresAt    DateTime?
-
-  purchaserName   String
-  purchaserEmail  String
-  quantity        Int
-  amountPaidCents Int
-
-  status    BookingStatus @default(PENDING)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-
-  event     Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  emailLogs BookingEmailLog[]
+  emailLogs               BookingEmailLog[]
+  event                   Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([eventId])
   @@index([purchaserEmail])
@@ -288,19 +244,18 @@ model Booking {
 }
 
 model ShopOrder {
-  id                    String          @id @default(cuid())
-  customerName          String
-  customerEmail         String
-  currency              String          @default("usd")
-  status                ShopOrderStatus @default(PENDING)
-  stripeCheckoutSessionId String?       @unique
-  stripePaymentIntentId String?
-  amountSubtotalCents   Int
-  amountTotalCents      Int
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
-
-  items ShopOrderItem[]
+  id                      String          @id @default(cuid())
+  customerName            String
+  customerEmail           String
+  currency                String          @default("usd")
+  status                  ShopOrderStatus @default(PENDING)
+  stripeCheckoutSessionId String?         @unique
+  stripePaymentIntentId   String?
+  amountSubtotalCents     Int
+  amountTotalCents        Int
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+  items                   ShopOrderItem[]
 
   @@index([status, createdAt])
   @@index([customerEmail])
@@ -308,26 +263,25 @@ model ShopOrder {
 }
 
 model ShopOrderItem {
-  id                  String   @id @default(cuid())
-  orderId             String
-  productId           String
-  variantId           String?
-  colorOptionId       String?
-  productNameSnapshot String
+  id                   String              @id @default(cuid())
+  orderId              String
+  productId            String
+  variantId            String?
+  productNameSnapshot  String
   variantLabelSnapshot String
-  colorLabelSnapshot  String?
-  imageUrlSnapshot    String?
-  quantity            Int
-  unitPriceCents      Int
-  totalPriceCents     Int
-  currency            String   @default("usd")
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  order   ShopOrder       @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
-  colorOption ProductColorOption? @relation(fields: [colorOptionId], references: [id], onDelete: SetNull)
-  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  imageUrlSnapshot     String?
+  quantity             Int
+  unitPriceCents       Int
+  totalPriceCents      Int
+  currency             String              @default("usd")
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  colorOptionId        String?
+  colorLabelSnapshot   String?
+  colorOption          ProductColorOption? @relation(fields: [colorOptionId], references: [id])
+  order                ShopOrder           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product              Product             @relation(fields: [productId], references: [id])
+  variant              ProductVariant?     @relation(fields: [variantId], references: [id], onDelete: Restrict)
 
   @@index([orderId])
   @@index([productId])
@@ -350,8 +304,7 @@ model BookingEmailLog {
   errorMessage      String?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
-
-  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking           Booking            @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@unique([bookingId, emailType])
   @@index([bookingId, emailType, status])

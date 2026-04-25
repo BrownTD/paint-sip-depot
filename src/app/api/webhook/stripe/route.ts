@@ -4,6 +4,7 @@ import { ShopOrderStatus } from "@prisma/client";
 import {
   sendAdminOrderCreatedEmail,
   sendHostOrderCreatedEmail,
+  sendShopExpiredCheckoutEmail,
 } from "@/lib/email";
 import { expireBookingsForCheckoutSession } from "@/lib/booking";
 import { prisma } from "@/lib/prisma";
@@ -169,7 +170,7 @@ export async function POST(request: Request) {
           session.metadata?.checkoutType === "SHOP_PRODUCT" ||
           session.metadata?.checkoutType === "SHOP_CART"
         ) {
-          await prisma.shopOrder.updateMany({
+          const updateResult = await prisma.shopOrder.updateMany({
             where: {
               stripeCheckoutSessionId: session.id,
               status: ShopOrderStatus.PENDING,
@@ -178,6 +179,37 @@ export async function POST(request: Request) {
               status: ShopOrderStatus.EXPIRED,
             },
           });
+
+          if (updateResult.count > 0) {
+            const shopOrder = await prisma.shopOrder.findFirst({
+              where: { stripeCheckoutSessionId: session.id },
+              include: {
+                items: {
+                  orderBy: { createdAt: "asc" },
+                },
+              },
+            });
+
+            if (shopOrder) {
+              await sendShopExpiredCheckoutEmail({
+                to: shopOrder.customerEmail,
+                customerName: shopOrder.customerName,
+                orderId: shopOrder.id,
+                shopUrl: getAbsoluteUrl("/shop"),
+                items: shopOrder.items.map((item) => ({
+                  productName: item.productNameSnapshot,
+                  variantLabel: item.variantLabelSnapshot,
+                  quantity: item.quantity,
+                })),
+              }).catch((emailError: unknown) => {
+                console.error("Shop expired checkout email failed:", {
+                  shopOrderId: shopOrder.id,
+                  sessionId: session.id,
+                  error: emailError instanceof Error ? emailError.message : String(emailError),
+                });
+              });
+            }
+          }
           break;
         }
 

@@ -75,6 +75,18 @@ type ExpiredCheckoutEmailInput = {
   timeLeftLabel: string;
 };
 
+type ShopExpiredCheckoutEmailInput = {
+  to: string;
+  customerName?: string | null;
+  orderId: string;
+  shopUrl: string;
+  items: Array<{
+    productName: string;
+    variantLabel?: string | null;
+    quantity: number;
+  }>;
+};
+
 type ReturnSubmissionEmailInput = {
   id: string;
   orderNumber: string;
@@ -471,6 +483,71 @@ export async function sendExpiredCheckoutEmail(input: ExpiredCheckoutEmailInput)
     `(803) 938-4775\n` +
     `info@paintsipdepot.com\n` +
     `www.paintsipdepot.com`;
+
+  return sendEmail({
+    to: input.to,
+    subject,
+    html,
+    text,
+    replyTo: getReplyToEmail(),
+  });
+}
+
+export async function sendShopExpiredCheckoutEmail(input: ShopExpiredCheckoutEmailInput) {
+  const firstName = getFirstName(input.customerName);
+  const greeting = `Hi ${firstName},`;
+  const subject = "Your Paint & Sip Depot checkout expired";
+  const itemRows = input.items
+    .map((item) => {
+      const variantLabel = item.variantLabel && item.variantLabel !== "Standard"
+        ? ` (${item.variantLabel})`
+        : "";
+
+      return `<li style="margin:0 0 8px;">${item.quantity} × ${item.productName}${variantLabel}</li>`;
+    })
+    .join("");
+  const textItems = input.items
+    .map((item) => {
+      const variantLabel = item.variantLabel && item.variantLabel !== "Standard"
+        ? ` (${item.variantLabel})`
+        : "";
+
+      return `- ${item.quantity} x ${item.productName}${variantLabel}`;
+    })
+    .join("\n");
+
+  const html = emailShell(
+    "Checkout session expired",
+    "Shop Update",
+    `
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${greeting}</p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">
+        Your shop checkout session has expired before payment was completed.
+      </p>
+      <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        <p style="margin:0 0 12px;"><strong>Order:</strong> ${input.orderId}</p>
+        <ul style="margin:0;padding-left:20px;font-size:15px;line-height:1.6;">${itemRows}</ul>
+      </div>
+      <p style="margin:20px 0 0;">
+        <a href="${input.shopUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">Return to Shop</a>
+      </p>
+      <p style="margin:20px 0 0;font-size:16px;line-height:1.6;">
+        If you still want these items, return to the shop and start a new checkout.
+      </p>
+      ${signatureBlock()}
+    `
+  );
+
+  const text =
+    `${greeting}\n\n` +
+    `Your Paint & Sip Depot shop checkout session has expired before payment was completed.\n\n` +
+    `Order: ${input.orderId}\n` +
+    `${textItems}\n\n` +
+    `Return to the shop to start a new checkout:\n${input.shopUrl}\n\n` +
+    `Paint & Sip Depot\n` +
+    `Creating unforgettable paint & sip experiences\n` +
+    `(803) 938-4775\n` +
+    `info@paintsipdepot.com\n`;
 
   return sendEmail({
     to: input.to,

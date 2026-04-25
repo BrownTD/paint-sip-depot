@@ -213,7 +213,7 @@ function ensurePaintKitImageUrls(categoryId: string, imageUrls: string[]) {
     return deduped;
   }
 
-  return [...deduped, getAbsoluteUrl(PAINT_KIT_TRAILING_IMAGE_PATH)];
+  return [...deduped, PAINT_KIT_TRAILING_IMAGE_PATH];
 }
 
 function normalizeDescription(value: string) {
@@ -398,16 +398,20 @@ async function deactivateStripeProductSafely(stripeProductId: string) {
 }
 
 function buildStripeProductImages(imageUrls: string[]) {
-  if (imageUrls.length <= 8) {
-    return imageUrls;
+  const stripeImageUrls = imageUrls.map((imageUrl) =>
+    imageUrl.startsWith("/") ? getAbsoluteUrl(imageUrl) : imageUrl
+  );
+
+  if (stripeImageUrls.length <= 8) {
+    return stripeImageUrls;
   }
 
-  const trailingImageUrl = imageUrls[imageUrls.length - 1];
+  const trailingImageUrl = stripeImageUrls[stripeImageUrls.length - 1];
   if (!trailingImageUrl || !isPaintKitTrailingImage(trailingImageUrl)) {
-    return imageUrls.slice(0, 8);
+    return stripeImageUrls.slice(0, 8);
   }
 
-  return [...imageUrls.slice(0, 7), trailingImageUrl];
+  return [...stripeImageUrls.slice(0, 7), trailingImageUrl];
 }
 
 function getDefaultVariant<T extends { size: ProductVariantSize }>(variants: T[]) {

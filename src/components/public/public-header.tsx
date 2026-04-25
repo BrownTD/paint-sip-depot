@@ -29,6 +29,7 @@ export function PublicHeader({
   showBorder?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [isFooterVisible, setIsFooterVisible] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const loginNavLink = navLinks?.find(
     (link) => link.href === "/login" || link.label.toLowerCase() === "login"
@@ -58,11 +59,30 @@ export function PublicHeader({
     };
   }, []);
 
+  useEffect(() => {
+    const footer = document.querySelector("footer");
+    if (!footer) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsFooterVisible(Boolean(entry?.isIntersecting));
+      },
+      { threshold: 0.05 }
+    );
+
+    observer.observe(footer);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   return (
     <nav
       className={[
-        "fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md",
+        "fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md transition-opacity duration-200",
         showBorder ? "border-b" : "",
+        isFooterVisible ? "pointer-events-none opacity-0" : "opacity-100",
       ].join(" ")}
     >
       <div className="container mx-auto flex items-center justify-between px-4 py-4">

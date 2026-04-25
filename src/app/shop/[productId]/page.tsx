@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { BasicFooter } from "@/components/public/basic-footer";
 import { type ProductDetailData } from "@/components/shop/product-detail-content";
 import { ProductDetailPageClient } from "@/components/shop/product-detail-page-client";
 import {
@@ -200,6 +201,7 @@ export default async function ProductDetailPage({
       <main>
         <ProductDetailPageClient product={detailProduct} />
         <ShopNewsletterSection />
+        <BasicFooter />
       </main>
     </ShopChrome>
   );

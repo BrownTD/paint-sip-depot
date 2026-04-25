@@ -109,7 +109,7 @@ export default async function HostPage() {
 
       <GoogleReviewsSection className="flex min-h-screen snap-start snap-always items-center py-12 sm:py-16 lg:min-h-[76vh] lg:pb-0" />
 
-      <div className="snap-start snap-normal lg:-mt-16">
+      <div data-host-footer className="snap-start snap-normal lg:-mt-16">
         <ShopFooter />
       </div>
     </div>

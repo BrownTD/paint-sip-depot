@@ -197,7 +197,7 @@ type StorefrontNavCategory = {
   }>;
 };
 
-async function getStorefrontNavCategories(): Promise<StorefrontNavCategory[]> {
+export async function getStorefrontNavCategories(): Promise<StorefrontNavCategory[]> {
   const categories = await prisma.productCategory.findMany({
     include: {
       subcategories: {
@@ -254,6 +254,42 @@ function getStripeProductClient() {
     apiVersion: "2025-02-24.acacia",
     typescript: true,
   });
+}
+
+function getStripeMode() {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (secretKey?.startsWith("sk_live_")) return "live" as const;
+  if (secretKey?.startsWith("sk_test_")) return "test" as const;
+
+  throw new ProductServiceError("Stripe key must start with sk_live_ or sk_test_.", 500);
+}
+
+function stripeProductIdDataForMode(mode: "live" | "test", stripeProductId: string, stripePriceId: string | null) {
+  return mode === "live"
+    ? {
+        stripeProductId,
+        stripePriceId,
+        stripeLiveProductId: stripeProductId,
+        stripeLivePriceId: stripePriceId,
+      }
+    : {
+        stripeProductId,
+        stripePriceId,
+        stripeTestProductId: stripeProductId,
+        stripeTestPriceId: stripePriceId,
+      };
+}
+
+function stripeVariantPriceIdDataForMode(mode: "live" | "test", stripePriceId: string | null) {
+  return mode === "live"
+    ? {
+        stripePriceId,
+        stripeLivePriceId: stripePriceId,
+      }
+    : {
+        stripePriceId,
+        stripeTestPriceId: stripePriceId,
+      };
 }
 
 function toAmountCents(value: number) {
@@ -873,6 +909,7 @@ export async function createProductWithStripe(input: ProductInput) {
   const preparedVariants = prepareVariants(input.categoryId, input.variants, skuSequence);
   const preparedColorOptions = prepareColorOptions(input.categoryId, input.colorOptions);
   const stripeClient = getStripeProductClient();
+  const stripeMode = getStripeMode();
 
   let stripeProductId: string | null = null;
 
@@ -953,8 +990,7 @@ export async function createProductWithStripe(input: ProductInput) {
         priceCents: mediumVariant?.priceCents ?? basePriceCents,
         discountPercent,
         currency: mediumVariant?.currency ?? baseCurrency,
-        stripeProductId: stripeProduct.id,
-        stripePriceId: mediumVariant?.stripePriceId ?? baseStripePrice?.id ?? null,
+        ...stripeProductIdDataForMode(stripeMode, stripeProduct.id, mediumVariant?.stripePriceId ?? baseStripePrice?.id ?? null),
         status,
         archivedAt: status === PRODUCT_STATUS.archived ? new Date() : null,
         categoryId: input.categoryId,
@@ -968,7 +1004,7 @@ export async function createProductWithStripe(input: ProductInput) {
             heightInches: variant.heightInches,
             priceCents: variant.priceCents,
             currency: variant.currency,
-            stripePriceId: variant.stripePriceId,
+            ...stripeVariantPriceIdDataForMode(stripeMode, variant.stripePriceId),
             isDefault: variant.isDefault,
           })),
         },
@@ -1038,8 +1074,12 @@ export async function updateProductWithStripe(productId: string, input: ProductI
     existingProduct.colorOptions.map((colorOption) => [colorOption.label.toLowerCase(), colorOption]),
   );
   const stripeClient = getStripeProductClient();
+  const stripeMode = getStripeMode();
   const nextIsCanvas = isCanvasCategory(input.categoryId);
-  let stripeProductId = existingProduct.stripeProductId;
+  let stripeProductId =
+    stripeMode === "live"
+      ? existingProduct.stripeLiveProductId ?? existingProduct.stripeProductId
+      : existingProduct.stripeTestProductId;
   let stripeProductWasRecreated = !stripeProductId;
   let createdStripeProductId: string | null = null;
 
@@ -1091,15 +1131,19 @@ export async function updateProductWithStripe(productId: string, input: ProductI
       ? await Promise.all(
           preparedVariants.map(async (variant) => {
             const existingVariant = existingVariantsBySize.get(variant.size);
+            const existingStripePriceId =
+              stripeMode === "live"
+                ? existingVariant?.stripeLivePriceId ?? existingVariant?.stripePriceId
+                : existingVariant?.stripeTestPriceId;
 
             const priceChanged =
               existingVariant?.priceCents !== variant.priceCents ||
               normalizeCurrency(existingVariant?.currency ?? variant.currency) !== variant.currency ||
-              !existingVariant?.stripePriceId ||
+              !existingStripePriceId ||
               !isCanvasCategory(existingProduct.categoryId) ||
               stripeProductWasRecreated;
 
-            let stripePriceId = stripeProductWasRecreated ? null : existingVariant?.stripePriceId ?? null;
+            let stripePriceId = stripeProductWasRecreated ? null : existingStripePriceId ?? null;
 
             if (priceChanged) {
               const stripePrice = await stripeClient.prices.create({
@@ -1143,15 +1187,20 @@ export async function updateProductWithStripe(productId: string, input: ProductI
       ? getDefaultVariant(nextVariants).currency
       : normalizeCurrency(input.currency || DEFAULT_PRODUCT_CURRENCY);
 
+    const existingDefaultStripePriceId =
+      stripeMode === "live"
+        ? existingProduct.stripeLivePriceId ?? existingProduct.stripePriceId
+        : existingProduct.stripeTestPriceId;
+
     let defaultStripePriceId = nextIsCanvas
       ? getDefaultVariant(nextVariants).stripePriceId
-      : stripeProductWasRecreated ? null : existingProduct.stripePriceId;
+      : stripeProductWasRecreated ? null : existingDefaultStripePriceId;
 
     if (!nextIsCanvas) {
       const basePriceChanged =
         existingProduct.priceCents !== basePriceCents ||
         normalizeCurrency(existingProduct.currency) !== baseCurrency ||
-        !existingProduct.stripePriceId ||
+        !existingDefaultStripePriceId ||
         isCanvasCategory(existingProduct.categoryId) ||
         stripeProductWasRecreated;
 
@@ -1195,8 +1244,7 @@ export async function updateProductWithStripe(productId: string, input: ProductI
           priceCents: basePriceCents,
           discountPercent,
           currency: baseCurrency,
-          stripeProductId: syncedStripeProductId,
-          stripePriceId: defaultStripePriceId,
+          ...stripeProductIdDataForMode(stripeMode, syncedStripeProductId, defaultStripePriceId),
           status,
           archivedAt: status === PRODUCT_STATUS.archived ? new Date() : null,
           categoryId: input.categoryId,
@@ -1235,7 +1283,7 @@ export async function updateProductWithStripe(productId: string, input: ProductI
               heightInches: variant.heightInches,
               priceCents: variant.priceCents,
               currency: variant.currency,
-              stripePriceId: variant.stripePriceId,
+              ...stripeVariantPriceIdDataForMode(stripeMode, variant.stripePriceId),
               isDefault: variant.isDefault,
             },
           });
@@ -1250,7 +1298,7 @@ export async function updateProductWithStripe(productId: string, input: ProductI
               heightInches: variant.heightInches,
               priceCents: variant.priceCents,
               currency: variant.currency,
-              stripePriceId: variant.stripePriceId,
+              ...stripeVariantPriceIdDataForMode(stripeMode, variant.stripePriceId),
               isDefault: variant.isDefault,
             },
           });
@@ -1315,6 +1363,8 @@ export async function setProductStatus(productId: string, nextStatus: ProductSta
     select: {
       id: true,
       stripeProductId: true,
+      stripeLiveProductId: true,
+      stripeTestProductId: true,
       status: true,
     },
   });
@@ -1330,16 +1380,22 @@ export async function setProductStatus(productId: string, nextStatus: ProductSta
     });
   }
 
-  if (!product.stripeProductId) {
+  const stripeMode = getStripeMode();
+  const stripeProductId =
+    stripeMode === "live"
+      ? product.stripeLiveProductId ?? product.stripeProductId
+      : product.stripeTestProductId;
+
+  if (!stripeProductId) {
     throw new ProductServiceError(
-      "This product is missing its Stripe Product ID and cannot be archived safely.",
+      `This product is missing its Stripe ${stripeMode} Product ID and cannot be archived safely.`,
       409,
     );
   }
 
   try {
     const stripeClient = getStripeProductClient();
-    await stripeClient.products.update(product.stripeProductId, {
+    await stripeClient.products.update(stripeProductId, {
       active: nextStatus === ProductStatus.ACTIVE,
     });
 

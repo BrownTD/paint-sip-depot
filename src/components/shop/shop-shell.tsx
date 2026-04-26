@@ -16,9 +16,13 @@ import {
 } from "lucide-react";
 import {
   createContext,
+  useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
+  type PointerEvent,
   type ReactNode,
 } from "react";
 import { Brand } from "@/components/Brand";
@@ -86,6 +90,30 @@ type ShopCartItem = {
   stripePriceId: string | null;
 };
 
+const SHOP_CART_STORAGE_KEY = "paint-sip-depot-shop-cart";
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function formatPhoneInput(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 10);
+  const areaCode = digits.slice(0, 3);
+  const prefix = digits.slice(3, 6);
+  const lineNumber = digits.slice(6, 10);
+
+  if (digits.length <= 3) {
+    return areaCode ? `(${areaCode}` : "";
+  }
+
+  if (digits.length <= 6) {
+    return `(${areaCode}) ${prefix}`;
+  }
+
+  return `(${areaCode}) ${prefix}-${lineNumber}`;
+}
+
+function isValidEmailSyntax(value: string) {
+  return EMAIL_PATTERN.test(value.trim());
+}
+
 function getCategoryHref(category: StorefrontNavCategory) {
   return `/shop/category/${category.slug}`;
 }
@@ -124,13 +152,14 @@ function getOrderedPaintKitSubcategories(category: StorefrontNavCategory) {
 
 type ShopCartContextValue = {
   items: ShopCartItem[];
-  isOpen: boolean;
+  lastAddedItem: ShopCartItem | null;
+  isCartNoticeOpen: boolean;
   addItem: (item: Omit<ShopCartItem, "id">) => void;
   updateItemQuantity: (itemId: string, quantity: number) => void;
   removeItem: (itemId: string) => void;
   clearCart: () => void;
   openCart: () => void;
-  closeCart: () => void;
+  dismissCartNotice: () => void;
 };
 
 const ShopCartContext = createContext<ShopCartContextValue | null>(null);
@@ -271,14 +300,13 @@ function MobileNavigation({ categories }: { categories: StorefrontNavCategory[] 
 }
 
 function HeaderActions({ categories }: { categories: StorefrontNavCategory[] }) {
-  const { items, openCart } = useShopCart();
+  const { items } = useShopCart();
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <div className="flex items-center gap-1 text-foreground">
-      <button
-        type="button"
-        onClick={openCart}
+      <Link
+        href="/shop/cart"
         className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-white transition hover:bg-black hover:text-white"
         aria-label="Shopping cart"
       >
@@ -288,14 +316,14 @@ function HeaderActions({ categories }: { categories: StorefrontNavCategory[] }) 
             {totalItems}
           </span>
         ) : null}
-      </button>
+      </Link>
       <MobileNavigation categories={categories} />
     </div>
   );
 }
 
-function ShopCartDrawer() {
-  const { items, isOpen, closeCart, updateItemQuantity, removeItem, clearCart } = useShopCart();
+export function ShopCartPageContent() {
+  const { items, updateItemQuantity, removeItem, clearCart } = useShopCart();
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [shippingAddress, setShippingAddress] = useState("");
@@ -309,6 +337,16 @@ function ShopCartDrawer() {
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const cartCurrency = items[0]?.currency ?? "usd";
   const totalLabel = items.length > 0 ? formatCurrencyAmount(subtotalCents, cartCurrency) : null;
+  const hasValidCustomerEmail = isValidEmailSyntax(customerEmail);
+
+  function handleContinueShopping() {
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+
+    window.location.href = "/shop";
+  }
 
   async function handleCheckout() {
     if (items.length === 0) {
@@ -318,6 +356,7 @@ function ShopCartDrawer() {
     if (
       !customerName.trim() ||
       !customerEmail.trim() ||
+      !hasValidCustomerEmail ||
       !shippingAddress.trim() ||
       !shippingCity.trim() ||
       !shippingState.trim() ||
@@ -382,191 +421,387 @@ function ShopCartDrawer() {
   }
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => (open ? undefined : closeCart())}>
-      <SheetContent
-        side="right"
-        hideClose
-        className="flex h-full w-[92%] max-w-md flex-col overflow-hidden px-6 py-8"
-      >
-        <div className="flex items-center justify-between">
-          <SheetHeader className="text-left">
-            <SheetTitle className="font-display text-2xl uppercase tracking-tight">
-              Your Cart
-            </SheetTitle>
-          </SheetHeader>
-          <button
+    <main className="px-4 py-8 sm:py-12">
+      <div className="mx-auto max-w-7xl">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <Button
             type="button"
-            onClick={closeCart}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-white transition hover:bg-black hover:text-white"
-            aria-label="Close cart"
+            variant="ghost"
+            onClick={handleContinueShopping}
+            className="w-fit rounded-full px-0 text-black hover:bg-transparent"
           >
-            <X className="h-4 w-4" />
-          </button>
+              <ChevronRight className="mr-1 h-4 w-4 rotate-180" />
+              Continue Shopping
+          </Button>
+          <div className="sm:text-right">
+            <h1 className="font-display text-4xl uppercase leading-none tracking-tight text-black sm:text-5xl">
+              Your Cart
+            </h1>
+            {items.length > 0 ? (
+              <p className="mt-2 text-sm text-black/55">
+                {totalItems} item{totalItems === 1 ? "" : "s"} ready for checkout
+              </p>
+            ) : null}
+          </div>
         </div>
 
         {items.length > 0 ? (
-          <div className="mt-8 flex min-h-0 flex-1 flex-col">
-            <div className="space-y-4 overflow-y-auto pr-1">
-              {items.map((item) => (
-                <div key={item.id} className="flex gap-4 border-b border-black/10 pb-4 last:border-0 last:pb-0">
-                  {item.imageUrl ? (
-                    <img
-                      src={item.imageUrl}
-                      alt={item.productName}
-                      className="h-28 w-24 object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-28 w-24 items-center justify-center text-sm text-black/35">
-                      No image
-                    </div>
-                  )}
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="text-lg font-semibold text-black">{item.productName}</p>
-                      <button
-                        type="button"
-                        onClick={() => removeItem(item.id)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-black/45 transition hover:bg-black hover:text-white"
-                        aria-label={`Remove ${item.productName} from cart`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                    {item.colorLabel ? (
-                      <p className="mt-2 text-sm text-black/55">Color: {item.colorLabel}</p>
-                    ) : null}
-                    {item.variantLabel ? (
-                      <p className="mt-1 text-sm text-black/55">{item.variantLabel}</p>
-                    ) : null}
-                    <p className="mt-2 text-sm font-medium text-black">
-                      {formatCurrencyAmount(item.unitPriceCents, item.currency)}
-                    </p>
-
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      <div className="inline-flex items-center gap-3 rounded-full bg-[#f3f1ef] px-3 py-2">
-                        <button
-                          type="button"
-                          onClick={() => updateItemQuantity(item.id, Math.max(1, item.quantity - 1))}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-black transition hover:bg-black hover:text-white"
-                          aria-label="Decrease quantity"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </button>
-                        <span className="min-w-[2ch] text-center text-sm font-medium">{item.quantity}</span>
-                        <button
-                          type="button"
-                          onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-black transition hover:bg-black hover:text-white"
-                          aria-label="Increase quantity"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                      </div>
-                      <span className="text-sm font-semibold text-black">
-                        {formatCurrencyAmount(item.unitPriceCents * item.quantity, item.currency)}
-                      </span>
-                    </div>
-                  </div>
+          <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
+            <section className="order-2 flex min-h-[620px] flex-col rounded-lg border border-black/10 bg-white p-5 lg:order-2 lg:p-6">
+              <div className="shrink-0 space-y-3">
+                <Input
+                  value={customerName}
+                  onChange={(event) => setCustomerName(event.target.value)}
+                  placeholder="Your name"
+                  className="h-12 rounded-full bg-[#f3f1ef] px-4"
+                />
+                <Input
+                  type="email"
+                  value={customerEmail}
+                  onChange={(event) => setCustomerEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
+                  className="h-12 rounded-full bg-[#f3f1ef] px-4"
+                />
+                <Input
+                  value={shippingAddress}
+                  onChange={(event) => setShippingAddress(event.target.value)}
+                  placeholder="Shipping address"
+                  className="h-12 rounded-full bg-[#f3f1ef] px-4"
+                />
+                <div className="grid grid-cols-3 gap-2">
+                  <Input
+                    value={shippingCity}
+                    onChange={(event) => setShippingCity(event.target.value)}
+                    placeholder="City"
+                    className="h-12 rounded-full bg-[#f3f1ef] px-4"
+                  />
+                  <Input
+                    value={shippingState}
+                    onChange={(event) => setShippingState(event.target.value.toUpperCase())}
+                    placeholder="SC"
+                    maxLength={2}
+                    className="h-12 rounded-full bg-[#f3f1ef] px-4"
+                  />
+                  <Input
+                    value={shippingZip}
+                    onChange={(event) => setShippingZip(event.target.value)}
+                    placeholder="ZIP"
+                    className="h-12 rounded-full bg-[#f3f1ef] px-4"
+                  />
                 </div>
-              ))}
-            </div>
-
-            <div className="mt-6 shrink-0 space-y-3 border-t border-black/10 bg-background pt-6">
-              <Input
-                value={customerName}
-                onChange={(event) => setCustomerName(event.target.value)}
-                placeholder="Your name"
-                className="h-12 rounded-full bg-[#f3f1ef] px-4"
-              />
-              <Input
-                type="email"
-                value={customerEmail}
-                onChange={(event) => setCustomerEmail(event.target.value)}
-                placeholder="you@example.com"
-                className="h-12 rounded-full bg-[#f3f1ef] px-4"
-              />
-              <Input
-                value={shippingAddress}
-                onChange={(event) => setShippingAddress(event.target.value)}
-                placeholder="Shipping address"
-                className="h-12 rounded-full bg-[#f3f1ef] px-4"
-              />
-              <div className="grid grid-cols-3 gap-2">
                 <Input
-                  value={shippingCity}
-                  onChange={(event) => setShippingCity(event.target.value)}
-                  placeholder="City"
-                  className="h-12 rounded-full bg-[#f3f1ef] px-4"
-                />
-                <Input
-                  value={shippingState}
-                  onChange={(event) => setShippingState(event.target.value.toUpperCase())}
-                  placeholder="SC"
-                  maxLength={2}
-                  className="h-12 rounded-full bg-[#f3f1ef] px-4"
-                />
-                <Input
-                  value={shippingZip}
-                  onChange={(event) => setShippingZip(event.target.value)}
-                  placeholder="ZIP"
+                  type="tel"
+                  value={shippingPhone}
+                  onChange={(event) => setShippingPhone(formatPhoneInput(event.target.value))}
+                  placeholder="(123) 456-7890"
                   className="h-12 rounded-full bg-[#f3f1ef] px-4"
                 />
               </div>
-              <Input
-                type="tel"
-                value={shippingPhone}
-                onChange={(event) => setShippingPhone(event.target.value)}
-                placeholder="Phone for shipping"
-                className="h-12 rounded-full bg-[#f3f1ef] px-4"
-              />
-            </div>
 
-            <div className="flex items-center justify-between pt-2">
-              <span className="text-lg font-semibold text-black">Total</span>
-              <span className="text-2xl font-bold text-black">{totalLabel}</span>
-            </div>
+              <div className="mt-auto space-y-3 border-t border-black/10 pt-5">
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-semibold text-black">Total</span>
+                  <span className="text-2xl font-bold text-black">{totalLabel}</span>
+                </div>
 
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={clearCart}
-              className="h-11 w-full rounded-full text-black/65 hover:bg-[#f3f1ef] hover:text-black"
-              disabled={isSubmitting}
-            >
-              Clear Cart
-            </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={clearCart}
+                  className="h-11 w-full rounded-full text-black/65 hover:bg-[#f3f1ef] hover:text-black"
+                  disabled={isSubmitting}
+                >
+                  Clear Cart
+                </Button>
 
-            <Button
-              type="button"
-              onClick={() => void handleCheckout()}
-              className="h-12 w-full rounded-full bg-black text-sm font-semibold text-white hover:bg-black/95"
-              disabled={
-                isSubmitting ||
-                !customerName.trim() ||
-                !customerEmail.trim() ||
-                !shippingAddress.trim() ||
-                !shippingCity.trim() ||
-                !shippingState.trim() ||
-                !shippingZip.trim() ||
-                !shippingPhone.trim()
-              }
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Redirecting...
-                </>
-              ) : (
-                "Checkout"
-              )}
-            </Button>
+                <Button
+                  type="button"
+                  onClick={() => void handleCheckout()}
+                  className="h-12 w-full rounded-full bg-black text-sm font-semibold text-white hover:bg-black/95"
+                  disabled={
+                    isSubmitting ||
+                    !customerName.trim() ||
+                    !customerEmail.trim() ||
+                    !hasValidCustomerEmail ||
+                    !shippingAddress.trim() ||
+                    !shippingCity.trim() ||
+                    !shippingState.trim() ||
+                    !shippingZip.trim() ||
+                    !shippingPhone.trim()
+                  }
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Redirecting...
+                    </>
+                  ) : (
+                    <span className="inline-flex items-center gap-2.5">
+                      Checkout with
+                      <Image
+                        src="/Misc/Stripe wordmark - White.svg"
+                        alt="Stripe"
+                        width={72}
+                        height={30}
+                        className="h-5 w-auto"
+                      />
+                    </span>
+                  )}
+                </Button>
+              </div>
+            </section>
+
+            <section className="order-1 flex flex-col rounded-lg border border-black/10 bg-white p-5 lg:order-1 lg:p-6">
+              <div className="flex items-center justify-end">
+                <span className="rounded-full bg-[#f3f1ef] px-3 py-1 text-xs font-semibold text-black/60">
+                  {totalItems} item{totalItems === 1 ? "" : "s"}
+                </span>
+              </div>
+              <div className="mt-4 max-h-[27rem] space-y-4 overflow-y-auto pr-1">
+                {items.map((item) => (
+                  <div key={item.id} className="flex gap-4 border-b border-black/10 pb-4 last:border-0 last:pb-0">
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.productName}
+                        className="h-28 w-24 object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-28 w-24 items-center justify-center text-sm text-black/35">
+                        No image
+                      </div>
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-lg font-semibold text-black">{item.productName}</p>
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.id)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-black/45 transition hover:bg-black hover:text-white"
+                          aria-label={`Remove ${item.productName} from cart`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                      {item.colorLabel ? (
+                        <p className="mt-2 text-sm text-black/55">Color: {item.colorLabel}</p>
+                      ) : null}
+                      {item.variantLabel ? (
+                        <p className="mt-1 text-sm text-black/55">{item.variantLabel}</p>
+                      ) : null}
+                      <p className="mt-2 text-sm font-medium text-black">
+                        {formatCurrencyAmount(item.unitPriceCents, item.currency)}
+                      </p>
+
+                      <div className="mt-4 flex items-center justify-between gap-3">
+                        <div className="inline-flex items-center gap-3 rounded-full bg-[#f3f1ef] px-3 py-2">
+                          <button
+                            type="button"
+                            onClick={() => updateItemQuantity(item.id, Math.max(1, item.quantity - 1))}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-black transition hover:bg-black hover:text-white"
+                            aria-label="Decrease quantity"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </button>
+                          <span className="min-w-[2ch] text-center text-sm font-medium">{item.quantity}</span>
+                          <button
+                            type="button"
+                            onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-black transition hover:bg-black hover:text-white"
+                            aria-label="Increase quantity"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <span className="text-sm font-semibold text-black">
+                          {formatCurrencyAmount(item.unitPriceCents * item.quantity, item.currency)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
         ) : (
-          <div className="mt-10 text-sm text-black/55">Your cart is empty.</div>
+          <div className="mt-10 rounded-lg border border-black/10 bg-[#f7f4ef] px-6 py-12 text-center">
+            <p className="font-display text-3xl uppercase tracking-tight text-black">Your cart is empty</p>
+            <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-black/60">
+              Add paint kits, canvases, or supplies and they will appear here for checkout.
+            </p>
+            <Button asChild className="mt-6 h-12 rounded-full bg-black px-6 text-white hover:bg-black/95">
+              <Link href="/shop">Continue Shopping</Link>
+            </Button>
+          </div>
         )}
-      </SheetContent>
-    </Sheet>
+      </div>
+    </main>
+  );
+}
+
+function ShopCartAddedNotice() {
+  const { lastAddedItem, isCartNoticeOpen, dismissCartNotice } = useShopCart();
+  const [renderedItem, setRenderedItem] = useState<ShopCartItem | null>(null);
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const dragStartXRef = useRef<number | null>(null);
+  const isLeavingRef = useRef(false);
+  const autoDismissTimeoutRef = useRef<number | null>(null);
+  const exitTimeoutRef = useRef<number | null>(null);
+
+  const dismissWithAnimation = useCallback(() => {
+    if (isLeavingRef.current) {
+      return;
+    }
+
+    isLeavingRef.current = true;
+    setIsLeaving(true);
+
+    if (autoDismissTimeoutRef.current !== null) {
+      window.clearTimeout(autoDismissTimeoutRef.current);
+      autoDismissTimeoutRef.current = null;
+    }
+
+    exitTimeoutRef.current = window.setTimeout(() => {
+      dismissCartNotice();
+      setRenderedItem(null);
+      isLeavingRef.current = false;
+      setIsLeaving(false);
+      setDragOffset(0);
+      exitTimeoutRef.current = null;
+    }, 300);
+  }, [dismissCartNotice]);
+
+  useEffect(() => {
+    if (!isCartNoticeOpen || !lastAddedItem) {
+      return;
+    }
+
+    if (autoDismissTimeoutRef.current !== null) {
+      window.clearTimeout(autoDismissTimeoutRef.current);
+    }
+    if (exitTimeoutRef.current !== null) {
+      window.clearTimeout(exitTimeoutRef.current);
+      exitTimeoutRef.current = null;
+    }
+
+    setRenderedItem(lastAddedItem);
+    isLeavingRef.current = false;
+    setIsLeaving(false);
+    setDragOffset(0);
+    autoDismissTimeoutRef.current = window.setTimeout(dismissWithAnimation, 5000);
+
+    return () => {
+      if (autoDismissTimeoutRef.current !== null) {
+        window.clearTimeout(autoDismissTimeoutRef.current);
+        autoDismissTimeoutRef.current = null;
+      }
+    };
+  }, [dismissWithAnimation, isCartNoticeOpen, lastAddedItem]);
+
+  useEffect(
+    () => () => {
+      if (autoDismissTimeoutRef.current !== null) {
+        window.clearTimeout(autoDismissTimeoutRef.current);
+      }
+      if (exitTimeoutRef.current !== null) {
+        window.clearTimeout(exitTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  if (!renderedItem) {
+    return null;
+  }
+
+  function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+    dragStartXRef.current = event.clientX;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (dragStartXRef.current === null) {
+      return;
+    }
+
+    setDragOffset(Math.max(0, event.clientX - dragStartXRef.current));
+  }
+
+  function handlePointerEnd(event: PointerEvent<HTMLDivElement>) {
+    if (dragStartXRef.current === null) {
+      return;
+    }
+
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    dragStartXRef.current = null;
+
+    if (dragOffset > 90) {
+      dismissWithAnimation();
+      return;
+    }
+
+    setDragOffset(0);
+  }
+
+  return (
+    <div
+      className={`fixed right-4 top-24 z-50 w-[calc(100vw-2rem)] max-w-sm touch-pan-y rounded-lg border border-black/10 bg-white p-4 shadow-2xl duration-300 ${
+        isLeaving ? "animate-out slide-out-to-right-8 fade-out" : "animate-in slide-in-from-right-8 fade-in"
+      }`}
+      style={{
+        transform: dragOffset ? `translateX(${dragOffset}px)` : undefined,
+        opacity: dragOffset ? Math.max(0.25, 1 - dragOffset / 220) : undefined,
+      }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerEnd}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-black/45">Added to cart</p>
+        <button
+          type="button"
+          onClick={dismissWithAnimation}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-black/45 transition hover:bg-black hover:text-white"
+          aria-label="Dismiss cart notification"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="mt-3 flex gap-3">
+        {renderedItem.imageUrl ? (
+          <img
+            src={renderedItem.imageUrl}
+            alt={renderedItem.productName}
+            className="h-20 w-16 shrink-0 object-cover"
+          />
+        ) : (
+          <div className="flex h-20 w-16 shrink-0 items-center justify-center bg-[#f3f1ef] text-xs text-black/35">
+            No image
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="line-clamp-2 text-base font-semibold leading-snug text-black">
+            {renderedItem.productName}
+          </p>
+          {renderedItem.variantLabel ? (
+            <p className="mt-1 text-sm text-black/55">{renderedItem.variantLabel}</p>
+          ) : null}
+          {renderedItem.colorLabel ? (
+            <p className="mt-1 text-sm text-black/55">Color: {renderedItem.colorLabel}</p>
+          ) : null}
+          <p className="mt-2 text-sm font-medium text-black">Quantity: {renderedItem.quantity}</p>
+        </div>
+      </div>
+      <Button asChild className="mt-4 h-11 w-full rounded-full bg-black text-white hover:bg-black/95">
+        <Link href="/shop/cart" onClick={dismissWithAnimation}>
+          View Cart
+        </Link>
+      </Button>
+    </div>
   );
 }
 
@@ -622,13 +857,46 @@ export function ShopChrome({
   children: ReactNode;
 }) {
   const [items, setItems] = useState<ShopCartItem[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
+  const [hasLoadedCart, setHasLoadedCart] = useState(false);
+  const [lastAddedItem, setLastAddedItem] = useState<ShopCartItem | null>(null);
+  const [isCartNoticeOpen, setIsCartNoticeOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const storedItems = window.localStorage.getItem(SHOP_CART_STORAGE_KEY);
+      if (storedItems) {
+        setItems(JSON.parse(storedItems) as ShopCartItem[]);
+      }
+    } catch {
+      setItems([]);
+    } finally {
+      setHasLoadedCart(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedCart) {
+      return;
+    }
+
+    window.localStorage.setItem(SHOP_CART_STORAGE_KEY, JSON.stringify(items));
+  }, [hasLoadedCart, items]);
 
   const value = useMemo<ShopCartContextValue>(
     () => ({
       items,
-      isOpen,
-      addItem: (nextItem) =>
+      lastAddedItem,
+      isCartNoticeOpen,
+      addItem: (nextItem) => {
+        const itemId = `${nextItem.productId}:${nextItem.variantId ?? "standard"}:${nextItem.colorOptionId ?? "default"}`;
+        const addedItem = {
+          ...nextItem,
+          id: itemId,
+        };
+
+        setLastAddedItem(addedItem);
+        setIsCartNoticeOpen(true);
+
         setItems((current) => {
           const existingItem = current.find(
             (item) =>
@@ -638,13 +906,7 @@ export function ShopChrome({
           );
 
           if (!existingItem) {
-            return [
-              ...current,
-              {
-                ...nextItem,
-                id: `${nextItem.productId}:${nextItem.variantId ?? "standard"}:${nextItem.colorOptionId ?? "default"}`,
-              },
-            ];
+            return [...current, addedItem];
           }
 
           return current.map((item) =>
@@ -655,7 +917,8 @@ export function ShopChrome({
                 }
               : item,
           );
-        }),
+        });
+      },
       updateItemQuantity: (itemId, quantity) =>
         setItems((current) =>
           current.map((item) =>
@@ -670,10 +933,12 @@ export function ShopChrome({
       removeItem: (itemId) =>
         setItems((current) => current.filter((item) => item.id !== itemId)),
       clearCart: () => setItems([]),
-      openCart: () => setIsOpen(true),
-      closeCart: () => setIsOpen(false),
+      openCart: () => {
+        window.location.href = "/shop/cart";
+      },
+      dismissCartNotice: () => setIsCartNoticeOpen(false),
     }),
-    [items, isOpen],
+    [items, lastAddedItem, isCartNoticeOpen],
   );
 
   return (
@@ -682,7 +947,7 @@ export function ShopChrome({
         <ShopAnnouncementBar />
         <ShopHeader categories={categories} />
         {children}
-        <ShopCartDrawer />
+        <ShopCartAddedNotice />
       </div>
     </ShopCartContext.Provider>
   );
@@ -800,7 +1065,13 @@ export function ShopFooter() {
 
         <div className="mt-10 flex flex-col gap-4 border-t border-black/10 pt-6 text-sm text-black/50 sm:flex-row sm:items-center sm:justify-between">
           <p>Paint &amp; Sip Depot © {new Date().getFullYear()}. All Rights Reserved.</p>
-          <p>Secure checkout powered by Stripe.</p>
+          <Image
+            src="/Misc/Powered by Stripe - black.svg"
+            alt="Powered by Stripe"
+            width={150}
+            height={34}
+            className="h-[34px] w-[150px]"
+          />
         </div>
       </div>
     </footer>

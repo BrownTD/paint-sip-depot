@@ -66,11 +66,11 @@ model VerificationToken {
 }
 
 model Event {
-  id                      String          @id @default(cuid())
+  id                      String                 @id @default(cuid())
   hostId                  String
   title                   String
   description             String?
-  slug                    String          @unique
+  slug                    String                 @unique
   startDateTime           DateTime
   endDateTime             DateTime?
   locationName            String
@@ -86,20 +86,20 @@ model Event {
   fulfillmentMethod       EventFulfillmentMethod @default(SHIP_TO_HOST)
   ticketPriceCents        Int
   capacity                Int
-  salesCutoffHours        Int             @default(48)
+  salesCutoffHours        Int                    @default(48)
   refundPolicyText        String?
   canvasImageUrl          String?
-  status                  EventStatus     @default(DRAFT)
-  createdAt               DateTime        @default(now())
-  updatedAt               DateTime        @updatedAt
-  eventCode               String?         @unique
-  visibility              EventVisibility @default(PUBLIC)
-  eventFormat             EventFormat     @default(IN_PERSON)
+  status                  EventStatus            @default(DRAFT)
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  eventCode               String?                @unique
+  visibility              EventVisibility        @default(PUBLIC)
+  eventFormat             EventFormat            @default(IN_PERSON)
   canvasName              String?
   qrCodeImageUrl          String?
   bookingCutoffOverrideAt DateTime?
   bookings                Booking[]
-  host                    User            @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  host                    User                   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
   @@index([hostId])
   @@index([status])
@@ -137,30 +137,34 @@ model ProductSubcategory {
 }
 
 model Product {
-  id              String               @id @default(cuid())
-  name            String
-  normalizedName  String               @unique
-  description     String
-  imageUrls       String[]
-  priceCents      Int
-  currency        String               @default("usd")
-  stripeProductId String?              @unique
-  stripePriceId   String?              @unique
-  status          ProductStatus        @default(ACTIVE)
-  archivedAt      DateTime?
-  categoryId      String
-  subcategoryId   String?
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
-  sku             String               @unique
-  skuSequence     Int
-  discountPercent Int?
-  colorOptions    ProductColorOption[]
-  reviews         ProductReview[]
-  variants        ProductVariant[]
-  category        ProductCategory      @relation(fields: [categoryId], references: [id])
-  subcategory     ProductSubcategory?  @relation(fields: [subcategoryId], references: [id], onDelete: Restrict)
-  orderItems      ShopOrderItem[]
+  id                  String               @id @default(cuid())
+  name                String
+  normalizedName      String               @unique
+  description         String
+  imageUrls           String[]
+  priceCents          Int
+  currency            String               @default("usd")
+  stripeProductId     String?              @unique
+  stripePriceId       String?              @unique
+  stripeLiveProductId String?              @unique
+  stripeLivePriceId   String?              @unique
+  stripeTestProductId String?              @unique
+  stripeTestPriceId   String?              @unique
+  status              ProductStatus        @default(ACTIVE)
+  archivedAt          DateTime?
+  categoryId          String
+  subcategoryId       String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  sku                 String               @unique
+  skuSequence         Int
+  discountPercent     Int?
+  colorOptions        ProductColorOption[]
+  reviews             ProductReview[]
+  variants            ProductVariant[]
+  category            ProductCategory      @relation(fields: [categoryId], references: [id])
+  subcategory         ProductSubcategory?  @relation(fields: [subcategoryId], references: [id], onDelete: Restrict)
+  orderItems          ShopOrderItem[]
 
   @@unique([categoryId, skuSequence])
   @@index([categoryId])
@@ -187,21 +191,23 @@ model ProductColorOption {
 }
 
 model ProductVariant {
-  id            String             @id @default(cuid())
-  productId     String
-  size          ProductVariantSize
-  label         String
-  widthInches   Int
-  heightInches  Int
-  priceCents    Int
-  currency      String             @default("usd")
-  stripePriceId String?            @unique
-  isDefault     Boolean            @default(false)
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  sku           String             @unique
-  product       Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
-  orderItems    ShopOrderItem[]
+  id                String             @id @default(cuid())
+  productId         String
+  size              ProductVariantSize
+  label             String
+  widthInches       Int
+  heightInches      Int
+  priceCents        Int
+  currency          String             @default("usd")
+  stripePriceId     String?            @unique
+  stripeLivePriceId String?            @unique
+  stripeTestPriceId String?            @unique
+  isDefault         Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  sku               String             @unique
+  product           Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems        ShopOrderItem[]
 
   @@unique([productId, size])
   @@index([productId])
@@ -360,19 +366,19 @@ model BookingEmailLog {
 }
 
 model ReturnSubmission {
-  id            String   @id @default(cuid())
-  orderNumber   String
-  customerName  String
-  customerEmail String
-  phoneNumber   String?
-  issueType     String
-  description   String
-  photoUrls     String[]
-  didNotReceiveOrder Boolean @default(false)
-  status        String   @default("SUBMITTED")
-  adminNotes    String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  orderNumber        String
+  customerName       String
+  customerEmail      String
+  phoneNumber        String?
+  issueType          String
+  description        String
+  photoUrls          String[]
+  didNotReceiveOrder Boolean  @default(false)
+  status             String   @default("SUBMITTED")
+  adminNotes         String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@index([status, createdAt])
   @@index([customerEmail])

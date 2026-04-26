@@ -4,7 +4,7 @@ import { ProductDetailContent, type ProductDetailData } from "@/components/shop/
 import { useShopCart } from "@/components/shop/shop-shell";
 
 export function ProductDetailPageClient({ product }: { product: ProductDetailData }) {
-  const { addItem, openCart } = useShopCart();
+  const { addItem } = useShopCart();
 
   return (
     <ProductDetailContent
@@ -26,7 +26,6 @@ export function ProductDetailPageClient({ product }: { product: ProductDetailDat
           variantLabel: selectedSize?.label ?? null,
           stripePriceId: stripePriceId ?? selectedSize?.stripePriceId ?? product.stripePriceId,
         });
-        openCart();
       }}
     />
   );

@@ -454,7 +454,7 @@ export function ProductDetailContent({
   const [selectedSizeId, setSelectedSizeId] = useState<string | null>(
     product.sizeOptions.find((size) => size.isDefault)?.id ?? product.sizeOptions[0]?.id ?? null,
   );
-  const [quantity, setQuantity] = useState(1);
+  const [quantityInput, setQuantityInput] = useState("1");
   const [activeTab, setActiveTab] = useState<"details" | "reviews" | "faqs" | "shipping">("reviews");
   const [visibleReviewCount, setVisibleReviewCount] = useState(6);
   const [reviewSort, setReviewSort] = useState<"latest" | "highest" | "lowest">("latest");
@@ -482,6 +482,7 @@ export function ProductDetailContent({
   const currentPriceCents = selectedSize?.priceCents ?? product.priceCents;
   const currentCurrency = selectedSize?.currency ?? product.currency;
   const currentStripePriceId = selectedSize?.stripePriceId ?? product.stripePriceId;
+  const quantity = Math.max(1, Number.parseInt(quantityInput, 10) || 1);
   const compareAtCents = getCompareAtCents(currentPriceCents, product.discountPercent);
   const discountPercent = getDiscountPercent(currentPriceCents, compareAtCents);
   const selectedImageUrl = product.imageUrls[selectedImageIndex] ?? product.imageUrls[0] ?? null;
@@ -630,6 +631,10 @@ export function ProductDetailContent({
       title: "Cart hook ready",
       description: `Prepared ${quantity} item${quantity === 1 ? "" : "s"} with stripe price ${currentStripePriceId ?? "not set"}.`,
     });
+  }
+
+  function updateQuantity(nextQuantity: number) {
+    setQuantityInput(String(Math.max(1, nextQuantity)));
   }
 
   return (
@@ -787,16 +792,34 @@ export function ProductDetailContent({
                 <div className="inline-flex h-14 items-center justify-between rounded-full bg-[#f3f1ef] px-4 sm:min-w-[170px]">
                   <button
                     type="button"
-                    onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+                    onClick={() => updateQuantity(quantity - 1)}
                     className="inline-flex h-9 w-9 items-center justify-center rounded-full text-black transition hover:bg-black hover:text-white"
                     aria-label="Decrease quantity"
                   >
                     <Minus className="h-4 w-4" />
                   </button>
-                  <span className="min-w-[2ch] text-center text-base font-medium">{quantity}</span>
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    aria-label="Quantity"
+                    value={quantityInput}
+                    onChange={(event) => {
+                      const nextValue = event.target.value.replace(/\D/g, "");
+                      setQuantityInput(nextValue.replace(/^0+(?=\d)/, ""));
+                    }}
+                    onBlur={() => updateQuantity(quantity)}
+                    onFocus={(event) => event.currentTarget.select()}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.currentTarget.blur();
+                      }
+                    }}
+                    className="h-9 w-14 border-0 bg-transparent p-0 text-center text-base font-medium shadow-none focus-visible:ring-0"
+                  />
                   <button
                     type="button"
-                    onClick={() => setQuantity((current) => current + 1)}
+                    onClick={() => updateQuantity(quantity + 1)}
                     className="inline-flex h-9 w-9 items-center justify-center rounded-full text-black transition hover:bg-black hover:text-white"
                     aria-label="Increase quantity"
                   >

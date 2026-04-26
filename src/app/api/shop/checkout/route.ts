@@ -51,6 +51,14 @@ function getStripeClient() {
   });
 }
 
+function getStripeMode() {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (secretKey?.startsWith("sk_live_")) return "live" as const;
+  if (secretKey?.startsWith("sk_test_")) return "test" as const;
+
+  throw new ShopCheckoutError("Stripe key must start with sk_live_ or sk_test_.", 500);
+}
+
 function getRequestOrigin(request: Request) {
   const forwardedHost = request.headers.get("x-forwarded-host");
   const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
@@ -115,6 +123,7 @@ function parseCheckoutPayload(body: unknown) {
 }
 
 async function prepareCheckoutLines(items: CheckoutLineInput[]) {
+  const stripeMode = getStripeMode();
   const productIds = [...new Set(items.map((item) => item.productId))];
   const products = await prisma.product.findMany({
     where: {
@@ -163,16 +172,22 @@ async function prepareCheckoutLines(items: CheckoutLineInput[]) {
       throw new ShopCheckoutError(`Selected color for "${product.name}" was not found.`, 404);
     }
 
-    const checkoutPriceId = variant?.stripePriceId ?? product.stripePriceId;
+    const unitPriceCents = variant?.priceCents ?? product.priceCents;
+    const currency = variant?.currency ?? product.currency;
+    const checkoutPriceId = variant
+      ? stripeMode === "live"
+        ? variant.stripeLivePriceId ?? variant.stripePriceId
+        : variant.stripeTestPriceId
+      : stripeMode === "live"
+        ? product.stripeLivePriceId ?? product.stripePriceId
+        : product.stripeTestPriceId;
+
     if (!checkoutPriceId) {
       throw new ShopCheckoutError(
-        `"${product.name}" is temporarily unavailable for checkout. Please contact support.`,
+        `"${product.name}" is missing its Stripe ${stripeMode} price. Please contact support.`,
         409,
       );
     }
-
-    const unitPriceCents = variant?.priceCents ?? product.priceCents;
-    const currency = variant?.currency ?? product.currency;
 
     return {
       productId: product.id,
@@ -352,6 +367,18 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof ShopCheckoutError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
+    if (error instanceof Stripe.errors.StripeError) {
+      console.error("Shop checkout Stripe error:", {
+        type: error.type,
+        code: error.code,
+        message: error.message,
+      });
+      return NextResponse.json(
+        { error: error.message || "Stripe could not create the checkout session." },
+        { status: error.statusCode ?? 500 },
+      );
     }
 
     console.error("Shop checkout error:", error);

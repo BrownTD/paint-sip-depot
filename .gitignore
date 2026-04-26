@@ -8,7 +8,6 @@ out/
 # local env files (secrets)
 .env*
 .env.*
-.env2
 !.env.example
 
 # Vercel

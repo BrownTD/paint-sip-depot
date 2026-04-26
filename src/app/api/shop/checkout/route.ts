@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { ProductStatus, ShopOrderStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { buildShippoShopAddress, getShippoUspsRateQuote } from "@/lib/shippo";
 import { shopCartCheckoutSchema, shopCheckoutSchema } from "@/lib/validations";
 
 class ShopCheckoutError extends Error {
@@ -77,6 +78,12 @@ function parseCheckoutPayload(body: unknown) {
       })),
       customerName: cartParsed.data.customerName,
       customerEmail: cartParsed.data.customerEmail,
+      shippingName: cartParsed.data.shippingName,
+      shippingAddress: cartParsed.data.shippingAddress,
+      shippingCity: cartParsed.data.shippingCity,
+      shippingState: cartParsed.data.shippingState.toUpperCase(),
+      shippingZip: cartParsed.data.shippingZip,
+      shippingPhone: cartParsed.data.shippingPhone,
     };
   }
 
@@ -93,6 +100,12 @@ function parseCheckoutPayload(body: unknown) {
       ],
       customerName: singleParsed.data.customerName,
       customerEmail: singleParsed.data.customerEmail,
+      shippingName: singleParsed.data.shippingName,
+      shippingAddress: singleParsed.data.shippingAddress,
+      shippingCity: singleParsed.data.shippingCity,
+      shippingState: singleParsed.data.shippingState.toUpperCase(),
+      shippingZip: singleParsed.data.shippingZip,
+      shippingPhone: singleParsed.data.shippingPhone,
     };
   }
 
@@ -181,7 +194,17 @@ async function prepareCheckoutLines(items: CheckoutLineInput[]) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { items, customerEmail, customerName } = parseCheckoutPayload(body);
+    const {
+      items,
+      customerEmail,
+      customerName,
+      shippingName,
+      shippingAddress,
+      shippingCity,
+      shippingState,
+      shippingZip,
+      shippingPhone,
+    } = parseCheckoutPayload(body);
 
     const preparedLines = await prepareCheckoutLines(items);
     if (preparedLines.length === 0) {
@@ -198,15 +221,41 @@ export async function POST(request: Request) {
 
     const checkoutCurrency = preparedLines[0]?.currency ?? "usd";
     const subtotal = preparedLines.reduce((sum, line) => sum + line.totalPriceCents, 0);
+    const totalQuantity = preparedLines.reduce((sum, line) => sum + line.quantity, 0);
+    const shippoAddress = buildShippoShopAddress({
+      shippingName,
+      shippingAddress,
+      shippingCity,
+      shippingState,
+      shippingZip,
+      shippingPhone,
+      customerEmail,
+    });
+    const shippingQuote = await getShippoUspsRateQuote({
+      toAddress: shippoAddress,
+      quantity: totalQuantity,
+      metadata: `Shop checkout for ${customerEmail}`,
+    });
 
     const order = await prisma.shopOrder.create({
       data: {
         customerName,
         customerEmail,
+        shippingName,
+        shippingAddress,
+        shippingCity,
+        shippingState,
+        shippingZip,
+        shippingPhone,
+        shippingAmountCents: shippingQuote.amountCents,
+        shippingProvider: shippingQuote.provider,
+        shippingService: shippingQuote.service,
+        shippoShipmentId: shippingQuote.shipmentId,
+        shippoRateId: shippingQuote.rateId,
         currency: checkoutCurrency,
         status: ShopOrderStatus.PENDING,
         amountSubtotalCents: subtotal,
-        amountTotalCents: subtotal,
+        amountTotalCents: subtotal + shippingQuote.amountCents,
         items: {
           create: preparedLines.map((line) => ({
             productId: line.productId,
@@ -230,19 +279,46 @@ export async function POST(request: Request) {
 
     try {
       const stripe = getStripeClient();
+      const stripeLineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
+        ...preparedLines.map((line) => ({
+          price: line.checkoutPriceId,
+          quantity: line.quantity,
+        })),
+        {
+          price_data: {
+            currency: checkoutCurrency,
+            product_data: {
+              name: `${shippingQuote.provider} Shipping`,
+              description: shippingQuote.service,
+              tax_code: "txcd_99999999",
+            },
+            unit_amount: shippingQuote.amountCents,
+          },
+          quantity: 1,
+        },
+      ];
+      const stripeCustomer = await stripe.customers.create({
+        email: customerEmail,
+        name: customerName,
+        shipping: {
+          name: shippingName,
+          phone: shippingPhone,
+          address: {
+            line1: shippingAddress,
+            city: shippingCity,
+            state: shippingState,
+            postal_code: shippingZip,
+            country: "US",
+          },
+        },
+      });
       const checkoutSession = await stripe.checkout.sessions.create({
         mode: "payment",
         payment_method_types: ["card"],
         automatic_tax: { enabled: true },
-        shipping_address_collection: {
-          allowed_countries: ["US"],
-        },
-        customer_email: customerEmail,
+        customer: stripeCustomer.id,
         client_reference_id: order.id,
-        line_items: preparedLines.map((line) => ({
-          price: line.checkoutPriceId,
-          quantity: line.quantity,
-        })),
+        line_items: stripeLineItems,
         metadata: {
           checkoutType: "SHOP_CART",
           shopOrderId: order.id,

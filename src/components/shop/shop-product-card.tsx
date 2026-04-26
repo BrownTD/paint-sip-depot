@@ -138,6 +138,11 @@ export function ShopProductCard({
   const [quantity, setQuantity] = useState("1");
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
+  const [shippingAddress, setShippingAddress] = useState("");
+  const [shippingCity, setShippingCity] = useState("");
+  const [shippingState, setShippingState] = useState("");
+  const [shippingZip, setShippingZip] = useState("");
+  const [shippingPhone, setShippingPhone] = useState("");
 
   const selectedVariant = useMemo(
     () => product.variants.find((variant) => variant.id === selectedVariantId) ?? defaultVariant,
@@ -206,6 +211,12 @@ export function ShopProductCard({
           quantity: quantityNumber,
           customerName,
           customerEmail,
+          shippingName: customerName,
+          shippingAddress,
+          shippingCity,
+          shippingState,
+          shippingZip,
+          shippingPhone,
         }),
       });
       const data = await response.json();
@@ -422,7 +433,6 @@ export function ShopProductCard({
                   id={`quantity-${product.id}`}
                   type="number"
                   min="1"
-                  max="25"
                   value={quantity}
                   onChange={(event) => setQuantity(event.target.value)}
                   disabled={isSubmitting}
@@ -454,6 +464,66 @@ export function ShopProductCard({
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor={`shipping-address-${product.id}`}>Shipping Address</Label>
+                <Input
+                  id={`shipping-address-${product.id}`}
+                  value={shippingAddress}
+                  onChange={(event) => setShippingAddress(event.target.value)}
+                  placeholder="Street address"
+                  required
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-2">
+                  <Label htmlFor={`shipping-city-${product.id}`}>City</Label>
+                  <Input
+                    id={`shipping-city-${product.id}`}
+                    value={shippingCity}
+                    onChange={(event) => setShippingCity(event.target.value)}
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`shipping-state-${product.id}`}>State</Label>
+                  <Input
+                    id={`shipping-state-${product.id}`}
+                    value={shippingState}
+                    onChange={(event) => setShippingState(event.target.value.toUpperCase())}
+                    maxLength={2}
+                    placeholder="SC"
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`shipping-zip-${product.id}`}>ZIP</Label>
+                  <Input
+                    id={`shipping-zip-${product.id}`}
+                    value={shippingZip}
+                    onChange={(event) => setShippingZip(event.target.value)}
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`shipping-phone-${product.id}`}>Phone</Label>
+                <Input
+                  id={`shipping-phone-${product.id}`}
+                  type="tel"
+                  value={shippingPhone}
+                  onChange={(event) => setShippingPhone(event.target.value)}
+                  placeholder="Phone for shipping"
+                  required
+                  disabled={isSubmitting}
+                />
+              </div>
+
               <div className="pt-2">
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-lg font-semibold text-foreground sm:text-xl">Total</span>
@@ -466,7 +536,17 @@ export function ShopProductCard({
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isSubmitting || (hasVariants && !selectedVariant?.stripePriceId)}
+                disabled={
+                  isSubmitting ||
+                  (hasVariants && !selectedVariant?.stripePriceId) ||
+                  !customerName.trim() ||
+                  !customerEmail.trim() ||
+                  !shippingAddress.trim() ||
+                  !shippingCity.trim() ||
+                  !shippingState.trim() ||
+                  !shippingZip.trim() ||
+                  !shippingPhone.trim()
+                }
               >
                 {isSubmitting ? (
                   <>

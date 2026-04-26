@@ -1,0 +1,2227 @@
+SHIPPO_TEST_KEY set in .env.local
+
+version: Current version: 2018-02-08 (current)
+
+active webhooks
+
+
+STATUS
+EVENT TYPE
+ENVIRONMENT
+URL
+Active
+Transaction Updated
+Test
+http://localhost:3000
+Active
+Transaction Created
+Test
+http://localhost:3000
+Active
+Batch Created
+Test
+http://localhost:3000
+Active
+Batch Purchased
+Test
+http://localhost:3000
+Active
+Track Updated
+Test
+http://localhost:3000
+Active
+Transaction Updated
+Production
+https://www.paintsipdepot.com
+Active
+Transaction Created
+Production
+https://www.paintsipdepot.com
+Active
+Batch Created
+Production
+https://www.paintsipdepot.com
+Active
+Batch Purchased
+Production
+https://www.paintsipdepot.com
+Active
+Track Updated
+Production
+https://www.paintsipdepot.com
+
+i want to integrate shipppo as my fufillment and shipping partner. the prices giving from shipping will be applied at checkout fro shipping cost. we need to implement them using their api
+
+> ## Documentation Index
+> Fetch the complete documentation index at: https://docs.goshippo.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+<AgentInstructions>
+
+## Submitting Feedback
+
+If you encounter incorrect, outdated, or confusing documentation on this page, submit feedback:
+
+POST https://docs.goshippo.com/feedback
+
+```json
+{
+  "path": "/docs/Guides_general/authentication",
+  "feedback": "Description of the issue"
+}
+```
+
+Only submit feedback when you have something specific and actionable to report.
+
+</AgentInstructions>
+
+# Authentication
+
+> Learn how to authenticate Shippo API requests using live and test API keys, and manage your tokens securely.
+
+Shippo authenticates your API requests using your account’s API keys.
+
+<Info>
+  **note**
+
+  If your request does not include a key, or includes a deleted or expired key, the Shippo API returns a `401 Unauthorized` error with the following responses, depending on the nature of the error.
+
+  ```json theme={null}
+  {
+      "detail": "Token does not exist"
+  }
+  ```
+
+  Or
+
+  ```json theme={null}
+  {
+      "detail": "Authentication credentials were not provided."
+  }
+  ```
+</Info>
+
+## Test mode and live mode
+
+You can make Shippo API calls in either test mode or live mode. When you use test mode, you have access to test data and can make test calls. When you use live mode, you have access to live data and can make live calls (like purchasing a label). Each mode has its own set of API keys.
+
+| Type      | When to use                                                                                                                                                                                                           | How to use                                                                              | Considerations                                                                                                                                                                                                                                                  |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Test mode | As you test and build your Shippo integration, use test mode with your test keys. In test mode, you can use all of the Shippo services like retrieving shipping rates and creating test labels without being charged. | Use your API test token for `Authentication` in [your API calls](#use-your-secure-key). | Rates requested in test mode may differ from actual rates in live mode. Data is not shared between test account and live account.<br /><br /> For a full list of considerations, review our [testing guide](/docs/Guides_general/testing#notes-about-test-mode) |
+| Live mode | When your integration is ready for production use live mode with your live tokens. In live mode, you can generate shipping rates and purchase real shipping labels.                                                   | Use you API live token for `Authentication` in [your API calls](#use-your-secure-key)   | Your account will be charged for purchasing labels.                                                                                                                                                                                                             |
+
+## Get your API keys
+
+### Create your free Shippo account
+
+If you already have a Shippo account, skip ahead to [Step 2](#generate-your-secure-key).
+
+In your browser, open the address [https://apps.goshippo.com/join](https://apps.goshippo.com/join). Enter your name, email, a secure password, and click **Get Started**.
+
+Follow the prompts to complete your registration.
+
+### Generate your secure key
+
+Login to the [Shippo API portal](https://portal.goshippo.com/api-config/api) using your Shippo credentials.
+
+<img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/Guides_general/2_gen_token.png?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=03305dc3d7566c9d466f61425ecd2cc5" alt="generate token UI" width="1001" height="706" data-path="images/Guides_general/2_gen_token.png" />
+
+In the **API Configuration** menu, select **Developer keys**.
+In **Developer Keys**, there are two options.
+**Live keys** and **Test keys**. Use **Live keys** for production ready use of the Shippo API. For testing and development, use the [Test key](/docs/Guides_general/testing).
+
+* Click **Create new live key** for a live key.
+  * Live keys begin with `shippo_live_`.
+* Click **Create new test key** for a test key.
+  * Test keys begin with `shippo_test_`.
+
+Copy your API key and click **Close**.
+
+<Info>
+  **Note**
+
+  You can only see your full API key once. Store it in a secure place. If you lose your API key, you can generate a new one.
+</Info>
+
+<Warning>
+  **Warning**
+
+  These keys give direct access to your Shippo account. You must store these securely. If you think your key has been compromised, use the dashboard to delete it and generate a new key.
+</Warning>
+
+### Use your secure key
+
+To use your secure key, make an API call replacing `<API_TOKEN>` with the key you have generated.
+
+```shell theme={null}
+curl https://api.goshippo.com/shipments/\
+    -H "Authorization: ShippoToken <API_TOKEN>"\
+    -H "Content-Type: application/json"\
+    -d '{...}'
+```
+
+> ## Documentation Index
+> Fetch the complete documentation index at: https://docs.goshippo.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+<AgentInstructions>
+
+## Submitting Feedback
+
+If you encounter incorrect, outdated, or confusing documentation on this page, submit feedback:
+
+POST https://docs.goshippo.com/feedback
+
+```json
+{
+  "path": "/docs/Guides_general/authentication_using_JWT",
+  "feedback": "Description of the issue"
+}
+```
+
+Only submit feedback when you have something specific and actionable to report.
+
+</AgentInstructions>
+
+# Authentication using JWT
+
+> Generate JWTs to securely authenticate client-side apps with the Shippo API for white label or gray label integrations.
+
+For server-side applications where you can keep API keys secure, follow our [Authentication](/docs/Guides_general/authentication) guide.
+For your client-side applications, we recommend using a JWT to securely authenticate. Following this guide to generate a JWT for your application.
+
+<Info>
+  **note**
+
+  Depending on the path you choose for integration, there is a different set of instructions. Refer to our [integration paths](/docs/Guides_general/integration-paths) for more details.
+</Info>
+
+## Generate a JWT for an eCommerce store
+
+If you have an eCommerce store that you want to add shipping to, you can generate a JWT using your own Shippo API key.
+Follow this example that uses the `embedded/authz/` endpoint to create a JWT.
+
+```shell JWT for eCommerce merchant request theme={null}
+curl --location --request POST 'https://api.goshippo.com/embedded/authz/' \
+--header 'Authorization: ShippoToken <API_TOKEN>' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "scope": "embedded:carriers"
+}'
+```
+
+```json JWT for eCommerce merchant response theme={null}
+{
+  "token":      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c", 
+  "expires_in": "1682364890"
+}
+```
+
+The `token` is the JWT and `expires_in` is a unix timestamp representing when the token expires.
+
+## Generate a JWT for a white label integration
+
+If you have not already, review our guide on [Shippo Platform accounts](/docs/PlatformAccounts/platform_accounts). You must have a Platforms account to create and use Managed Shippo Accounts.
+
+If you do not know your customer's Shippo Account ID, refer to this guide to [retrieve your user's Shippo Account ID](/docs/ShippingElements/auth#1-retrieve-your-users-shippo-account-id).
+
+To generate a JWT for a Managed account, call the `embedded/authz/` endpoint and set the `object_id` of your customers Shippo Account ID to the `SHIPPO-ACCOUNT-ID` in the header of the call.
+
+```shell JWT for white label request theme={null}
+curl --location --request POST 'https://api.goshippo.com/embedded/authz/' \
+--header 'Authorization: ShippoToken <API_TOKEN>' \
+--header 'SHIPPO-ACCOUNT-ID: e0b382dc7d754c0ca6358c09d5d2bdf7' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "scope": "embedded:carriers"
+}'
+```
+
+```json JWT for white label response theme={null}
+{
+  "token":      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c", 
+  "expires_in": "1682364890"
+}
+```
+
+The `token` is the JWT and `expires_in` is a unix timestamp representing when the token expires.
+
+## Generate a JWT for a gray label integration
+
+If you have not already, follow the steps in our [guide to request your OAuth key](/docs/OAuth_Integrations/OAuth) and get access to a Bearer Token.
+
+There are 2 ways you can generate your own JWT for gray label integration.
+
+### 1. Direct Authorization API
+
+```shell JWT for gray label request theme={null}
+curl --location --request POST 'https://api.goshippo.com/embedded/authz/' \
+--header 'Authorization: Bearer <OAUTH_BEARER_TOKEN> \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "scope": "embedded:carriers"
+}'
+```
+
+```json JWT for gray label response theme={null}
+{
+  "token":      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c", 
+  "expires_in": "1682364890"
+}
+
+```
+
+The `token` is the JWT and `expires_in` is a unix timestamp representing when the token expires.
+
+### 2. User Server Side Remote Procedure Call to generate JWT
+
+```shell theme={null}
+service user {
+  rpc DirectAuthorization(DirectAuthorizationRequest) : DirectAuthorizationResponse
+}
+
+message DirectAuthorizationRequest {
+ context
+ requestor: // integration user id
+ requested_subject: // alice's id
+ token_type: 'jwt'
+}
+```
+
+```json Response theme={null}
+message DirectAuthorizationResponse {
+  token: 
+  // encoded jwt
+  expires: 
+  //unix timestamp representing when the token expires
+}
+```
+
+The `token` is the JWT and `expires_in` is a unix timestamp representing when the token expires.
+
+## Use your JWT
+
+JWT works the same as an API token. To test your generated JWT, call the [list all carrier parcel templates](/api-reference/carrier-parcel-templates/list-all-carrier-parcel-templates) endpoint. Remember to replace `<JWT_TOKEN>` with the token you have generated.
+
+```shell Use JWT request theme={null}
+curl --location --request GET https://api.goshippo.com/parcel-templates  \
+    --header 'Authorization: JWT <JWT_TOKEN>' \
+    --header 'Content-Type: application/json'
+```
+
+```json Use JWT response theme={null}
+[
+  {
+    "name": "FedEx® Small Box (S1)",
+    "token": "FedEx_Box_Small_1",
+    "carrier": "FedEx",
+    "is_variable_dimensions": false,
+    "length": "12.375",
+    "width": "10.875",
+    "height": "1.5",
+    "distance_unit": "in"
+  }
+]
+```
+
+> ## Documentation Index
+> Fetch the complete documentation index at: https://docs.goshippo.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+<AgentInstructions>
+
+## Submitting Feedback
+
+If you encounter incorrect, outdated, or confusing documentation on this page, submit feedback:
+
+POST https://docs.goshippo.com/feedback
+
+```json
+{
+  "path": "/docs/Guides_general/ClientLibraries",
+  "feedback": "Description of the issue"
+}
+```
+
+Only submit feedback when you have something specific and actionable to report.
+
+</AgentInstructions>
+
+# SDKs
+
+> Find Shippo SDKs for Python, Node.js, Java, C#, PHP, and Go, plus our Postman collection for API testing.
+
+<Info>
+  **Note**
+
+  We are currently updating each of our client libraries. Refer to each library source for the latest information.
+</Info>
+
+While you can use Shippo's shipping API by making direct HTTP requests to our servers, we provide SDKs for our API to make it easier to access them from a list of supported languages. You can find out more about the available libraries for the language of choice below.
+
+***
+
+### <img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/python.svg?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=eee509572f07557ddb4bdfcab3ce0acb" alt="Python logo" width="50" data-path="images/python.svg" /> Python
+
+You can install our Python SDK using pip. The source code is available on [GitHub](https://github.com/goshippo/shippo-python-sdk).
+
+```python theme={null}
+pip install shippo
+```
+
+***
+
+### <img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/nodejs.svg?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=a29fb5196307a171b6edd86a5e3b2227" alt="Node logo" width="50" data-path="images/nodejs.svg" /> Node.JS
+
+The Node client library can be installed via [npm](https://www.npmjs.com/package/shippo). The source code is available on [GitHub](https://github.com/goshippo/shippo-javascript-sdk).
+Supported runtimes are listed [here](https://github.com/goshippo/shippo-javascript-sdk/blob/main/RUNTIMES.md).
+
+```node theme={null}
+npm install shippo
+```
+
+***
+
+### <img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/java.svg?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=0bbc251a55d668feb7db8334fc22e2b8" alt="Java logo" width="50" data-path="images/java.svg" /> Java
+
+The Java client library can be installed through different methods
+The source code and all installation methods are available on [GitHub](https://github.com/goshippo/shippo-java-sdk).
+The Java package is available in [Maven central repository](https://central.sonatype.com/artifact/com.goshippo/shippo-sdk).
+
+```
+pkg:maven/com.goshippo/shippo-sdk@latest
+```
+
+***
+
+### <img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/dotnet.svg?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=35549e870f2bca9378bb6a9f4c919924" alt="C sharp logo" width="50" data-path="images/dotnet.svg" /> C\#
+
+You can install our C# SDK using [NuGet](https://www.nuget.org/packages/Shippo/).
+The source code is available on [GitHub](https://github.com/goshippo/shippo-csharp-sdk).
+
+```cs C# theme={null}
+dotnet add package Shippo
+```
+
+***
+
+### <img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/php.svg?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=57af3c47761715fe970a8faa3b2aea1e" alt="PHP logo" width="50" data-path="images/php.svg" /> PHP
+
+The PHP client library can be installed through different methods. The source code and all installation methods are available on [GitHub](https://github.com/goshippo/shippo-php-client).
+
+***
+
+## Community-maintained Libraries
+
+### <img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/golang.png?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=98733088319ed4f701d83d8719552259" alt="Go logo" width="50" data-path="images/golang.png" /> Go
+
+The Go client library was built by [Daniel Kang](https://github.com/d5). The source code and installation methods are available on [GitHub](https://github.com/d5/go-shippo).
+
+## Postman
+
+### <img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/postman-logo.svg?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=3c93a9b9884da9a0d6962723d672f523" alt="Postman logo" width="50" data-path="images/postman-logo.svg" /> Shippo Postman Collection
+
+[Postman](https://www.getpostman.com/) is an app for easy RESTful API exploration. Use the Shippo Postman Collection to quickly and easily test API requests during development.
+
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://god.gw.postman.com/run-collection/22332580-e3f0581d-41f8-4c5c-894e-d9e22a87f6a5?action=collection%2Ffork\&source=rip_markdown\&collection-url=entityId%3D22332580-e3f0581d-41f8-4c5c-894e-d9e22a87f6a5%26entityType%3Dcollection%26workspaceId%3Da131fa9b-fc39-440e-93bb-2586e9e1eb93)
+
+this integration needs to send orders to shippo, track status, send status with order detail emails we made, apply accurate cost at checkout,
+
+> ## Documentation Index
+> Fetch the complete documentation index at: https://docs.goshippo.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+<AgentInstructions>
+
+## Submitting Feedback
+
+If you encounter incorrect, outdated, or confusing documentation on this page, submit feedback:
+
+POST https://docs.goshippo.com/feedback
+
+```json
+{
+  "path": "/docs/Orders/Orders",
+  "feedback": "Description of the issue"
+}
+```
+
+Only submit feedback when you have something specific and actionable to report.
+
+</AgentInstructions>
+
+# Orders
+
+> Create, retrieve, list, and manage orders via the Shippo API, then purchase labels and track shipments for each order.
+
+The orders endpoint allows you to load orders from your system to the Shippo dashboard and to create, retrieve, list, and manage orders programmatically. You can also retrieve shipping rates, purchase labels, and track shipments for each order.
+
+This tutorial will go through the following:
+
+1. [Test mode:](#test-mode) how to test the orders endpoint
+2. [Creating an order:](#creating-an-order) create orders programmatically via the API
+3. [Retrieve an order:](#retrieve-an-order) get all details of an order by retrieving it
+4. [List all orders:](#list-all-orders) list and filter your orders
+5. [Purchase a label for an order:](#purchase-a-label-for-an-order) retrieve rates, create shipping labels, and track shipments for a given order
+6. [Get a packing slip for an order:](#get-a-packing-slip-for-an-order) retrieve a PDF with all details of the order
+
+## Test mode
+
+There are a few things to be aware of when testing the Orders endpoint. For starters, you want to be sure that you're using your Shippo test token for authenticating your requests, to ensure that all orders are being created in test mode.
+
+When you create a label using your Shippo test token and reference your order (see [Purchase a label for an order](#purchase-a-label-for-an-order)), it will transition the order's status for whatever the current status is to `"SHIPPED"`. This behavior maps to how it would work in live (either using the API *or* the Dashboard).
+
+## Creating an Order
+
+You can create an order with all the information about your order by sending a POST request to the orders endpoint. An order typically consists of the following information:
+
+* `to_address`: this is a mandatory field, populated with the recipient address
+* `from_address`: this is an optional field
+* `line_items`: a line item represents the item that the buyer has purchased as part of this order. Line items are optional
+* `shipping_` fields: these are optional parameters which describe the shipping rate that your customer chose during checkout. This is the information is displayed when you're using the Shippo dashboard to help select the right label for purchasing
+* `order_number`: custom reference number for the order
+* `order_status`: the current status of the order. You can find a [list of supported values](#order-status-values-order_status-field) below
+* `placed_at`: the date and time when the order has been placed by the buyer. This is not the date and time that the order object has been created. This is a mandatory field
+
+```shell cURL theme={null}
+curl https://api.goshippo.com/orders/\
+    -H "Authorization: ShippoToken <API_Token>"\
+    -H "Content-Type: application/json"\
+    -d '{
+            "to_address": {
+                "city": "San Francisco",
+                "company": "Shippo",
+                "country": "US",
+                "email": "shippotle@shippo.com",
+                "name": "Mr Hippo",
+                "phone": "15553419393",
+                "state": "CA",
+                "street1": "215 Clayton St.",
+                "zip": "94117"
+            },
+            "line_items": [
+                {
+                    "quantity": 1,
+                    "sku": "HM-123",
+                    "title": "Hippo Magazines",
+                    "total_price": "12.10",
+                    "currency": "USD",
+                    "weight": "0.40",
+                    "weight_unit": "lb"
+                }
+            ],
+            "placed_at": "2016-09-23T01:28:12Z",
+            "order_number": "#1068",
+            "order_status": "PAID",
+            "shipping_cost": "12.83",
+            "shipping_cost_currency": "USD",
+            "shipping_method": "USPS First Class Package",
+            "subtotal_price": "12.10",
+            "total_price": "24.93",
+            "total_tax": "0.00",
+            "currency": "USD",
+            "weight": "0.40",
+            "weight_unit": "lb"
+        }'
+```
+
+The order object created on Shippo will look like the following:
+
+```json theme={null}
+{
+    "currency": "USD",
+    "from_address": null,
+    "line_items": [
+        {
+            "currency": "USD",
+            "description": null,
+            "manufacture_country": null,
+            "max_delivery_time": null,
+            "max_ship_time": null,
+            "object_id": "abf7d5675d744b6ea9fdb6f796b28f28",
+            "quantity": 1,
+            "sku": "HM-123",
+            "title": "Hippo Magazines",
+            "total_price": "12.10",
+            "variant_title": "",
+            "weight": "0.40",
+            "weight_unit": "lb"
+        }
+    ],
+    "notes": null,
+    "object_id": "4f2bc588e4e5446cb3f9fdb7cd5e190b",
+    "object_owner": "shippotle@shippo.com",
+    "order_number": "#1068",
+    "order_status": "PAID",
+    "placed_at": "2016-09-23T01:28:12Z",
+    "shipping_cost": "12.83",
+    "shipping_cost_currency": "USD",
+    "shipping_method": "USPS First Class Package",
+    "shop_app": "Shippo",
+    "subtotal_price": "12.10",
+    "to_address": {
+        "city": "San Francisco",
+        "company": "Shippo",
+        "country": "US",
+        "email": "shippotle@shippo.com",
+        "is_complete": true,
+        "is_residential": null,
+        "metadata": "",
+        "name": "Mr Hippo",
+        "object_created": "2016-09-23T01:38:56Z",
+        "object_id": "d799c2679e644279b59fe661ac8fa488",
+        "object_owner": "shippotle@shippo.com",
+        "object_updated": "2016-09-23T01:38:56Z",
+        "phone": "15553419393",
+        "state": "CA",
+        "street1": "215 Clayton St.",
+        "street2": "",
+        "validation_results": [],
+        "zip": "94117"
+    },
+    "total_price": "24.93",
+    "total_tax": "0.00",
+    "transactions": [],
+    "weight": "0.40",
+    "weight_unit": "lb"
+}
+```
+
+## Retrieve an Order
+
+You can retrieve an order by sending a GET request to the orders endpoint at `/orders/<order-object-id>`. You can retrieve any order created through the API, manually through the Shippo dashboard, or orders imported through one of our shopping cart integrations.
+
+```shell cURL theme={null}
+curl https://api.goshippo.com/orders/4f2bc588e4e5446cb3f9fdb7cd5e190b\
+	-H "Authorization: ShippoToken <API_Token>"
+```
+
+The order object returned will be displayed like the sample order from above.
+
+## List all Orders
+
+You can list all orders created by sending a GET request to the orders endpoint. The result will be paginated.
+
+```shell cURL theme={null}
+curl https://api.goshippo.com/orders/\
+    -H "Authorization: ShippoToken <API_Token>"
+```
+
+The request will return the paginated list like this:
+
+```json theme={null}
+{
+    "count": 1382,
+    "next": "https://api.goshippo.com/orders/?page=2",
+    "previous": null,
+    "results": [
+        {
+            "object_id": "4f2bc588e4e5446cb3f9fdb7cd5e190b",
+            "object_owner": "shippotle@shippo.com",
+            "order_number": "#1068",
+            "order_status": "PAID",
+            "placed_at": "2016-09-23T01:28:12Z",
+            "to_address": {
+                "object_created": "2016-09-23T01:38:56Z",
+                "object_updated": "2016-09-23T01:38:56Z",
+                "object_id": "d799c2679e644279b59fe661ac8fa488",
+                "object_owner": "shippotle@shippo.com",
+                "is_complete": true,
+                "validation_results": {},
+                "name": "Mr Hippo",
+                "company": "Shippo",
+                "street1": "215 Clayton St.",
+                "street2": "",
+                "city": "San Francisco",
+                "state": "CA",
+                "zip": "94117",
+                "country": "US",
+                "phone": "15553419393",
+                "email": "shippotle@shippo.com",
+                "is_residential": null,
+                "metadata": ""
+            },
+            "from_address": null,
+            "line_items": [
+                {
+                    "object_id": "abf7d5675d744b6ea9fdb6f796b28f28",
+                    "title": "Hippo Magazines",
+                    "variant_title": "",
+                    "sku": "HM-123",
+                    "quantity": 1,
+                    "total_price": "12.10",
+                    "currency": "USD",
+                    "weight": "0.40",
+                    "weight_unit": "lb",
+                    "manufacture_country": null,
+                    "max_ship_time": null,
+                    "max_delivery_time": null,
+                    "description": null
+                }
+            ],
+            "shipping_cost": "12.83",
+            "shipping_cost_currency": "USD",
+            "shipping_method": "USPS First Class Package",
+            "shop_app": "Shippo",
+            "subtotal_price": "12.10",
+            "total_price": "24.93",
+            "total_tax": "0.00",
+            "currency": "USD",
+            "transactions": [],
+            "weight": "0.40",
+            "weight_unit": "lb",
+            "notes": null
+        },
+        ...
+    ]
+}
+```
+
+### Filter an Order list
+
+You can also filter the order list with the following filters:
+
+* `shop_app`: only return orders from a specific store platform. [See list of all shop\_app values below](#supported-platforms-shop_app-field)
+* `start_date`: only return orders created after a specific date and time (ISO 8601 UTC format). This is based on the `placed_at` field, meaning when the order has been placed, not when the order object was created on the Shippo
+* `end_date`: similar to the start\_date filter, only return orders before after a specific date and time
+* `order_status`: only return orders with a status equal to the selected value. `order_status` is an array parameter that requires array notation. For example `orders/?order_status[]=PAID&order_status[]=UNKNOWN`.  [See list of all order\_status values below](#order-status-values-order_status-field)
+
+The follow request, for instance, will return all Shopify orders placed after 2023/04/17 and before 2022/04/25 with a `PAID` status:
+
+```shell cURL theme={null}
+curl 'https://api.goshippo.com/orders?end_date=2023-04-25T23:59:59&page=1&results=25&shop_app=Shopify&start_date=2023-04-17T23:59:59&order_status[]=PAID&order_status[]=SHIPPED' \
+  -H 'Authorization: ShippoToken <API_Token>'
+```
+
+## Purchase a label for an Order
+
+When creating test labels for an order, the order status will be automatically changed from whatever status it had to `"SHIPPED"`.
+
+There are two ways to create a shipping label for an order, outlined in the following tutorials:
+
+* [First Shipment](/docs/Guides_general/generate_shipping_label): this tutorial will show you how to retrieve a list of rates first, then select a rate for purchasing
+* [Single Call Label Creation](/docs/Guides_general/Single_call): this tutorial will allow you to specify the exact carrier and service level for purchasing in one API call
+
+When you create the Shipment, you can reference the order's to\_address object via it's `object_id`.
+
+**Make sure to reference your order's object\_id in the `order` attribute of the transaction request so that the transaction is linked to your order.**
+
+```shell cURL theme={null}
+curl https://api.goshippo.com/transactions/\
+    -H "Authorization: ShippoToken <API_Token>"\
+    -H "Content-Type: application/json"\
+    -d '{
+        "shipment": {
+            "address_from": {
+                "name": "Mr. Hippo",
+                "street1": "215 Clayton St.",
+                "city": "San Francisco",
+                "state": "CA",
+                "zip": "94117",
+                "country": "US",
+                "phone": "+1 555 341 9393",
+                "email": "support@shippo.com"
+            },
+            "address_to": "d799c2679e644279b59fe661ac8fa488",
+            "parcels": [{
+                "length": "5",
+                "width": "5",
+                "height": "5",
+                "distance_unit": "in",
+                "weight": "2",
+                "mass_unit": "lb"
+            }]
+        },
+        "carrier_account": "b741b99f95e841639b54272834bc478c",
+        "servicelevel_token": "usps_first",
+        "order": "4f2bc588e4e5446cb3f9fdb7cd5e190b"
+        }'
+```
+
+The `object_id` and `label_url` of the newly created transaction object will be reflected in the `transactions` array of the orders object.
+
+## Get a Packing Slip for an Order
+
+A packing slip summarizes all relevant information of the order and is often used for picking and packing purposes.
+
+You can GET a packing slip for any order via the `/orders/<order-object-id>/packingslip/` endpoint. The endpoint will return the link to the packing slip PDF. Shippo will automatically create one packing slip page per label you have created.
+
+```shell theme={null}
+curl https://api.goshippo.com/orders/4f2bc588e4e5446cb3f9fdb7cd5e190b/packingslip/\
+    -H "Authorization: ShippoToken <API_Token>"
+```
+
+The request will return the packing slip link. The link expires after 24 hours.
+
+```json theme={null}
+{
+    "created": "2017-10-11T17:55:39.172",
+    "expires": "2017-10-12T17:55:39.172",
+    "slip_url": "https://shippo-delivery-east.s3.amazonaws.com/packingslip_002c28cb4c5661526c8c05f3f336a5ab.pdf?Signature=<signature>&Expires=<timestamp>&AWSAccessKeyId=<access_key_id>"
+}
+```
+
+## Order status values (order\_status field)
+
+The order field `order_status` indicates the current status of an order. Supported platforms include:
+
+* UNKNOWN: fallback in case no other value is given
+* AWAITPAY: awaiting payment by buyer
+* PAID: paid by buyer
+* REFUNDED: refunded payment to buyer
+* CANCELLED: canceled by buyer
+* PARTIALLY\_FULFILLED: some, but not all of the order items have been fulfilled
+* SHIPPED: all order items have been shipped
+
+The order status field is a Shippo controlled field, so it cannot be changed after you set its initial state in your POST request. When an label has been created for a specific order, the order's status will be automatically changed to `"SHIPPED"`.
+
+## Supported platforms (shop\_app field)
+
+The order field `shop_app` indicates which platform the order originated from. Supported platforms include:
+
+* Amazon
+* Bigcommerce
+* CSV\_Import
+* eBay
+* Etsy
+* GoDaddy
+* Magento
+* Shopify
+* Spreecommerce
+* StripeRelay
+* Weebly
+* WooCommerce
+* Shippo (for orders created via the Shippo API or App)
+* ePages
+
+if we can enable customer pickup from carrier with this do so 
+
+> ## Documentation Index
+> Fetch the complete documentation index at: https://docs.goshippo.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+<AgentInstructions>
+
+## Submitting Feedback
+
+If you encounter incorrect, outdated, or confusing documentation on this page, submit feedback:
+
+POST https://docs.goshippo.com/feedback
+
+```json
+{
+  "path": "/docs/Manifests_and_Pickups/Pickups",
+  "feedback": "Description of the issue"
+}
+```
+
+Only submit feedback when you have something specific and actionable to report.
+
+</AgentInstructions>
+
+# Pickups
+
+> Schedule carrier pickups with USPS and DHL Express for your Shippo shipments using the pickups endpoint.
+
+Shippo's pickups endpoint allows you to schedule pickups with USPS and DHL Express for eligible shipments that you have already created.
+
+## Creating a pickup
+
+You can create a pickup request by sending a POST request to the pickups endpoint. A pickup typically consists of the following parameters:
+
+* `carrier_account`: The object ID of your USPS or DHL Express carrier account -- this is a mandatory field. You can retrieve this from your Rate requests or our  /carrier\_accounts endpoint.
+* `location`: The following fields may also be included in location
+  * `building_location_type:` where your parcels will be available for pickup (accepted enums are: Front Door, Back Door, Side Door, Knock on Door/Ring Bell, Mail Room, Office, Reception, In/At Mailbox, Security Deck, Shipping Dock, Other)
+  * `building_type`: an optional field to describe the type of building (accepted enums are: apartment, building, department, floor, room, suite) where the pickup is located
+  * `instructions`: pickup instructions for the courier (string). This is a mandatory field if the building\_location\_type is "Other"
+  * `address`: the pickup address, which includes your name, company name, street address, city, state, zip code, country, phone number, and email address (strings). Special characters (/, &, \*, etc.) should not be included in any address element, especially name, company, and email.
+* `transactions`: The transaction object ID(s) for the parcel(s) that need to be picked up. This should include all eligible parcels.
+* `requested_start_time`: The earliest that your parcels will be ready for pickup (UTC time)
+* `requested_end_time`: The latest that your parcels will be available for pickup (UTC time)
+* `metadata`: an optional field for any additional information you might want to add such as the date of fulfillment
+
+```json theme={null}
+{
+    "carrier_account":"6c51273296864869829b96a80fb13ea1",
+    "location":{
+            "building_location_type": "Other",
+            "building_type": "apartment",
+            "instructions": "Behind screen door",
+            "address": {
+                    "name": "Mrs Hippo",
+                    "company": "Hungry Hippos",
+                    "street1": "965 Mission St #201",
+                    "city": "San Francisco",
+                    "state": "CA",
+                    "zip": "95122",
+                    "country": "US",
+                    "phone": "+14159876543",
+                    "email": "mrshippo@shippo.com"
+                }
+    },
+    "transactions": ["7439c279b374494c9a80ca24f59e6fc5"],
+   "requested_start_time":"2019-02-18T12:00:00Z",
+   "requested_end_time": "2019-02-18T16:00:00Z",
+    "metadata": "Customer ID 123456",
+    "is_test": false
+
+}
+```
+
+The API will respond with the JSON serialized pickups object:
+
+```json theme={null}
+{
+    "object_created": "2020-05-08T17:09:48.028Z",
+    "object_updated": "2020-05-08T17:09:48.884Z",
+    "object_id": "e0cefba8a75f401e893db1eb09075efb",
+    "carrier_account": "6c51273296864869829b96a80fb13ea1",
+    "location": {
+        "instructions": "",
+        "building_location_type": "Knock on door",
+        "building_type": null,
+        "address": {
+            "object_id": "50ed4a6f0b0d4635b05315c79529798g",
+            "name": "Mrs Hippo",
+            "company": "Hungry Hippos",
+            "street1": "965 Mission St #201",
+            "street2": "",
+            "city": "San Francisco",
+            "state": "CA",
+            "zip": "95122",
+            "country": "US",
+            "phone": "+14159876543",
+            "email": "mrshippo@shippo.com"
+        }
+    },
+    "transactions": [
+        "e2aacd6211d347ada7b3d832f87db89h"
+    ],
+    "requested_start_time": "2020-05-12T19:00:00Z",
+    "requested_end_time": "2020-05-12T23:00:00Z",
+    "confirmed_start_time": "2020-05-09T12:00:00Z",
+    "confirmed_end_time": "2020-05-09T23:59:59.999Z",
+    "cancel_by_time": "2020-05-09T08:00:00Z",
+    "status": "CONFIRMED",
+    "confirmation_code": "WTC310058750",
+    "timezone": "US/Pacific",
+    "messages": null,
+    "metadata": "Customer ID 123456",
+    "is_test": false
+}
+```
+
+Note that your confirmed pickup window will be in the time zone specified in the response, not UTC.
+
+Make sure to take down your `confirmation_code` in the event you need to make changes. USPS may send you a follow-up email with your pickup confirmation code. To edit or cancel a pickup, you will need to contact USPS or DHL Express directly and provide your `confirmation_code`. The ability to edit or cancel a pickup through Shippo may be released in future iterations.
+
+## Error messages
+
+You may receive the following error messages if you are missing anything from the above fields in your request.
+
+### Address or Address Elements Missing
+
+Your pickup address must be submitted in the request with all elements, including city, zip code, country, and phone number.
+
+```json theme={null}
+{
+    "address": [
+        "This field is required."
+    ]
+}
+```
+
+### Special Characters Used
+
+Special characters, including /, &, \*, and others, should not be used within the `address` elements, especially `name`, `company`, and `email`, as some of our carriers do not accept special characters.
+
+```json theme={null}
+{
+    "messages": [
+        "The company name of the pickup address is invalid or missing. Please update the company on the pickup address."
+    ]
+}
+```
+
+### No Eligible Parcels Available for Pickup
+
+At least one eligible USPS or DHL Express transaction object ID must be included in the pickup request. For USPS, only Priority Mail Express, Priority Mail, international, or return service parcels are eligible for a scheduled pickup via API.
+
+```json theme={null}
+{
+    "messages": [
+        "A USPS pickup requires at least one transaction of the following service: Priority Mail Express, Priority Mail, any international service, or any return service. Please update the transactions."
+    ],
+}
+```
+
+### Pickup Already Scheduled for the Given Date and Time (USPS only)
+
+USPS only allows one pickup scheduling request per day. If you have already scheduled a pickup for the given day, you will not be able to request another pickup.
+
+```json theme={null}
+{
+    "messages": [
+        "You have already requested a USPS pickup for today. Please leave any additional USPS packages at your designated pickup location and the carrier will collect them along with your already-scheduled package."
+    ],
+}
+```
+
+> ## Documentation Index
+> Fetch the complete documentation index at: https://docs.goshippo.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+<AgentInstructions>
+
+## Submitting Feedback
+
+If you encounter incorrect, outdated, or confusing documentation on this page, submit feedback:
+
+POST https://docs.goshippo.com/feedback
+
+```json
+{
+  "path": "/docs/Tracking/Tracking",
+  "feedback": "Description of the issue"
+}
+```
+
+Only submit feedback when you have something specific and actionable to report.
+
+</AgentInstructions>
+
+# Tracking
+
+> Track shipments across all carriers with normalized data, real-time webhook updates, and complete tracking history.
+
+Use the Shippo Tracking API to track shipments from all carriers with normalized data, complete tracking history, and real-time updates. When used with webhooks, you'll receive instant notifications whenever there's a tracking update. This setup ensures you always have the latest tracking information for all your shipments and can alert recipients if they need to take action.
+
+## Track live shipments
+
+If you have already created a webhook, labels purchased through Shippo will send tracking events to that webhook.
+
+If you did not purchase a label through Shippo and would like to receive tracking updates on your webhook you can register the tracking number with the following example using a tracking number and the name of the carrier.
+
+<Info>
+  **Note**
+
+  To use live tracking, you must use your [live key](/docs/Guides_general/authentication). If you want to test tracking with test mode, see the [testing tracking guide](#testing-tracking).
+</Info>
+
+1. Create a [webhook](/docs/Tracking/Webhooks).
+   * Set the webhook **Event Type** to **Track Updated**.
+   * Set the webhook **Environment** to **Production**.
+   * Set the webhook **URL** to an address that can [listen to your webhook](/docs/Tracking/WebhookDebugging).
+
+<Warning>
+  **Important**
+
+  * Tracking webhooks are not idempotent.
+  * Clients should register a webhook only once per tracking event.
+  * Duplicate registrations can result in multiple notifications for the same event.
+</Warning>
+
+2. POST the below to the [tracks endpoint](https://api.goshippo.com/tracks/).
+
+```shell theme={null}
+curl https://api.goshippo.com/tracks/ \
+  -H "Authorization: ShippoToken <API_TOKEN>" \
+  -d carrier="usps" \
+  -d tracking_number="9102969010383081813033" \
+  -d metadata="Order 000123"
+```
+
+You must register a webhook prior to POSTing to the tracking endpoint. Once POSTed, all updates to that tracking number will only be sent to your active tracking webhooks.
+
+You can find a [list of all supported carrier tokens here.](/api-reference/track) Also, certain carriers require an account to track shipments sent through them or only permit tracking shipments created through Shippo. Please see [Carrier Restrictions](/docs/Tracking/Tracking#carrier-restrictions) below for details.
+
+You will get a response back that includes the latest tracking status via the corresponding `tracking_status` field, and the entire history via the `tracking_history` field, see a sample response below. Tracking is included for shipments created on Shippo but incurs a cost per tracking number for all other shipments.
+
+```json theme={null}
+{
+  "carrier": "usps",
+  "tracking_number": "9205590164917312751089",
+  "address_from": {
+    "city": "Las Vegas",
+    "state": "NV",
+    "zip": "89101",
+    "country": "US"
+  },
+  "address_to": {
+    "city": "Spotsylvania",
+    "state": "VA",
+    "zip": "22551",
+    "country": "US"
+  },
+  "transaction": "1275c67d754f45bf9d6e4d7a3e205314",
+  "original_eta": "2023-07-23T00:00:00Z",
+  "eta": "2023-07-23T00:00:00Z",
+  "servicelevel": {
+    "token": "usps_priority",
+    "name": "Priority Mail"
+  },
+  "metadata": null,
+  "tracking_status": {
+    "object_created": "2023-07-23T20:35:26.129Z",
+    "object_updated": "2023-07-23T20:35:26.129Z",
+    "object_id": "ce48ff3d52a34e91b77aa98370182624",
+    "status": "DELIVERED",
+    "status_details": "Your shipment has been delivered at the destination mailbox.",
+    "status_date": "2023-07-23T13:03:00Z",
+    "location": {
+      "city": "Spotsylvania",
+      "state": "VA",
+      "zip": "22551",
+      "country": "US"
+    }
+  },
+  "tracking_history": [
+    {
+      "object_created": "2023-07-22T14:36:50.943Z",
+      "object_id": "265c7a7c23354da5b87b2bf52656c625",
+      "status": "TRANSIT",
+      "status_details": "Your shipment has been accepted.",
+      "status_date": "2023-07-21T15:33:00Z",
+      "location": {
+        "city": "Las Vegas",
+        "state": "NV",
+        "zip": "89101",
+        "country": "US"
+      }
+    },
+    ...
+
+    {
+      "object_created": "2023-07-23T20:35:26.129Z",
+      "object_id": "aab1d7c0559d43ccbba4ff8603089e56",
+      "status": "DELIVERED",
+      "status_details": "Your shipment has been delivered at the destination mailbox.",
+      "status_date": "2023-07-23T13:03:00Z",
+      "location": {
+        "city": "Spotsylvania",
+        "state": "VA",
+        "zip": "22551",
+        "country": "US"
+      }
+    }
+  ]
+}
+```
+
+## Event definitions
+
+The returned response from a tracking request includes a `status`. The `status` is a high-level indication  of where in the delivery process your package is.
+Below is a list of possible `status` values with a description of each.
+
+| Status        | Description                                                                                                                                                                                            |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PRE_TRANSIT` | The label is created but before the package is dropped off or picked up by the carrier.                                                                                                                |
+| `TRANSIT`     | The package has been scanned by the carrier and is in transit.                                                                                                                                         |
+| `DELIVERED`   | The package has been successfully delivered.                                                                                                                                                           |
+| `RETURNED`    | The package is en route to be returned to the sender, or has been returned successfully.                                                                                                               |
+| `FAILURE`     | The carrier indicated that there has been an issue with the delivery. This can happen for various reasons and depends on the carrier. This status does not indicate a technical, but a delivery issue. |
+| `UNKNOWN`     | The package has not been found via the carrier's tracking system.                                                                                                                                      |
+
+Each `status` may also have a `substatus`. A `substatus` can give finer details about the current status of your package. Each field's definition is also available in our [API Reference documentation](/api-reference/tracking-status/get-a-tracking-status).
+
+The `action_required` indicates the `substatus` requires action from the shipper or recipient to complete delivery.
+
+| Status        | Substatus              | Definition                                                                            | Meaning                                                                                                                                                                                                                                                                 | Action Required?                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------- | ---------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PRE_TRANSIT` | information\_received  | Information about the package received.                                               | The carrier has received the necessary details about your package. This is normally the first step in the shipping process, indicating that the shipment information is in the  carrier's system.                                                                       |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `TRANSIT`     | address\_issue         | Address information is incorrect. Contact carrier to ensure delivery.                 | There is a problem with the address provided for the delivery. The address may be incorrect or incomplete. You must contact the carrier to correct the address and ensure the package can be delivered.                                                                 | <img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/Tracking/check.svg?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=bcbafb6d39e5db9246a8ac8ee3414b16" alt="green check mark" width="20" height="20" data-path="images/Tracking/check.svg" /> |
+| `TRANSIT`     | contact\_carrier       | Contact the carrier for more information.                                             | The carrier needs more additional information or action from you. You should contact the carrier to resolve any issues or get more details about the package status.                                                                                                    | <img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/Tracking/check.svg?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=bcbafb6d39e5db9246a8ac8ee3414b16" alt="green check mark" width="20" height="20" data-path="images/Tracking/check.svg" /> |
+| `TRANSIT`     | delayed                | Delivery of package is delayed.                                                       | The delivery of the package is experiencing a delay. This could be due to various reasons such as weather conditions, high shipment volumes, or logistical issues.                                                                                                      |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `TRANSIT`     | delivery\_attempted    | Delivery of package has been attempted. Contact carrier to ensure delivery.           | The carrier tried to deliver the package but was unsuccessful. This may be due to no one being available to receive it or other access issues. You should contact the carrier to arrange for another delivery attempt.                                                  | <img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/Tracking/check.svg?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=bcbafb6d39e5db9246a8ac8ee3414b16" alt="green check mark" width="20" height="20" data-path="images/Tracking/check.svg" /> |
+| `TRANSIT`     | delivery\_rescheduled  | Delivery of package has been rescheduled.                                             | The scheduled delivery date for the package has been changed. This could be due to the recipient's request or other logistical reasons.                                                                                                                                 |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `TRANSIT`     | delivery\_scheduled    | Package is scheduled for delivery.                                                    | Your package is planned for delivery on a specific date. The carrier has set a delivery date for your package.                                                                                                                                                          |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `TRANSIT`     | location\_inaccessible | Delivery location inaccessible to carrier. Contact carrier to ensure delivery.        | The delivery location cannot be reached by the carrier. This could be due to physical barriers, restricted access, or other obstacles. You should contact the carrier to resolve the issue and ensure delivery.                                                         | <img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/Tracking/check.svg?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=bcbafb6d39e5db9246a8ac8ee3414b16" alt="green check mark" width="20" height="20" data-path="images/Tracking/check.svg" /> |
+| `TRANSIT`     | notice\_left           | Carrier left notice during attempted delivery. Follow carrier instructions on notice. | The carrier left a notice at your address during an attempted delivery. This notice will have instructions on how to receive your package, such as scheduling a redelivery or picking it up from a carrier location.                                                    | <img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/Tracking/check.svg?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=bcbafb6d39e5db9246a8ac8ee3414b16" alt="green check mark" width="20" height="20" data-path="images/Tracking/check.svg" /> |
+| `TRANSIT`     | out\_for\_delivery     | Package is out for delivery.                                                          | Your package is currently on its way to the delivery address. This can also mean your package was scanned by a package handler and placed on a pallet to be loaded on a vehicle for delivery. It is with the carrier's delivery personnel and should be delivered soon. |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `TRANSIT`     | package\_accepted      | Package has been accepted into the carrier network for delivery.                      | The carrier has received your package into their network and it is ready to be processed for delivery                                                                                                                                                                   |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `TRANSIT`     | package\_arrived       | Package has arrived at an intermediate location in the carrier network.               | Your package has reached a transit point in the carrier's network. This is typically an intermediate facility where packages are sorted and sent to their next destination.                                                                                             |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `TRANSIT`     | package\_damaged       | Package has been damaged. Contact carrier for more details.                           | Your package has been damaged during the shipping process. You should contact the carrier to get more information and possibly file a claim.                                                                                                                            | <img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/Tracking/check.svg?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=bcbafb6d39e5db9246a8ac8ee3414b16" alt="green check mark" width="20" height="20" data-path="images/Tracking/check.svg" /> |
+| `TRANSIT`     | package\_departed      | Package has departed from an intermediate location in the carrier network.            | Your package has left a transit point in the carrier's network and is on its way to the next destination.                                                                                                                                                               |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `TRANSIT`     | package\_forwarded     | Package has been forwarded.                                                           | Your package has been redirected to a different address. This could be due to a forwarding request by the recipient or an address correction.                                                                                                                           |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `TRANSIT`     | package\_held          | Package held at carrier location. Contact carrier for more details.                   | The carrier is holding your package at a specific location. You should contact the carrier to find out why it is being held and how to retrieve it.                                                                                                                     |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `TRANSIT`     | package\_processed     | Package has been processed at an intermediate location.                               | Your package has been processed at a transit point and is ready for the next step in the delivery process.                                                                                                                                                              |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `TRANSIT`     | package\_processing    | Package is processing at an intermediate location in the carrier network.             | Your package is currently being processed at a transit point. This involves sorting and preparing it for the next leg of its journey.                                                                                                                                   |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `TRANSIT`     | pickup\_available      | Package is available for pickup at carrier location.                                  | Your package is available for pickup at a carrier location. You can go to the specified location to collect your package.                                                                                                                                               | <img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/Tracking/check.svg?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=bcbafb6d39e5db9246a8ac8ee3414b16" alt="green check mark" width="20" height="20" data-path="images/Tracking/check.svg" /> |
+| `TRANSIT`     | reschedule\_delivery   | Contact carrier to reschedule delivery.                                               | You need to contact the carrier to arrange a new delivery date for your package. This might be due to an issue with the initial delivery attempt.                                                                                                                       | <img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/Tracking/check.svg?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=bcbafb6d39e5db9246a8ac8ee3414b16" alt="green check mark" width="20" height="20" data-path="images/Tracking/check.svg" /> |
+| `DELIVERED`   | delivered              | Package has been delivered.                                                           | Your package has been successfully delivered to the recipient's address.                                                                                                                                                                                                |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `RETURNED`    | return\_to\_sender     | Package is to be returned to sender.                                                  | Your package is being sent back to the sender. This could be due to an undeliverable address, refusal by the recipient, or other reasons.                                                                                                                               |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `RETURNED`    | package\_unclaimed     | Package is unclaimed.                                                                 | Your package has not been claimed by the recipient. You may need to contact the carrier to arrange for collection or redelivery.                                                                                                                                        | <img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/Tracking/check.svg?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=bcbafb6d39e5db9246a8ac8ee3414b16" alt="green check mark" width="20" height="20" data-path="images/Tracking/check.svg" /> |
+| `FAILURE`     | package\_undeliverable | Package is not able to be delivered.                                                  | The carrier is unable to deliver your package. This could be due to address issues, recipient unavailability, or other reasons. You should contact the carrier to resolve the issue.                                                                                    | <img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/Tracking/check.svg?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=bcbafb6d39e5db9246a8ac8ee3414b16" alt="green check mark" width="20" height="20" data-path="images/Tracking/check.svg" /> |
+| `FAILURE`     | package\_disposed      | Package has been disposed.                                                            | The carrier has disposed of your package. This usually happens when a package is undeliverable and unclaimed for an extended period.                                                                                                                                    |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `FAILURE`     | package\_lost          | Package has been lost. Contact carrier for more details.                              | Your package has been lost in the shipping process. You should contact the carrier for more details and to possibly file a claim for the lost item.                                                                                                                     | <img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/Tracking/check.svg?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=bcbafb6d39e5db9246a8ac8ee3414b16" alt="green check mark" width="20" height="20" data-path="images/Tracking/check.svg" /> |
+| `UNKNOWN`     | other                  | Unrecognized carrier status.                                                          |                                                                                                                                                                                                                                                                         |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+
+***
+
+## Testing tracking
+
+In our Test environment you are able to review our responses with mock tracking numbers. Using your Shippo Test Token, use `shippo` as your `carrier` and the tracking number be one of the following, depending on which tracking event you're testing: `SHIPPO_PRE_TRANSIT`, `SHIPPO_TRANSIT`, `SHIPPO_DELIVERED`, `SHIPPO_RETURNED`, `SHIPPO_FAILURE`, `SHIPPO_UNKNOWN`.
+
+Follow this example.
+
+```shell Test tracking request theme={null}
+curl https://api.goshippo.com/tracks/ \
+  -H "Authorization: ShippoToken <API_TOKEN>" \
+  -d carrier="shippo" \
+  -d tracking_number="SHIPPO_TRANSIT" \
+  -d metadata="Order 000123"
+```
+
+```json Test tracking response theme={null}
+{
+    "messages": [],
+    "carrier": "shippo",
+    "tracking_number": "SHIPPO_TRANSIT",
+    "address_from": {
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "94103",
+        "country": "US"
+    },
+    "address_to": {
+        "city": "Chicago",
+        "state": "IL",
+        "zip": "60611",
+        "country": "US"
+    },
+    "eta": "2018-08-02T18:49:42.566",
+    "original_eta": "2018-08-02T18:49:42.566",
+    "servicelevel": {
+        "token": "shippo_priority",
+        "name": "Priority Mail"
+    },
+    "metadata": "Shippo test tracking",
+    "tracking_status": {
+        "object_created": "2018-07-30T18:49:42.586",
+        "object_updated": null,
+        "object_id": "560f1b9cfe8341a2899e0388f1b9081c",
+        "status": "TRANSIT",
+        "status_details": "Your shipment has departed from the origin.",
+        "status_date": "2018-07-29T16:44:42.586",
+        "substatus": null,
+        "location": {
+            "city": "San Francisco",
+            "state": "CA",
+            "zip": "94103",
+            "country": "US"
+        }
+    },
+    "tracking_history": [
+        {
+            "object_created": "2018-07-30T18:49:42.589",
+            "object_updated": null,
+            "object_id": "9a056563ad874a0b9bf79dee321f25f5",
+            "status": "UNKNOWN",
+            "status_details": "The carrier has received the electronic shipment information.",
+            "status_date": "2018-07-28T14:39:42.589",
+            "substatus": null,
+            "location": {
+                "city": "San Francisco",
+                "state": "CA",
+                "zip": "94103",
+                "country": "US"
+            }
+        },
+        {
+            "object_created": "2018-07-30T18:49:42.589",
+            "object_updated": null,
+            "object_id": "82ef073b04ef48368e79b835af788fce",
+            "status": "TRANSIT",
+            "status_details": "Your shipment has departed from the origin.",
+            "status_date": "2018-07-29T16:44:42.589",
+            "substatus": null,
+            "location": {
+                "city": "San Francisco",
+                "state": "CA",
+                "zip": "94103",
+                "country": "US"
+            }
+        }
+    ],
+    "transaction": null,
+    "test": true
+}
+```
+
+To see all possible status, substatus and corresponding action\_required values, review our [full list](/docs/Tracking/Tracking#event-definitions) above.
+
+## Track Shippo shipments
+
+For each production label you purchase, Shippo automatically tracks the shipment status through the corresponding carrier's tracking system.
+
+The latest status is accessible via the corresponding Transaction's `tracking_status` field.
+
+Here's a sample Transaction object:
+
+```json theme={null}
+{
+    "object_state": "VALID",
+    "status": "SUCCESS",
+    "object_created": "2023-11-29T16:31:19.512Z",
+    "object_updated": "2023-11-29T16:31:19.512Z",
+    "object_id": "5695ae3a5eda41ba9abdbf347fd545f3",
+    "object_owner": "test@shippo.com",
+    "test": false,
+    "rate": "693ea14a541f44e090291b929c171d5a",
+    "tracking_number": "9102969010383081813033",
+    "tracking_status": "DELIVERED",
+    "eta": "2023-11-24T00:00:00Z",
+    "tracking_url_provider": "https:\/\/tools.usps.com\/go\/TrackConfirmAction_input?origTrackNum=9102969010383081813033",
+    "label_url": "https:\/\/shippo-delivery-east.s3.amazonaws.com\/5695ae3a5eda41ba9abdbf347fd545f3.pdf?Signature=<signature>&Expires=<timestamp>&AWSAccessKeyId=<access_key_id>",
+    "commercial_invoice_url": null,
+    "messages": [],
+    "order": "ca760ef0099040b4a2b7feec827bca88",
+    "metadata": "",
+    "parcel": "e0de043b2f7f4b6d8e6f23ad69641cc1",
+    "billing": {"payments": []}
+}
+```
+
+## Track individual shipments
+
+To submit an individual tracking request for a single shipment, including those created outside of Shippo, you can send a GET request to the [Tracking Status endpoint](/api-reference/tracking-status/get-a-tracking-status) with your shipment `carrier` and `tracking_number`.
+
+You can find a [list of all supported carrier tokens here](/api-reference/track).
+
+Here's a sample request.
+
+```shell theme={null}
+curl https://api.goshippo.com/tracks/usps/9205590164917312751089\
+    -H "Authorization: ShippoToken <API_TOKEN>"
+```
+
+The response is similar to the example above.
+
+***
+
+## Adding metadata
+
+You can add `metadata` to the tracking request through a POST request. This is a free form field where any user-specific information can be added. By making a POST request to add metadata, all your existing webhooks will also be connected to the tracked shipment.
+
+The POST request's body needs to consist of your shipment's `tracking_number` and `carrier`:
+
+```shell theme={null}
+curl https://api.goshippo.com/tracks/\
+    -H "Authorization: ShippoToken <API_TOKEN>"\
+    -d carrier="usps"\
+    -d tracking_number="9205590164917312751089"\
+    -d metadata="Order 000123"
+```
+
+## Including package details
+
+You can include an optional boolean parameter, `include_package_details`, in the tracking POST request. This parameter is currently supported only for UPS and FedEx. If omitted, it defaults to `false`. If set to `true`, Shippo may include `weight` and `dimensions` in the tracking API response when those details are available from the carrier's tracking API. Package details are returned only in the tracking API response; track\_updated webhook payloads do not include `weight` or `dimensions`. Weight and dimensions may be partial and may be updated over time as the carrier provides additional data. Shippo includes only fields provided by the carrier and does not add default or `null` values for missing dimension fields. Dimensions are omitted only when the unit is missing and cannot be safely inferred, or when the carrier-provided data is invalid.
+
+Here's a sample request:
+
+```shell theme={null}
+curl https://api.goshippo.com/tracks/\
+    -H "Authorization: ShippoToken <API_TOKEN>"\
+    -d carrier="ups"\
+    -d tracking_number="1Z999AA10123456784"\
+    -d include_package_details=true
+```
+
+For example, when `include_package_details=true` and the carrier returns package details, the response can include:
+
+```json theme={null}
+"weight": [
+    {
+        "value": "2.2",
+        "unit": "LB"
+    },
+    {
+        "value": "1.0",
+        "unit": "KG"
+    }
+],
+"dimensions": [
+    {
+        "length": "1",
+        "width": "2",
+        "height": "3",
+        "unit": "in"
+    },
+    {
+        "length": "3",
+        "width": "5",
+        "height": "8",
+        "unit": "cm"
+    }
+],
+```
+
+## Carrier restrictions
+
+Some carriers require that you have an account with them to track shipments being delivered through them. This is only relevant if you are sending your tracking numbers as a POST to get updates via our webhook (where it is required to have a Shippo account). Otherwise, you simply wouldn't be able to track shipments through the below carriers.
+
+To track shipments with the below carriers, add your respective carrier account into your Shippo account:
+
+* Australia Post
+* BetterTrucks
+* Correos España
+* GLS US
+* Gophr
+* GSO
+* Hongkong Post
+* Jitsu
+* LSO
+* Mondial Relay
+* PCF
+* Poste Italiane
+* Purolator
+* Swyft
+
+Additionally, the following carriers only permit tracking shipments that were created though Shippo:
+
+* Canada Post
+* Colissimo
+* Deutsche Post
+* DHL eCommerce
+* DHL Germany
+* DPD UK
+* Evri UK
+* Lasership
+* New Zealand Post
+* Ontrac
+* Passport
+
+See [Carrier Accounts](/docs/Carriers/CarrierAccounts) for details on adding carrier accounts to your Shippo account.
+
+## Tracking pages
+
+Tracking pages let retailers share detailed order tracking information through the native look and feel of their own brand. You can [brand your own tracking pages](https://goshippo.com/blog/tracking-pages/) within the Shippo web app.
+
+1. Log in to our Web app to upload assets to the **Tracking** page in your settings.
+2. Publish content and retrieve your base URL from the **View test link** link.
+3. Send customers to your pages (include this link in your own emails, for example) with the `<baseurl>/<carrier>/<trackingnumber>`.
+
+By default, your URL may take the following pattern.
+
+`https://track.goshippo.com/tracking/<UserID>/<carrier>/<trackingnumber>`
+
+<img src="https://mintcdn.com/shippo-f4b7b609/o3pSHzWv8pMmorWX/images/Tracking/tracking-page.png?fit=max&auto=format&n=o3pSHzWv8pMmorWX&q=85&s=4c516ed03c9895098b57da141d3f2f63" alt="shippo tracking page sample" width="1322" height="1124" data-path="images/Tracking/tracking-page.png" />
+
+we will be usig usps for our shipping carrier
+
+> ## Documentation Index
+> Fetch the complete documentation index at: https://docs.goshippo.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+<AgentInstructions>
+
+## Submitting Feedback
+
+If you encounter incorrect, outdated, or confusing documentation on this page, submit feedback:
+
+POST https://docs.goshippo.com/feedback
+
+```json
+{
+  "path": "/docs/Tracking/TrackingCarriers",
+  "feedback": "Description of the issue"
+}
+```
+
+Only submit feedback when you have something specific and actionable to report.
+
+</AgentInstructions>
+
+# Tracking Carriers
+
+> View the full list of carriers supported for parcel tracking through the Shippo API, including tokens for each carrier.
+
+The Shippo API supports you in tracking your labels bought though Shippo as well as [label purchased outside of Shippo](/docs/Tracking/Tracking#track-individual-shipments).
+
+We support the following list of carriers for tracking.
+
+| Carrier name              | Token              |
+| ------------------------- | ------------------ |
+| Airterra                  | airterra           |
+| APC Postal                | apc\_postal        |
+| APG                       | apg                |
+| Aramex                    | aramex             |
+| Asendia                   | asendia\_us        |
+| Australia Post            | australia\_post    |
+| Better Trucks             | better\_trucks     |
+| BorderGuru                | borderguru         |
+| Boxberry                  | boxberry           |
+| Bring                     | bring              |
+| Canada Post               | canada\_post       |
+| Chronopost                | chronopost         |
+| Colissimo                 | colissimo          |
+| Collect+                  | collect\_plus      |
+| Correos BR                | correios\_br       |
+| Correos Spain             | correos\_espana    |
+| Deutsche Post             | deutsche\_post     |
+| DHL Benelux               | dhl\_benelux       |
+| DHL eCommerce             | dhl\_ecommerce     |
+| DHL Express               | dhl\_express       |
+| DHL Germany               | dhl\_germany       |
+| DPD DE                    | dpd\_de            |
+| DPD UK                    | dpd\_uk            |
+| ePostGlobal               | rr\_donnelley      |
+| Estafeta                  | estafeta           |
+| Evri UK                   | hermes\_uk         |
+| Fastway Australia         | fastway\_australia |
+| FedEx                     | fedex              |
+| Globegistics              | globegistics       |
+| GLS US                    | gls\_us            |
+| GSO                       | gso                |
+| Jitsu (formerly Axlehire) | axlehire           |
+| La Poste                  | la\_poste          |
+| Lasership                 | lasership          |
+| LSO                       | lso                |
+| Mondial Relay             | mondial\_relay     |
+| Nippon Express            | nippon\_express    |
+| NZ Post                   | new\_zealand\_post |
+| OnTrac                    | ontrac             |
+| Passport                  | passport           |
+| PCF                       | pcf                |
+| Pitney Bowes              | pitney\_bowes      |
+| Poste Italiane            | poste\_italiane    |
+| Posti                     | posti              |
+| Purolator                 | purolator          |
+| Royal Mail Intersoft      | royal\_mail        |
+| Royal Mail SF             | royal\_mail\_sf    |
+| Russian Post              | russian\_post      |
+| SkyPostal                 | skypostal          |
+| Stuart                    | stuart             |
+| UDS                       | uds                |
+| UPS                       | ups                |
+| USPS                      | usps               |
+| Veho                      | veho               |
+
+<Info>
+  **note**
+
+  There are some restrictions for some carriers. Refer to our [carrier restrictions](/docs/Tracking/Tracking#carrier-restrictions) guide for more information.
+</Info>
+
+> ## Documentation Index
+> Fetch the complete documentation index at: https://docs.goshippo.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+<AgentInstructions>
+
+## Submitting Feedback
+
+If you encounter incorrect, outdated, or confusing documentation on this page, submit feedback:
+
+POST https://docs.goshippo.com/feedback
+
+```json
+{
+  "path": "/docs/Shipments/Shipments",
+  "feedback": "Description of the issue"
+}
+```
+
+Only submit feedback when you have something specific and actionable to report.
+
+</AgentInstructions>
+
+# Create a shipment
+
+> Learn how to create a Shipment object in the Shippo API to automatically retrieve available shipping rates.
+
+In the Shippo API, creating a [Shipment object](/api-reference/shipments/list-all-shipments) will automatically retrieve a list available rates.\
+To create a Shipment object, call the shipment endpoint `https://api.goshippo.com/shipments/`.
+At a minimum, a shipment requires a `address_from`, `address_to`, and `parcels`.
+
+To learn how to create a Shipment object, follow [our guide](/docs/Guides_general/generate_shipping_label#create-a-shipment-object).
+
+<Warning>
+  Shipment objects and their associated rates are only retrievable for up to 390 days after creation.
+</Warning>
+
+> ## Documentation Index
+> Fetch the complete documentation index at: https://docs.goshippo.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+<AgentInstructions>
+
+## Submitting Feedback
+
+If you encounter incorrect, outdated, or confusing documentation on this page, submit feedback:
+
+POST https://docs.goshippo.com/feedback
+
+```json
+{
+  "path": "/docs/Shipments/Returns",
+  "feedback": "Description of the issue"
+}
+```
+
+Only submit feedback when you have something specific and actionable to report.
+
+</AgentInstructions>
+
+# Returns
+
+> Generate scan-based return labels for USPS, FedEx, and UPS, and set custom return addresses using the Shippo API.
+
+Setup your reverse-logistics and returns easily through the API.
+
+1. [Scan-based return labels](#generate-a-return-label): These labels are free to print. You won't get charged unless it gets used. It's a great option if you want to add return labels to all your outbound packages. All Shippo return labels are scan-based, available for USPS, FedEx, and UPS shipments only. At the moment, you can only generate return labels for the same carrier that your outbound shipment was sent with
+2. [Return address](#return-address): For failed deliveries or return shipments, you can specify a different return address than the initial outbound location
+
+## Generate a return label
+
+### Returns for USPS, FedEx, and UPS
+
+To generate a pay-on-use return label, create a new Shipment object and set an `is_return` field as `true` inside the extra attribute.
+
+<Info>
+  **Note**
+
+  For USPS, FedEx, and UPS, do not swap the addresses yourself -- the Shippo API will take care of this for you. This means that the original `address_to` of the outbound transaction becomes the `address_from` for the return label.
+</Info>
+
+<CodeGroup>
+  ```shell cURL {% title="cURL" %} theme={null}
+  curl https://api.goshippo.com/shipments/ \
+      -H "Authorization: ShippoToken <API_Token>" \
+      -H "Content-Type: application/json" \
+      -d '{
+          "address_from": {
+              "name": "Mr. Hippo",
+              "street1": "215 Clayton St.",
+              "city": "San Francisco",
+              "state": "CA",
+              "zip": "94117",
+              "country": "US",
+              "metadata": "merchant address"
+          },
+          "address_to": {
+              "name": "Mrs. Hippo",
+              "street1": "965 Mission St.",
+              "city": "San Francisco",
+              "state": "CA",
+              "zip": "94105",
+              "country": "US",
+              "metadata": "customer address"
+          },
+          "parcels": ["7df2ecf8b4224763ab7c71fae7ec8274"],
+          "shipment_date": "2023-12-03T12:00:00.000Z",
+          "extra": { "is_return": true },
+          "async": false
+      }'
+  ```
+
+  ```Python {% title="Python" %} theme={null}
+  # Create address_from, address_to and parcel variables first
+  shipment_return = shippo_sdk.shipments.create(
+      components.ShipmentCreateRequest(
+          address_from=address_from,
+          address_to=address_to,
+          parcels=[parcel],
+          extra=components.ShipmentExtra(
+              is_return=True
+          ),
+          async_=False
+      )
+  )
+  ```
+
+  ```PHP {% title="PHP" %} theme={null}
+  // Create $fromAddress, $toAddress and $parcel variables first
+  $shipment_return = Shippo_Shipment::create(
+      array(
+          "address_from" => $fromAddress,
+          "address_to" => $toAddress,
+          "parcels" => array($parcel),
+          "extra" => array("is_return" => true),
+          "async" => false
+      )
+  );
+  ```
+
+  ```typescript {% title="TypeScript" %} theme={null}
+  // Create addressFrom, addressTo and parcel variables first
+  const shipmentReturn = await shippo.shipments.create({
+      addressFrom: addressFrom,
+      addressTo: addressTo,
+      parcels: [parcel],
+      extra: {
+          isReturn: true
+      },
+      async: false
+  });
+  ```
+
+  ```Java {% title="Java" %} theme={null}
+  HashMap<String, Object> returnShipmentMap = new HashMap<String, Object>();
+  returnShipmentMap.put("address_from", addressFromMap);
+  returnShipmentMap.put("address_to", addressToMap);
+  returnShipmentMap.put("parcels", parcelMap);
+  HashMap<String, Object> extraMap = new HashMap<String, Object>();
+  extraMap.put("is_return", true);
+  returnShipmentMap.put("extra", extraMap);
+  returnShipmentMap.put("async", false);
+
+  Shipment.create(returnShipmentMap);
+  ```
+
+  ```cs C# {% title="C#" %} theme={null}
+  Shipment shipmentReturn = await sdk.Shipments.CreateAsync(
+      new ShipmentCreateRequest()
+      {
+          AddressFrom = addressFrom,
+          AddressTo = addressTo,
+          Parcels = new List<Shippo.Models.Components.Parcels>() { parcel },
+          Extra = new ShipmentExtra()
+          {
+              IsReturn = true
+          },
+          Async = false,
+      }
+  );
+  ```
+</CodeGroup>
+
+After creating the Shipment, follow the [normal process of retrieving rates](/docs/Guides_general/generate_shipping_label) to select the service level that you'd like to use for the return, and proceed to create your return label.
+
+When the return label is generated, it will be valid for a period of time. After this time, carriers may still accept these labels but it can cause the shipment to be flagged, returned, or destroyed without being eligible for a refund. Depending on your carrier, generated return labels are valid for different periods of time.
+
+| Carrier | Return label validity |
+| ------- | --------------------- |
+| USPS    | 1 year                |
+| FedEx   | 2 years               |
+| UPS     | 100 days              |
+
+### Returns for other carriers
+
+If you need to generate a label for return shipments for carriers other than USPS, FedEx, and UPS, you can create a normal shipping label just with the addresses swapped.
+
+However, normal shipping labels have a limited shipping window and the label may be rejected after that, so we do not recommend inserting them into your outbound package. Instead, you can provide a method for customers to contact your support services, and you can provide them with the link to the label.
+
+```shell cURL theme={null}
+curl https://api.goshippo.com/shipments/ \
+    -H "Authorization: ShippoToken <API_Token>" \
+    -H "Content-Type: application/json" \
+    -d '{
+        "address_from": {
+            "name": "Mrs. Hippo",
+            "street1": "965 Mission St.",
+            "city": "San Francisco",
+            "state": "CA",
+            "zip": "94105",
+            "country": "US",
+            "metadata": "customer address"
+        },
+        "address_to": {
+            "name": "Mr. Hippo",
+            "street1": "215 Clayton St.",
+            "city": "San Francisco",
+            "state": "CA",
+            "zip": "94117",
+            "country": "US",
+            "metadata": "merchant address"
+        },
+        "parcels": ["7df2ecf8b4224763ab7c71fae7ec8274"],
+        "shipment_date": "2023-12-03T12:00:00.000Z",
+        "async": false
+    }'
+```
+
+## Return Address
+
+When creating an outbound Shipment for USPS, FedEx and UPS, you can specify a `address_return` that's different from your original shipping address (`address_from`). This can be useful if you want returned shipments to go back to a different place. For instance:
+
+1. Failed deliveries: the Shipment will be returned to a different facility than the original outbound destination.
+2. Scan-based labels: the Shippo API automatically swaps the `address_from` and `address_to` during the return label creation process. You can pass any address `object_id` or nested object in the corresponding fields -- they don't need to match the outbound addresses.
+
+<CodeGroup>
+  ```shell cURL {% title="cURL" %} theme={null}
+  curl https://api.goshippo.com/shipments/\
+      -H "Authorization: ShippoToken <API_Token>"\
+      -d address_from="d799c2679e644279b59fe661ac8fa488"\
+      -d address_to="42236bcf36214f62bcc6d7f12f02a849"\
+      -d address_return="1d3tb2c51chj77ci27b7dfne3fibp264"\
+      -d parcels=["7df2ecf8b4224763ab7c71fae7ec8274"]\
+      -d shipment_date="2023-12-03T12:00:00.000Z"\
+      -d async=false
+  ```
+
+  ```Python {% title="Python" %} theme={null}
+  # Create address_from, address_to, address_return and parcel variables first
+  shipment_return = shippo_sdk.shipments.create(
+      components.ShipmentCreateRequest(
+          address_from=address_from,
+          address_to=address_to,
+          address_return=address_return,
+          parcels=[parcel],
+      )
+  )
+  ```
+
+  ```PHP {% title="PHP" %} theme={null}
+  // Create $fromAddress, $toAddress, $returnAddress and $parcel variables first
+  $shipment_return = Shippo_Shipment::create(
+      array(
+          "address_from" => $fromAddress,
+          "address_to" => $toAddress,
+          "address_return" => $returnAddress,
+          "parcels" => array($parcel),
+          "async" => false
+      )
+  );
+  ```
+
+  ```typescript {% title="TypeScript" %} theme={null}
+  // Create addressFrom, addressTo, addressReturn and parcel variables first
+  const shipmentReturn = await shippo.shipments.create({
+      addressFrom: addressFrom,
+      addressTo: addressTo,
+      addressReturn: addressReturn,
+      parcels: [parcel],
+      async: false
+  });
+  ```
+
+  ```Java {% title="Java" %} theme={null}
+  HashMap<String, Object> returnShipmentMap = new HashMap<String, Object>();
+  returnShipmentMap.put("address_from", addressFromMap);
+  returnShipmentMap.put("address_to", addressToMap);
+  returnShipmentMap.put("address_return", addressReturnMap);
+  returnShipmentMap.put("parcels", parcelMap);
+  returnShipmentMap.put("async", false);
+
+  Shipment.create(returnShipmentMap);
+  ```
+
+  ```cs C# {% title="C#" %} theme={null}
+  // Create addressFrom, addressTo, addressReturn and parcel variables first
+  Shipment shipmentReturn = await sdk.Shipments.CreateAsync(
+      new ShipmentCreateRequest()
+      {
+          AddressFrom = addressFrom,
+          AddressTo = addressTo,
+          AddressReturn = addressReturn,
+          Parcels = new List<Shippo.Models.Components.Parcels>() { parcel },
+          Async = false,
+      }
+  );
+  ```
+</CodeGroup>
+
+> ## Documentation Index
+> Fetch the complete documentation index at: https://docs.goshippo.com/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+<AgentInstructions>
+
+## Submitting Feedback
+
+If you encounter incorrect, outdated, or confusing documentation on this page, submit feedback:
+
+POST https://docs.goshippo.com/feedback
+
+```json
+{
+  "path": "/docs/Shipments/DropoffPickup",
+  "feedback": "Description of the issue"
+}
+```
+
+Only submit feedback when you have something specific and actionable to report.
+
+</AgentInstructions>
+
+# Drop off and Pickup
+
+> Learn how to create drop-off shipments and schedule carrier pickups using the Shippo API, including QR code support.
+
+## Drop off
+
+A drop off is a location where you can bring your parcel, with a printed label, to be collected by your carrier and delivered to its destination. This is a service that is offered by some carriers. Drop off locations can be places like shipping centers, lockers, or retail locations.
+
+### Create a drop off shipment
+
+You can create drop off shipment using a carrier with a drop off [service level](/api-reference/service-groups/list-all-service-groups). Review our [carriers](/docs/Carriers/CarrierCapabilities) to see which support drop offs.
+
+Some carriers support creating a scannable code like a barcode or QR code that you can bring to your drop off location without printing a label. This code can be presented at the drop off location using a user's mobile device and the appropriate shipping label can be printed and attached to the parcel. This is particularly useful for users without printing facilities. To request a scannable code, set  `extra.qr_code_requested` to `true`.
+
+```shell Create shipment request theme={null}
+curl --location 'https://api.goshippo.com/shipments/' \
+--header 'Authorization: ShippoToken <API_TOKEN>' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    
+  "address_from":{
+    "name": "Mr. Hippo",
+    "company": "",
+    "street1": "215 Clayton St.",
+    "city": "San Francisco",
+    "state": "CA",
+    "zip": "94117",
+    "country": "US",
+    "phone": "4151234567",
+    "email": "mrhippo@goshippo.com",
+    "is_residential": null
+   },
+   "address_to": {
+    "name": "Mrs. Hippo",
+    "company": "",
+    "street1": "1092 Indian Summer Ct",
+    "city": "San Jose",
+    "state": "CA",
+    "zip": "95122",
+    "country": "US",
+    "phone": "4159876543",
+    "email": "mrshippo@goshippo.com",
+    "is_residential": null
+
+    },
+   "parcels": {
+    "length": "10",
+    "width": "10",
+    "height": "10",
+    "distance_unit": "in",
+    "weight": "1",
+    "mass_unit": "lb",
+    "metadata": "Customer ID 123456"
+  },
+    "extra": {
+        "reference_1": "Created on",
+        "reference_2": "Shippo",
+        "qr_code_requested": true
+    },
+    
+    "metadata": "Customer ID 123456",
+    "carrier_accounts": ["<your carrier account object_id>"],
+    "async": false
+}'
+```
+
+```json Create shipment response theme={null}
+{
+    "object_id": "06bee61d141545d08690631fbb27f602",
+    "object_created": "2024-06-25T21:41:45.870Z",
+    "object_updated": "2024-06-25T21:41:46.148Z",
+    "object_owner": "mrhippo@goshippo.com",
+    "test": false,
+    "metadata": "Customer ID 123456",
+    "messages": [],
+    "extra": {
+        "qr_code_requested": true,
+        "reference_1": "Created on",
+        "reference_2": "Shippo"
+    },
+    "order": null,
+    "carrier_accounts": [
+        "425b61f50b3642948fb3afa8b3687581"
+    ],
+    "address_from": {
+        "name": "Mr. Hippo",
+        "street1": "215 Clayton St.",
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "94117",
+        "country": "US",
+        "phone": "4151234567",
+        "email": "mrhippo@goshippo.com",
+        "company": "",
+        "is_residential": null,
+        "test": false,
+        "object_id": "dc9ab83e3c9d430e9826cf1bea496fac",
+        "is_complete": true,
+        "validation_results": {}
+    },
+    "address_to": {
+        "name": "Mrs. Hippo",
+        "street1": "1092 Indian Summer Ct",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95122",
+        "country": "US",
+        "phone": "4159876543",
+        "email": "mrshippo@goshippo.com",
+        "company": "",
+        "is_residential": null,
+        "test": false,
+        "object_id": "81db78275d774cfd81bc8f51e8e4e5f4",
+        "is_complete": true,
+        "validation_results": {}
+    },
+    "parcels": [
+        {
+            "object_owner": "mrhippo@goshippo.com",
+            "object_state": "VALID",
+            "mass_unit": "lb",
+            "template": null,
+            "extra": {},
+            "metadata": "Customer ID 123456",
+            "test": false,
+            "object_id": "27a76dad79a84655add8eda8866b397e",
+            "object_created": "2024-06-25T21:41:45.870Z",
+            "object_updated": "2024-06-25T21:41:45.870Z",
+            "length": "10.0000",
+            "width": "10.0000",
+            "height": "10.0000",
+            "distance_unit": "in",
+            "weight": "1.0000",
+            "line_items": []
+        }
+    ],
+    "status": "SUCCESS",
+    "shipment_date": "2024-06-25T21:41:45.870Z",
+    "address_return": {
+        "name": "Mr. Hippo",
+        "street1": "215 Clayton St.",
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "94117",
+        "country": "US",
+        "phone": "4151234567",
+        "email": "mrhippo@goshippo.com",
+        "company": "",
+        "is_residential": null,
+        "test": false,
+        "object_id": "dc9ab83e3c9d430e9826cf1bea496fac",
+        "is_complete": true,
+        "validation_results": {}
+    },
+    "rates": [
+        {
+            "object_id": "37ccdc9c210940cb8c554610207b553d",
+            "object_created": "2024-06-25T21:41:46.129Z",
+            "object_owner": "mrhippo@goshippo.com",
+            "shipment": "06bee61d141545d08690631fbb27f602",
+            "amount": "8.45",
+            "currency": "USD",
+            "amount_local": "8.45",
+            "currency_local": "USD",
+            "attributes": [
+                "FASTEST",
+                "CHEAPEST",
+                "BESTVALUE"
+            ],
+            "provider": "USPS",
+            "provider_image_75": "https://shippo-static.s3.amazonaws.com/providers/75/usps.png",
+            "provider_image_200": "https://shippo-static.s3.amazonaws.com/providers/200/usps.png",
+            "arrives_by": "2024-07-05",
+            "duration_terms": "2 to 3 business days",
+            "messages": [],
+            "carrier_account": "425b61f50b3642948fb3afa8b3687581",
+            "zone": null,
+            "test": false,
+            "servicelevel": {
+                "name": "Ground Advantage",
+                "token": "usps_ground_advantage",
+                "terms": "",
+                "extended_token": "usps_ground_advantage",
+                "display_name": "Ground Advantage",
+                "parent_servicelevel": null
+            },
+            "estimated_days": 3,
+            "included_insurance_price": null
+        }
+    ],
+    "alternate_address_to": null,
+    "customs_declaration": null
+}
+```
+
+Use the rate `object_id` associated with the new service level token that supports drop off in the [transactions endpoint](/api-reference/transactions/create-a-shipping-label) to purchase the label. In this example use the token `usps_ground_advantage`.
+
+```shell Purchase label for drop off request theme={null}
+curl --location --request POST 'https://api.goshippo.com/transactions' \
+--header 'Authorization: ShippoToken <API_TOKEN>' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+  "rate": "37ccdc9c210940cb8c554610207b553d",
+  "async": false,
+  "label_file_type": "PDF",
+  "metadata": "usps_rate_qr_code_success"
+}'
+```
+
+```json Purchase label for drop off response theme={null}
+{
+  "object_state": "VALID",
+  "status": "SUCCESS",
+  "object_created": "2024-06-25T21:42:19.048Z",
+  "object_updated": "2024-06-25T21:42:24.926Z",
+  "object_id": "c8b2789b5e66420186450167eeb761f9",
+  "object_owner": "mrhippo@goshippo.com",
+  "test": false,
+  "rate": "37ccdc9c210940cb8c554610207b553d",
+  "tracking_number": "92055901755477000000000015",
+  "tracking_status": "PRE_TRANSIT",
+  "eta": null,
+  "tracking_url_provider": "https://tools.usps.com/go/TrackConfirmAction_input?origTrackNum=92055901755477000000000015",
+  "label_url": "https://shippo-delivery-east.s3.amazonaws.com/c8b2789b5e66420186450167eeb761f9.pdf",
+  "commercial_invoice_url": null,
+  "messages": [],
+  "order": null,
+  "metadata": "usps_rate_qr_code_success",
+  "parcel": "27a76dad79a84655add8eda8866b397e",
+  "billing": {
+    "payments": []
+  },
+  "qr_code_url": "https://shippo-delivery-east.s3.amazonaws.com/c8b2789b5e66420186450167eeb761f9_qr_code.png",
+  "created_by": {
+    "first_name": "Mr.",
+    "last_name": "Hippo",
+    "username": "mrhippo@goshippo.com"
+  }
+}
+```
+
+You can download and scan the scannable code `qr_code_url` at supporting drop off locations.
+
+<Info>
+  **Note**
+
+  Your carrier will not always return a QR code. This may be because the carrier does not support that feature or because of other limitations.
+</Info>
+
+### Create a drop off Instalabel shipment
+
+Use the following example to create an [Instalabel](/docs/Guides_general/Single_call) for a drop off shipment.
+Before creating an Instalabel, you must have your [carrier object ID](/docs/Shipments/RateShoppingWithCarriers#capture-carrier-object-id) and the [service level token](/api-reference/service-groups/list-all-service-groups) that supports drop off.
+
+```shell Drop off Instalabel request theme={null}
+curl --location 'https://api.goshippo.com/transactions/' \
+--header 'Authorization: ShippoToken <API_TOKEN>' \
+--header 'Content-Type: application/json'\
+--data-raw '{
+  "shipment": {
+    "address_from": {
+            "name": "Mr. Hippo",
+            "street1": "215 Clayton St.",
+            "city": "San Francisco",
+            "state": "CA",
+            "zip": "94117",
+            "country": "US",
+            "phone": "4151234567",
+            "email": "mrhippo@goshippo.com",
+            "is_residential": null
+    },
+    "address_to": {
+      "name": "Mrs. Hippo",
+      "street1": "1092 Indian Summer Ct",
+      "city": "San Jose",
+      "state": "CA",
+      "zip": "95122",
+      "country": "US",
+      "phone": "4159876543",
+      "email": "mrshippo@goshippo.com"
+    },
+    "parcels": [{
+      "weight": "1",
+      "length": "10",
+      "width": "10",
+      "height": "10",
+      "distance_unit": "in",
+      "mass_unit": "lb"
+    }]
+  },
+  "carrier_account": "2c79a675977d459ca7b74e003ed97854",
+  "servicelevel_token": "usps_ground_advantage"
+}'
+```
+
+```json Drop off Instalabel response theme={null}
+{
+  "object_state": "VALID",
+  "status": "SUCCESS",
+  "object_created": "2024-06-25T21:42:19.048Z",
+  "object_updated": "2024-06-25T21:42:24.926Z",
+  "object_id": "c8b2789b5e66420186450167eeb761f9",
+  "object_owner": "mrhippo@goshippo.com",
+  "test": false,
+  "rate": "37ccdc9c210940cb8c554610207b553d",
+  "tracking_number": "92055901755477000000000015",
+  "tracking_status": "PRE_TRANSIT",
+  "eta": null,
+  "tracking_url_provider": "https://tools.usps.com/go/TrackConfirmAction_input?origTrackNum=92055901755477000000000015",
+  "label_url": "https://shippo-delivery-east.s3.amazonaws.com/c8b2789b5e66420dffdfsdfgfg167eeb761f9.pdf",
+  "commercial_invoice_url": null,
+  "messages": [],
+  "order": null,
+  "metadata": "usps_rate_qr_code_success",
+  "parcel": "27a76dad79a84655add8eda8866b397e",
+  "billing": {
+    "payments": []
+  },
+  "qr_code_url": null,
+  "created_by": {
+    "first_name": "Mr.",
+    "last_name": "Hippo",
+    "username": "mrhippo@goshippo.com"
+  }
+}
+```
+
+## Pickup
+
+A pickup refers to a carrier collecting a parcel from your designated location instead of you bringing the parcel to the carrier location.
+To request a pickup, use the [pickup endpoint](/api-reference/pickups/create-a-pickup).
+
+```shell Create a pickup request theme={null}
+curl https://api.goshippo.com/pickups/  \
+-H "Authorization: ShippoToken <API_TOKEN>" \
+-H "Content-Type: application/json"  \
+-d '{
+      "carrier_account":"6c51273296864869829b96a80fb13ea1",
+      "location":{
+              "building_location_type": "Other",
+              "building_type": "suite",
+              "instructions": "Behind screen door",
+              "address": {
+                      "name": "Mrs Hippo",
+                      "company": "Hungry Hippos",
+                      "street1": "965 Mission St #201",
+                      "city": "San Francisco",
+                      "state": "CA",
+                      "zip": "95122",
+                      "country": "US",
+                      "phone": "+14159876543",
+                      "email": "mrshippo@shippo.com"
+                  }
+      },
+      "transactions": ["7439c279b374494c9a80ca24f59e6fc5"],
+      "requested_start_time":"2024-05-12T12:00:00Z",
+      "requested_end_time": "2024-05-12T16:00:00Z",
+      "metadata": "Customer ID 123456",
+      "is_test": false
+    }'
+```
+
+```json Create a pickup response theme={null}
+    {
+  "carrier_account": "6c51273296864869829b96a80fb13ea1",
+  "location": {
+    "address": {
+        "name": "Mrs Hippo",
+        "company": "Hungry Hippos",
+        "street1": "965 Mission St #201",
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "95122",
+        "country": "US",
+        "phone": "+14159876543",
+        "email": "mrshippo@shippo.com"
+    },
+    "building_location_type": "Other",
+    "building_type": "suite",
+    "instructions": "Behind screen door"
+  },
+  "metadata": "string",
+  "requested_end_time": "2024-05-12T16:00:00Z",
+  "requested_start_time": "2024-05-12T12:00:00Z",
+  "transactions": [
+    "7439c279b374494c9a80ca24f59e6fc5"
+  ]
+}
+
+```

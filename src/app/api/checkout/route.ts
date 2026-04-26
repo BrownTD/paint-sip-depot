@@ -9,6 +9,7 @@ import {
   getReservationExpiry,
 } from "@/lib/booking";
 import { getCheckoutTotalCents } from "@/lib/checkout-pricing";
+import { buildShippoEventHostAddress, getShippoUspsRateQuote, type ShippoRateQuote } from "@/lib/shippo";
 import { bookingSchema } from "@/lib/validations";
 
 class CheckoutError extends Error {
@@ -83,7 +84,7 @@ async function reserveBookingForCheckout({
 
       const availability = await getRemainingTickets(tx, event.id, event.capacity, now);
       const pricing = getCheckoutTotalCents(event.ticketPriceCents, quantity, {
-        includeShipping: event.fulfillmentMethod !== "PICKUP",
+        includeShipping: false,
       });
 
       if (quantity > availability.remaining) {
@@ -160,6 +161,36 @@ export async function POST(request: Request) {
     });
 
     try {
+      let shippingQuote: ShippoRateQuote | null = null;
+      if (event.fulfillmentMethod !== "PICKUP") {
+        const hostShippoAddress = buildShippoEventHostAddress({
+          shippingRecipientName: event.shippingRecipientName,
+          shippingAddress: event.shippingAddress,
+          shippingCity: event.shippingCity,
+          shippingState: event.shippingState,
+          shippingZip: event.shippingZip,
+        });
+        const singleKitShippingQuote = await getShippoUspsRateQuote({
+          toAddress: hostShippoAddress,
+          quantity: 1,
+          metadata: `Single kit shipping quote for booking ${booking.id} event ${event.id}`,
+        });
+        const fulfillmentShippingQuote = await getShippoUspsRateQuote({
+          toAddress: hostShippoAddress,
+          quantity,
+          metadata: `Fulfillment shipment for booking ${booking.id} event ${event.id}`,
+        });
+        shippingQuote = {
+          ...fulfillmentShippingQuote,
+          amountCents: singleKitShippingQuote.amountCents,
+          provider: singleKitShippingQuote.provider,
+          service:
+            quantity > 1
+              ? `${singleKitShippingQuote.service} (single-kit guest shipping charge)`
+              : singleKitShippingQuote.service,
+        };
+      }
+
       const cancelUrl =
         event.visibility === "PRIVATE" && event.eventCode
           ? getAbsoluteRequestUrl(
@@ -168,7 +199,10 @@ export async function POST(request: Request) {
             )
           : getAbsoluteRequestUrl(request, `/e/${event.slug}?canceled=true`);
 
-      const pricing = getCheckoutTotalCents(event.ticketPriceCents, quantity);
+      const pricing = getCheckoutTotalCents(event.ticketPriceCents, quantity, {
+        includeShipping: false,
+      });
+      const shippingFeeCents = shippingQuote?.amountCents ?? 0;
       const lineItems = [
         {
           price_data: {
@@ -197,17 +231,19 @@ export async function POST(request: Request) {
           },
           quantity: 1,
         },
-        ...(pricing.shippingFeeCents > 0
+        ...(shippingFeeCents > 0
           ? [
               {
                 price_data: {
                   currency: "usd",
                   product_data: {
-                    name: "Event Kit Shipping",
-                    description: `Supplies ship to ${event.shippingRecipientName || "the host"} for this event`,
-                    tax_code: "txcd_99999999",
+                    name: `${shippingQuote?.provider ?? "USPS"} Event Kit Shipping`,
+                    description: `${shippingQuote?.service ?? "USPS"} supplies shipment to ${
+                      event.shippingRecipientName || "the host"
+                    }`,
+                    tax_code: "txcd_00000000",
                   },
-                  unit_amount: pricing.shippingFeeCents,
+                  unit_amount: shippingFeeCents,
                 },
                 quantity: 1,
               },
@@ -245,6 +281,12 @@ export async function POST(request: Request) {
         data: {
           stripeCheckoutSessionId: checkoutSession.id,
           reservationExpiresAt,
+          amountPaidCents: pricing.totalCents + shippingFeeCents,
+          shippingAmountCents: shippingFeeCents,
+          shippingProvider: shippingQuote?.provider,
+          shippingService: shippingQuote?.service,
+          shippoShipmentId: shippingQuote?.shipmentId,
+          shippoRateId: shippingQuote?.rateId,
         },
       });
 

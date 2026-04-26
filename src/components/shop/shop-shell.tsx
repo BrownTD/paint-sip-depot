@@ -298,9 +298,15 @@ function ShopCartDrawer() {
   const { items, isOpen, closeCart, updateItemQuantity, removeItem, clearCart } = useShopCart();
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
+  const [shippingAddress, setShippingAddress] = useState("");
+  const [shippingCity, setShippingCity] = useState("");
+  const [shippingState, setShippingState] = useState("");
+  const [shippingZip, setShippingZip] = useState("");
+  const [shippingPhone, setShippingPhone] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const subtotalCents = items.reduce((sum, item) => sum + item.unitPriceCents * item.quantity, 0);
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const cartCurrency = items[0]?.currency ?? "usd";
   const totalLabel = items.length > 0 ? formatCurrencyAmount(subtotalCents, cartCurrency) : null;
 
@@ -309,8 +315,27 @@ function ShopCartDrawer() {
       return;
     }
 
-    if (!customerName.trim() || !customerEmail.trim()) {
+    if (
+      !customerName.trim() ||
+      !customerEmail.trim() ||
+      !shippingAddress.trim() ||
+      !shippingCity.trim() ||
+      !shippingState.trim() ||
+      !shippingZip.trim() ||
+      !shippingPhone.trim()
+    ) {
       return;
+    }
+
+    if (totalItems > 50) {
+      const shouldContinue = window.confirm(
+        "This is a large supply order. Hosting an event may make this easier to manage. Select OK to continue checkout, or Cancel to visit the Host an Event page.",
+      );
+
+      if (!shouldContinue) {
+        window.location.href = "/host";
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -330,6 +355,12 @@ function ShopCartDrawer() {
           })),
           customerName,
           customerEmail,
+          shippingName: customerName,
+          shippingAddress,
+          shippingCity,
+          shippingState,
+          shippingZip,
+          shippingPhone,
         }),
       });
       const data = await response.json();
@@ -425,7 +456,7 @@ function ShopCartDrawer() {
                         <span className="min-w-[2ch] text-center text-sm font-medium">{item.quantity}</span>
                         <button
                           type="button"
-                          onClick={() => updateItemQuantity(item.id, Math.min(25, item.quantity + 1))}
+                          onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
                           className="inline-flex h-8 w-8 items-center justify-center rounded-full text-black transition hover:bg-black hover:text-white"
                           aria-label="Increase quantity"
                         >
@@ -455,6 +486,40 @@ function ShopCartDrawer() {
                 placeholder="you@example.com"
                 className="h-12 rounded-full bg-[#f3f1ef] px-4"
               />
+              <Input
+                value={shippingAddress}
+                onChange={(event) => setShippingAddress(event.target.value)}
+                placeholder="Shipping address"
+                className="h-12 rounded-full bg-[#f3f1ef] px-4"
+              />
+              <div className="grid grid-cols-3 gap-2">
+                <Input
+                  value={shippingCity}
+                  onChange={(event) => setShippingCity(event.target.value)}
+                  placeholder="City"
+                  className="h-12 rounded-full bg-[#f3f1ef] px-4"
+                />
+                <Input
+                  value={shippingState}
+                  onChange={(event) => setShippingState(event.target.value.toUpperCase())}
+                  placeholder="SC"
+                  maxLength={2}
+                  className="h-12 rounded-full bg-[#f3f1ef] px-4"
+                />
+                <Input
+                  value={shippingZip}
+                  onChange={(event) => setShippingZip(event.target.value)}
+                  placeholder="ZIP"
+                  className="h-12 rounded-full bg-[#f3f1ef] px-4"
+                />
+              </div>
+              <Input
+                type="tel"
+                value={shippingPhone}
+                onChange={(event) => setShippingPhone(event.target.value)}
+                placeholder="Phone for shipping"
+                className="h-12 rounded-full bg-[#f3f1ef] px-4"
+              />
             </div>
 
             <div className="flex items-center justify-between pt-2">
@@ -476,7 +541,16 @@ function ShopCartDrawer() {
               type="button"
               onClick={() => void handleCheckout()}
               className="h-12 w-full rounded-full bg-black text-sm font-semibold text-white hover:bg-black/95"
-              disabled={isSubmitting || !customerName.trim() || !customerEmail.trim()}
+              disabled={
+                isSubmitting ||
+                !customerName.trim() ||
+                !customerEmail.trim() ||
+                !shippingAddress.trim() ||
+                !shippingCity.trim() ||
+                !shippingState.trim() ||
+                !shippingZip.trim() ||
+                !shippingPhone.trim()
+              }
             >
               {isSubmitting ? (
                 <>
@@ -577,7 +651,7 @@ export function ShopChrome({
             item.id === existingItem.id
               ? {
                   ...item,
-                  quantity: Math.min(25, item.quantity + nextItem.quantity),
+                  quantity: item.quantity + nextItem.quantity,
                 }
               : item,
           );

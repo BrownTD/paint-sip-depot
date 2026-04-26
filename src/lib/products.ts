@@ -30,6 +30,78 @@ const PRODUCT_VARIANT_ORDER: ProductVariantSize[] = [
 const PAINT_KIT_TRAILING_IMAGE_PATH = "/Misc/supllies.png";
 const DEFAULT_STRIPE_PRODUCT_TAX_CODE = "txcd_99999999";
 
+const CANVAS_SPEC_BY_SIZE = {
+  [ProductVariantSize.MEDIUM]: {
+    dimensions: "11 x 14 x 0.625 in",
+    weight: "0.75 lb",
+    material: "Cotton canvas + wooden frame",
+    packageDimensions: {
+      length: 14,
+      width: 11,
+      height: 0.63,
+      weight: 12,
+    },
+  },
+  [ProductVariantSize.LARGE]: {
+    dimensions: "12 x 16 x 0.625 in",
+    weight: "1 lb",
+    material: "Cotton canvas + wooden frame",
+    packageDimensions: {
+      length: 16,
+      width: 12,
+      height: 0.63,
+      weight: 16,
+    },
+  },
+} as const;
+
+const PAINT_KIT_SHARED_SPECS = {
+  spec_palette: "4.9 x 3.4 x 0.4 in | 2 oz | Plastic",
+  spec_brushes: "7 x 0.25 x 0.25 in | 1 oz | Nylon",
+  spec_apron_packaged: "5 x 3.5 x 0.5 in | 2 oz | Polyethylene",
+  spec_easel: "12 x 9 x 0.2 in | 4 oz | Cardboard",
+  spec_paint_cups: "6.8 x 1.3 x 0.78 in | 4 oz | Plastic + acrylic paint",
+  spec_water_cup: "3 x 6.1 x 12.4 in | 0.16 oz | Plastic",
+};
+
+const CATEGORY_PRODUCT_SPECS = {
+  cat_palettes: {
+    spec_item: "Palette",
+    spec_dimensions: "4.9 x 3.4 x 0.4 in",
+    spec_weight: "2 oz",
+    spec_material: "Plastic",
+    packageDimensions: { length: 4.9, width: 3.4, height: 0.4, weight: 2 },
+  },
+  cat_brushes: {
+    spec_item: "Brushes",
+    spec_dimensions: "7 x 0.25 x 0.25 in",
+    spec_weight: "1 oz",
+    spec_material: "Nylon",
+    packageDimensions: { length: 7, width: 0.25, height: 0.25, weight: 1 },
+  },
+  cat_aprons: {
+    spec_item: "Apron, packaged",
+    spec_dimensions: "5 x 3.5 x 0.5 in",
+    spec_weight: "2 oz",
+    spec_material: "Polyethylene",
+    packageDimensions: { length: 5, width: 3.5, height: 0.5, weight: 2 },
+  },
+  cat_easels: {
+    spec_item: "Easel",
+    spec_dimensions: "12 x 9 x 0.2 in",
+    spec_weight: "4 oz",
+    spec_material: "Cardboard",
+    packageDimensions: { length: 12, width: 9, height: 0.2, weight: 4 },
+  },
+  cat_paint: {
+    spec_item: "Paint cups, 6-count strip",
+    spec_dimensions: "6.8 x 1.3 x 0.78 in",
+    spec_weight: "4 oz",
+    spec_material: "Plastic + acrylic paint",
+    packageDimensions: { length: 6.8, width: 1.3, height: 0.78, weight: 4 },
+  },
+} as const;
+
 export class ProductServiceError extends Error {
   status: number;
 
@@ -259,6 +331,66 @@ function serializeColorOptionsMetadata(colorOptions: PreparedColorOption[]) {
   );
 }
 
+function buildStripeSpecMetadata(categoryId: string): Record<string, string> {
+  if (!isCanvasCategory(categoryId)) {
+    const spec = CATEGORY_PRODUCT_SPECS[categoryId as keyof typeof CATEGORY_PRODUCT_SPECS];
+    if (!spec) {
+      return {};
+    }
+
+    return {
+      attributeNames: "Item, Size / Dimensions, Weight, Material",
+      spec_item: spec.spec_item,
+      spec_dimensions: spec.spec_dimensions,
+      spec_weight: spec.spec_weight,
+      spec_material: spec.spec_material,
+    };
+  }
+
+  return {
+    attributeNames: "Item, Size / Dimensions, Weight, Material",
+    spec_canvas_medium_dimensions: CANVAS_SPEC_BY_SIZE.MEDIUM.dimensions,
+    spec_canvas_medium_weight: CANVAS_SPEC_BY_SIZE.MEDIUM.weight,
+    spec_canvas_medium_material: CANVAS_SPEC_BY_SIZE.MEDIUM.material,
+    spec_canvas_large_dimensions: CANVAS_SPEC_BY_SIZE.LARGE.dimensions,
+    spec_canvas_large_weight: CANVAS_SPEC_BY_SIZE.LARGE.weight,
+    spec_canvas_large_material: CANVAS_SPEC_BY_SIZE.LARGE.material,
+    ...PAINT_KIT_SHARED_SPECS,
+  };
+}
+
+function getStripePackageDimensions(categoryId: string) {
+  if (!isCanvasCategory(categoryId)) {
+    return CATEGORY_PRODUCT_SPECS[categoryId as keyof typeof CATEGORY_PRODUCT_SPECS]?.packageDimensions;
+  }
+
+  return CANVAS_SPEC_BY_SIZE.MEDIUM.packageDimensions;
+}
+
+function getStripeStandardSpecMetadata(categoryId: string): Record<string, string> {
+  const spec = CATEGORY_PRODUCT_SPECS[categoryId as keyof typeof CATEGORY_PRODUCT_SPECS];
+  if (!spec) {
+    return {};
+  }
+
+  return {
+    item: spec.spec_item,
+    dimensions: spec.spec_dimensions,
+    weight: spec.spec_weight,
+    material: spec.spec_material,
+  };
+}
+
+function getStripeVariantSpecMetadata(variantSize: ProductVariantSize) {
+  const spec = CANVAS_SPEC_BY_SIZE[variantSize];
+
+  return {
+    canvasDimensions: spec.dimensions,
+    canvasWeight: spec.weight,
+    canvasMaterial: spec.material,
+  };
+}
+
 function buildStripeProductMetadata({
   categoryId,
   subcategoryId,
@@ -284,6 +416,7 @@ function buildStripeProductMetadata({
     hasColorOptions: colorOptions.length > 0 ? "true" : "false",
     paintColors: colorOptions.length > 0 ? serializeColorOptionsMetadata(colorOptions) : "",
     colorOptions: colorOptions.length > 0 ? serializeColorOptionsMetadata(colorOptions) : "",
+    ...buildStripeSpecMetadata(categoryId),
   };
 }
 
@@ -750,6 +883,8 @@ export async function createProductWithStripe(input: ProductInput) {
       images: buildStripeProductImages(imageUrls),
       active: status === PRODUCT_STATUS.active,
       tax_code: DEFAULT_STRIPE_PRODUCT_TAX_CODE,
+      shippable: true,
+      package_dimensions: getStripePackageDimensions(input.categoryId),
       metadata: buildStripeProductMetadata({
         categoryId: input.categoryId,
         subcategoryId: subcategory?.id ?? null,
@@ -772,6 +907,7 @@ export async function createProductWithStripe(input: ProductInput) {
                 productSource: "paint-sip-depot-admin",
                 variantSize: variant.size,
                 sku: variant.sku,
+                ...getStripeVariantSpecMetadata(variant.size),
               },
             });
 
@@ -800,6 +936,7 @@ export async function createProductWithStripe(input: ProductInput) {
             productSource: "paint-sip-depot-admin",
             variantSize: "STANDARD",
             sku: defaultSku,
+            ...getStripeStandardSpecMetadata(input.categoryId),
           },
         });
 
@@ -913,6 +1050,8 @@ export async function updateProductWithStripe(productId: string, input: ProductI
       images: buildStripeProductImages(imageUrls),
       active: status === PRODUCT_STATUS.active,
       tax_code: DEFAULT_STRIPE_PRODUCT_TAX_CODE,
+      shippable: true,
+      package_dimensions: getStripePackageDimensions(input.categoryId),
       metadata: buildStripeProductMetadata({
         categoryId: input.categoryId,
         subcategoryId: subcategory?.id ?? null,
@@ -972,9 +1111,20 @@ export async function updateProductWithStripe(productId: string, input: ProductI
                   variantSize: variant.size,
                   productId,
                   sku: variant.sku,
+                  ...getStripeVariantSpecMetadata(variant.size),
                 },
               });
               stripePriceId = stripePrice.id;
+            } else if (stripePriceId) {
+              await stripeClient.prices.update(stripePriceId, {
+                metadata: {
+                  productSource: "paint-sip-depot-admin",
+                  variantSize: variant.size,
+                  productId,
+                  sku: variant.sku,
+                  ...getStripeVariantSpecMetadata(variant.size),
+                },
+              });
             }
 
             return {
@@ -1015,9 +1165,20 @@ export async function updateProductWithStripe(productId: string, input: ProductI
             variantSize: "STANDARD",
             productId,
             sku: defaultSku,
+            ...getStripeStandardSpecMetadata(input.categoryId),
           },
         });
         defaultStripePriceId = stripePrice.id;
+      } else if (defaultStripePriceId) {
+        await stripeClient.prices.update(defaultStripePriceId, {
+          metadata: {
+            productSource: "paint-sip-depot-admin",
+            variantSize: "STANDARD",
+            productId,
+            sku: defaultSku,
+            ...getStripeStandardSpecMetadata(input.categoryId),
+          },
+        });
       }
     }
 

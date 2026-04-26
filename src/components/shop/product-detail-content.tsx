@@ -35,6 +35,7 @@ type ProductDetailColorOption = {
 type ProductDetailSizeOption = {
   id: string;
   label: string;
+  size: "MEDIUM" | "LARGE" | "STANDARD";
   priceCents: number;
   currency: string;
   stripePriceId: string | null;
@@ -282,6 +283,161 @@ function ShippingReturnSummary() {
   );
 }
 
+type ProductSpecRow = {
+  item: string;
+  dimensions: string;
+  weight: string;
+  material: string;
+};
+
+const categoryProductSpecs: Record<string, ProductSpecRow[]> = {
+  cat_palettes: [
+    {
+      item: "Palette",
+      dimensions: "4.9 x 3.4 x 0.4 in",
+      weight: "2 oz",
+      material: "Plastic",
+    },
+  ],
+  cat_brushes: [
+    {
+      item: "Brushes",
+      dimensions: "7 x 0.25 x 0.25 in",
+      weight: "1 oz",
+      material: "Nylon",
+    },
+  ],
+  cat_aprons: [
+    {
+      item: "Apron, packaged",
+      dimensions: "5 x 3.5 x 0.5 in",
+      weight: "2 oz",
+      material: "Polyethylene",
+    },
+  ],
+  cat_easels: [
+    {
+      item: "Easel",
+      dimensions: "12 x 9 x 0.2 in",
+      weight: "4 oz",
+      material: "Cardboard",
+    },
+  ],
+  cat_paint: [
+    {
+      item: "Paint cups, 6-count strip",
+      dimensions: "6.8 x 1.3 x 0.78 in",
+      weight: "4 oz",
+      material: "Plastic + acrylic paint",
+    },
+  ],
+};
+
+const sharedProductSpecs: ProductSpecRow[] = [
+  {
+    item: "Palette",
+    dimensions: "4.9 x 3.4 x 0.4 in",
+    weight: "2 oz",
+    material: "Plastic",
+  },
+  {
+    item: "Brushes",
+    dimensions: "7 x 0.25 x 0.25 in",
+    weight: "1 oz",
+    material: "Nylon",
+  },
+  {
+    item: "Apron, packaged",
+    dimensions: "5 x 3.5 x 0.5 in",
+    weight: "2 oz",
+    material: "Polyethylene",
+  },
+  {
+    item: "Easel",
+    dimensions: "12 x 9 x 0.2 in",
+    weight: "4 oz",
+    material: "Cardboard",
+  },
+  {
+    item: "Paint cups, 6-count strip",
+    dimensions: "6.8 x 1.3 x 0.78 in",
+    weight: "4 oz",
+    material: "Plastic + acrylic paint",
+  },
+  {
+    item: "Water cup, 9 oz",
+    dimensions: "3 x 6.1 x 12.4 in",
+    weight: "0.16 oz",
+    material: "Plastic",
+  },
+];
+
+function getCanvasSpec(size: ProductDetailSizeOption | null) {
+  if (size?.size === "LARGE") {
+    return {
+      item: "Canvas",
+      dimensions: "12 x 16 x 0.625 in",
+      weight: "1 lb",
+      material: "Cotton canvas + wooden frame",
+    };
+  }
+
+  return {
+    item: "Canvas",
+    dimensions: "11 x 14 x 0.625 in",
+    weight: "0.75 lb",
+    material: "Cotton canvas + wooden frame",
+  };
+}
+
+function ProductSpecsAccordion({
+  categoryId,
+  selectedSize,
+}: {
+  categoryId: string;
+  selectedSize: ProductDetailSizeOption | null;
+}) {
+  const specs =
+    categoryId === "cat_canvases"
+      ? [getCanvasSpec(selectedSize), ...sharedProductSpecs]
+      : categoryProductSpecs[categoryId] ?? [];
+
+  if (specs.length === 0) {
+    return null;
+  }
+
+  return (
+    <details className="group border-t border-black/10 pt-5">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-semibold text-black">
+        <span>Product Specs</span>
+        <Plus className="h-4 w-4 transition group-open:rotate-45" />
+      </summary>
+      <div className="mt-5 overflow-x-auto">
+        <table className="w-full min-w-[680px] border-collapse text-left text-sm">
+          <thead>
+            <tr className="border-b border-black/15 text-black">
+              <th className="py-3 pr-4 font-semibold">Item</th>
+              <th className="px-4 py-3 font-semibold">Size / Dimensions</th>
+              <th className="px-4 py-3 font-semibold">Weight</th>
+              <th className="py-3 pl-4 font-semibold">Material</th>
+            </tr>
+          </thead>
+          <tbody className="text-black/65">
+            {specs.map((spec) => (
+              <tr key={`${spec.item}-${spec.dimensions}`} className="border-b border-black/10 last:border-0">
+                <td className="py-3 pr-4 font-medium text-black">{spec.item}</td>
+                <td className="px-4 py-3">{spec.dimensions}</td>
+                <td className="px-4 py-3">{spec.weight}</td>
+                <td className="py-3 pl-4">{spec.material}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  );
+}
+
 export function ProductDetailContent({
   product,
   onAddToCart,
@@ -321,6 +477,8 @@ export function ProductDetailContent({
     [product.colorOptions, selectedColorId],
   );
   const isPaintProduct = product.categoryId === "cat_paint";
+  const hasProductSpecs =
+    product.categoryId === "cat_canvases" || Boolean(categoryProductSpecs[product.categoryId]?.length);
   const currentPriceCents = selectedSize?.priceCents ?? product.priceCents;
   const currentCurrency = selectedSize?.currency ?? product.currency;
   const currentStripePriceId = selectedSize?.stripePriceId ?? product.stripePriceId;
@@ -638,7 +796,7 @@ export function ProductDetailContent({
                   <span className="min-w-[2ch] text-center text-base font-medium">{quantity}</span>
                   <button
                     type="button"
-                    onClick={() => setQuantity((current) => Math.min(25, current + 1))}
+                    onClick={() => setQuantity((current) => current + 1)}
                     className="inline-flex h-9 w-9 items-center justify-center rounded-full text-black transition hover:bg-black hover:text-white"
                     aria-label="Increase quantity"
                   >
@@ -687,6 +845,9 @@ export function ProductDetailContent({
           {activeTab === "details" ? (
             <div className="mt-10 max-w-3xl space-y-5">
               {renderRichDescription(product.description)}
+              {hasProductSpecs ? (
+                <ProductSpecsAccordion categoryId={product.categoryId} selectedSize={selectedSize} />
+              ) : null}
             </div>
           ) : null}
 

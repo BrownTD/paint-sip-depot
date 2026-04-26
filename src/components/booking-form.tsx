@@ -101,9 +101,9 @@ export function BookingForm({ eventId, maxQuantity, ticketPrice }: BookingFormPr
             <Plus className="w-4 h-4" />
           </Button>
         </div>
-        {maxQuantity < 10 && (
+        {maxQuantity > 0 && maxQuantity < 10 && (
           <p className="text-xs text-muted-foreground text-center mt-1">
-            Max {maxQuantity} per order
+            {maxQuantity} ticket{maxQuantity === 1 ? "" : "s"} remaining
           </p>
         )}
       </div>

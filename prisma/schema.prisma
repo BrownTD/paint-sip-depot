@@ -236,6 +236,22 @@ model Booking {
   purchaserEmail          String
   quantity                Int
   amountPaidCents         Int
+  shippingAmountCents     Int               @default(0)
+  shippingProvider        String?
+  shippingService         String?
+  shippoShipmentId        String?
+  shippoRateId            String?
+  shippoOrderId           String?
+  shippoOrderStatus       String?
+  shippoTransactionId     String?
+  trackingCarrier         String?
+  trackingNumber          String?
+  trackingStatus          String?
+  trackingStatusDetails   String?
+  trackingUrl             String?
+  labelUrl                String?
+  qrCodeUrl               String?
+  packingSlipUrl          String?
   status                  BookingStatus     @default(PENDING)
   createdAt               DateTime          @default(now())
   updatedAt               DateTime          @updatedAt
@@ -246,6 +262,8 @@ model Booking {
   @@index([eventId])
   @@index([purchaserEmail])
   @@index([eventId, status, reservationExpiresAt])
+  @@index([shippoOrderId])
+  @@index([trackingNumber])
   @@map("bookings")
 }
 
@@ -253,6 +271,28 @@ model ShopOrder {
   id                      String          @id @default(cuid())
   customerName            String
   customerEmail           String
+  shippingName            String?
+  shippingAddress         String?
+  shippingCity            String?
+  shippingState           String?
+  shippingZip             String?
+  shippingPhone           String?
+  shippingAmountCents     Int             @default(0)
+  shippingProvider        String?
+  shippingService         String?
+  shippoShipmentId        String?
+  shippoRateId            String?
+  shippoOrderId           String?
+  shippoOrderStatus       String?
+  shippoTransactionId     String?
+  trackingCarrier         String?
+  trackingNumber          String?
+  trackingStatus          String?
+  trackingStatusDetails   String?
+  trackingUrl             String?
+  labelUrl                String?
+  qrCodeUrl               String?
+  packingSlipUrl          String?
   currency                String          @default("usd")
   status                  ShopOrderStatus @default(PENDING)
   stripeCheckoutSessionId String?         @unique
@@ -265,6 +305,8 @@ model ShopOrder {
 
   @@index([status, createdAt])
   @@index([customerEmail])
+  @@index([shippoOrderId])
+  @@index([trackingNumber])
   @@map("shop_orders")
 }
 

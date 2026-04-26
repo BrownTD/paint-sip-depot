@@ -10,6 +10,12 @@ type ShopOrderForEmail = {
   customerEmail: string;
   amountSubtotalCents: number;
   amountTotalCents: number;
+  shippingAmountCents: number;
+  shippingProvider: string | null;
+  shippingService: string | null;
+  trackingNumber: string | null;
+  trackingStatus: string | null;
+  trackingUrl: string | null;
   currency: string;
   stripeCheckoutSessionId: string | null;
   items: Array<{
@@ -32,6 +38,12 @@ export async function sendShopOrderConfirmationEmails(order: ShopOrderForEmail) 
     customerEmail: order.customerEmail,
     amountSubtotalCents: order.amountSubtotalCents,
     amountTotalCents: order.amountTotalCents,
+    shippingAmountCents: order.shippingAmountCents,
+    shippingProvider: order.shippingProvider,
+    shippingService: order.shippingService,
+    trackingNumber: order.trackingNumber,
+    trackingStatus: order.trackingStatus,
+    trackingUrl: order.trackingUrl,
     currency: order.currency,
     orderUrl,
     items: order.items.map((item) => ({

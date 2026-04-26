@@ -103,7 +103,7 @@ export const eventSchema = z.object({
 
 export const bookingSchema = z.object({
   eventId: z.string().cuid(),
-  quantity: z.coerce.number().int().min(1).max(10),
+  quantity: z.coerce.number().int().min(1),
   purchaserName: z.string().min(2, "Name is required"),
   purchaserEmail: z.string().email("Valid email required"),
 });
@@ -217,22 +217,34 @@ export const shopCheckoutSchema = z.object({
   productId: z.string().cuid(),
   variantId: z.string().cuid().optional().nullable(),
   colorOptionId: z.string().cuid().optional().nullable(),
-  quantity: z.coerce.number().int().min(1).max(25),
+  quantity: z.coerce.number().int().min(1),
   customerName: z.string().min(2, "Name is required"),
   customerEmail: z.string().email("Valid email required"),
+  shippingName: z.string().min(2, "Shipping name is required"),
+  shippingAddress: z.string().min(3, "Shipping address is required"),
+  shippingCity: z.string().min(2, "Shipping city is required"),
+  shippingState: z.string().trim().length(2, "Use the 2-letter shipping state"),
+  shippingZip: z.string().min(5, "Shipping ZIP code is required"),
+  shippingPhone: z.string().min(7, "Shipping phone is required"),
 });
 
 export const shopCartCheckoutItemSchema = z.object({
   productId: z.string().cuid(),
   variantId: z.string().cuid().optional().nullable(),
   colorOptionId: z.string().cuid().optional().nullable(),
-  quantity: z.coerce.number().int().min(1).max(25),
+  quantity: z.coerce.number().int().min(1),
 });
 
 export const shopCartCheckoutSchema = z.object({
   items: z.array(shopCartCheckoutItemSchema).min(1, "Add at least one item to the cart"),
   customerName: z.string().min(2, "Name is required"),
   customerEmail: z.string().email("Valid email required"),
+  shippingName: z.string().min(2, "Shipping name is required"),
+  shippingAddress: z.string().min(3, "Shipping address is required"),
+  shippingCity: z.string().min(2, "Shipping city is required"),
+  shippingState: z.string().trim().length(2, "Use the 2-letter shipping state"),
+  shippingZip: z.string().min(5, "Shipping ZIP code is required"),
+  shippingPhone: z.string().min(7, "Shipping phone is required"),
 });
 
 export const productReviewSchema = z.object({

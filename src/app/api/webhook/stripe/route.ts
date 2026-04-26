@@ -8,6 +8,12 @@ import {
 } from "@/lib/email";
 import { expireBookingsForCheckoutSession } from "@/lib/booking";
 import { prisma } from "@/lib/prisma";
+import {
+  buildShippoEventHostAddress,
+  buildShippoShopAddress,
+  createShippoOrder,
+  getKitParcelSummary,
+} from "@/lib/shippo";
 import { sendShopOrderConfirmationEmails } from "@/lib/shop-order-emails";
 import { stripe } from "@/lib/stripe";
 import { getAbsoluteUrl } from "@/lib/utils";
@@ -20,6 +26,155 @@ const BOOKING_STATUS = {
   expired: "EXPIRED",
   refunded: "REFUNDED",
 } as const;
+
+async function createShippoShopOrder(shopOrderId: string) {
+  const order = await prisma.shopOrder.findUnique({
+    where: { id: shopOrderId },
+    include: {
+      items: {
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
+
+  if (!order || order.shippoOrderId) {
+    return order;
+  }
+
+  if (
+    !order.shippingName ||
+    !order.shippingAddress ||
+    !order.shippingCity ||
+    !order.shippingState ||
+    !order.shippingZip
+  ) {
+    return order;
+  }
+
+  try {
+    const totalQuantity = order.items.reduce((sum, item) => sum + item.quantity, 0);
+    const shippoOrder = await createShippoOrder({
+      toAddress: buildShippoShopAddress({
+        shippingName: order.shippingName,
+        shippingAddress: order.shippingAddress,
+        shippingCity: order.shippingCity,
+        shippingState: order.shippingState,
+        shippingZip: order.shippingZip,
+        shippingPhone: order.shippingPhone,
+        customerEmail: order.customerEmail,
+      }),
+      lineItems: order.items.map((item) => ({
+        quantity: item.quantity,
+        title: item.productNameSnapshot,
+        total_price: (item.totalPriceCents / 100).toFixed(2),
+        currency: order.currency.toUpperCase(),
+        weight: "2",
+        weight_unit: "lb",
+      })),
+      placedAt: order.createdAt,
+      orderNumber: order.id,
+      subtotalCents: order.amountSubtotalCents,
+      totalCents: order.amountTotalCents,
+      shippingAmountCents: order.shippingAmountCents,
+      shippingMethod: [order.shippingProvider, order.shippingService].filter(Boolean).join(" "),
+      notes: getKitParcelSummary(totalQuantity),
+      currency: order.currency,
+    });
+
+    return await prisma.shopOrder.update({
+      where: { id: order.id },
+      data: shippoOrder,
+      include: {
+        items: {
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Shippo shop order creation failed:", {
+      shopOrderId: order.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return order;
+  }
+}
+
+async function createShippoBookingOrder(bookingId: string) {
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: {
+      event: {
+        include: {
+          host: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!booking || booking.shippoOrderId || booking.event.fulfillmentMethod === "PICKUP") {
+    return booking;
+  }
+
+  try {
+    const subtotalCents = Math.max(0, booking.amountPaidCents - booking.shippingAmountCents);
+    const shippoOrder = await createShippoOrder({
+      toAddress: buildShippoEventHostAddress({
+        shippingRecipientName: booking.event.shippingRecipientName,
+        shippingAddress: booking.event.shippingAddress,
+        shippingCity: booking.event.shippingCity,
+        shippingState: booking.event.shippingState,
+        shippingZip: booking.event.shippingZip,
+        hostEmail: booking.event.host.email,
+      }),
+      lineItems: [
+        {
+          quantity: booking.quantity,
+          title: `${booking.event.title} event kit`,
+          total_price: (subtotalCents / 100).toFixed(2),
+          currency: "USD",
+          weight: "2",
+          weight_unit: "lb",
+        },
+      ],
+      placedAt: booking.createdAt,
+      orderNumber: booking.id,
+      subtotalCents,
+      totalCents: booking.amountPaidCents,
+      shippingAmountCents: booking.shippingAmountCents,
+      shippingMethod: [booking.shippingProvider, booking.shippingService].filter(Boolean).join(" "),
+      notes: getKitParcelSummary(booking.quantity),
+      currency: "usd",
+    });
+
+    return await prisma.booking.update({
+      where: { id: booking.id },
+      data: shippoOrder,
+      include: {
+        event: {
+          include: {
+            host: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Shippo booking order creation failed:", {
+      bookingId: booking.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return booking;
+  }
+}
 
 export async function POST(request: Request) {
   const body = await request.text();
@@ -71,14 +226,7 @@ export async function POST(request: Request) {
             });
 
             if (updateResult.count > 0) {
-              const shopOrder = await prisma.shopOrder.findUnique({
-                where: { id: shopOrderId },
-                include: {
-                  items: {
-                    orderBy: { createdAt: "asc" },
-                  },
-                },
-              });
+              const shopOrder = await createShippoShopOrder(shopOrderId);
 
               if (shopOrder) {
                 await sendShopOrderConfirmationEmails(shopOrder);
@@ -102,21 +250,11 @@ export async function POST(request: Request) {
           });
 
           if (updateResult.count > 0) {
-            const booking = await prisma.booking.findFirst({
+            const reservedBooking = await prisma.booking.findFirst({
               where: { stripeCheckoutSessionId: session.id },
-              include: {
-                event: {
-                  include: {
-                    host: {
-                      select: {
-                        name: true,
-                        email: true,
-                      },
-                    },
-                  },
-                },
-              },
+              select: { id: true },
             });
+            const booking = reservedBooking ? await createShippoBookingOrder(reservedBooking.id) : null;
 
             if (booking) {
               const eventUrl =
@@ -147,6 +285,12 @@ export async function POST(request: Request) {
                   purchaserName: booking.purchaserName,
                   purchaserEmail: booking.purchaserEmail,
                   amountPaidCents: booking.amountPaidCents,
+                  shippingAmountCents: booking.shippingAmountCents,
+                  shippingProvider: booking.shippingProvider,
+                  shippingService: booking.shippingService,
+                  trackingNumber: booking.trackingNumber,
+                  trackingStatus: booking.trackingStatus,
+                  trackingUrl: booking.trackingUrl,
                 }),
               ];
 
@@ -166,6 +310,12 @@ export async function POST(request: Request) {
                     purchaserName: booking.purchaserName,
                     purchaserEmail: booking.purchaserEmail,
                     amountPaidCents: booking.amountPaidCents,
+                    shippingAmountCents: booking.shippingAmountCents,
+                    shippingProvider: booking.shippingProvider,
+                    shippingService: booking.shippingService,
+                    trackingNumber: booking.trackingNumber,
+                    trackingStatus: booking.trackingStatus,
+                    trackingUrl: booking.trackingUrl,
                   })
                 );
               }

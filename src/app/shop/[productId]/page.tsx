@@ -106,6 +106,7 @@ export default async function ProductDetailPage({
       ? product.variants.map((variant) => ({
           id: variant.id,
           label: variant.label,
+          size: variant.size,
           priceCents: variant.priceCents,
           currency: variant.currency,
           stripePriceId: variant.stripePriceId,
@@ -115,6 +116,7 @@ export default async function ProductDetailPage({
           {
             id: "standard",
             label: "Standard",
+            size: "STANDARD" as const,
             priceCents: product.priceCents,
             currency: product.currency,
             stripePriceId: product.stripePriceId,

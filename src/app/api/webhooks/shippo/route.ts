@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { ShopOrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { sendShopOrderDeliveredEmail, sendShopOrderTrackingEmail } from "@/lib/shop-order-emails";
 
 type ShippoWebhookPayload = Record<string, unknown>;
 
@@ -35,7 +37,7 @@ async function updateMatchingOrders(data: {
   labelUrl?: string | null;
   qrCodeUrl?: string | null;
 }) {
-  const updateData = {
+  const carrierUpdateData = {
     shippoTransactionId: data.shippoTransactionId ?? undefined,
     trackingCarrier: data.trackingCarrier ?? undefined,
     trackingNumber: data.trackingNumber ?? undefined,
@@ -45,6 +47,10 @@ async function updateMatchingOrders(data: {
     labelUrl: data.labelUrl ?? undefined,
     qrCodeUrl: data.qrCodeUrl ?? undefined,
   };
+  const shopUpdateData = {
+    ...carrierUpdateData,
+    status: data.trackingStatus?.toUpperCase() === "TRANSIT" ? ShopOrderStatus.FULFILLED : undefined,
+  };
 
   const whereClauses: Array<Record<string, string>> = [];
   if (data.shippoOrderId) whereClauses.push({ shippoOrderId: data.shippoOrderId });
@@ -52,13 +58,40 @@ async function updateMatchingOrders(data: {
   if (data.trackingNumber) whereClauses.push({ trackingNumber: data.trackingNumber });
 
   for (const where of whereClauses) {
-    await prisma.shopOrder.updateMany({
+    const shopOrders = await prisma.shopOrder.findMany({
       where,
-      data: updateData,
+      include: { items: { orderBy: { createdAt: "asc" } } },
     });
+
+    for (const order of shopOrders) {
+      const trackingChanged =
+        Boolean(data.trackingNumber) &&
+        (order.trackingNumber !== data.trackingNumber ||
+          order.trackingStatus !== data.trackingStatus ||
+          order.trackingUrl !== data.trackingUrl);
+      const delivered = data.trackingStatus?.toUpperCase() === "DELIVERED";
+
+      const updatedOrder = await prisma.shopOrder.update({
+        where: { id: order.id },
+        data: shopUpdateData,
+        include: { items: { orderBy: { createdAt: "asc" } } },
+      });
+
+      if (trackingChanged) {
+        const email = delivered ? sendShopOrderDeliveredEmail : sendShopOrderTrackingEmail;
+        await email(updatedOrder).catch((emailError: unknown) => {
+          console.error("Shop tracking update email failed:", {
+            shopOrderId: updatedOrder.id,
+            delivered,
+            error: emailError instanceof Error ? emailError.message : String(emailError),
+          });
+        });
+      }
+    }
+
     await prisma.booking.updateMany({
       where,
-      data: updateData,
+      data: carrierUpdateData,
     });
   }
 }

@@ -1,6 +1,9 @@
 import {
   sendAdminShopOrderConfirmationEmail,
   sendCustomerShopOrderConfirmationEmail,
+  sendCustomerShopDeliveredEmail,
+  sendCustomerShopProcessingEmail,
+  sendCustomerShopTrackingEmail,
 } from "@/lib/email";
 import { getAbsoluteUrl } from "@/lib/utils";
 
@@ -29,10 +32,39 @@ type ShopOrderForEmail = {
 };
 
 export async function sendShopOrderConfirmationEmails(order: ShopOrderForEmail) {
+  const payload = buildShopOrderEmailPayload(order);
+
+  const results = await Promise.allSettled([
+    sendAdminShopOrderConfirmationEmail(payload),
+    sendCustomerShopOrderConfirmationEmail(payload),
+  ]);
+  const rejected = results.filter((result) => result.status === "rejected");
+  if (rejected.length > 0) {
+    console.error("Shop order confirmation email failed:", {
+      shopOrderId: order.id,
+      errors: rejected,
+    });
+  }
+}
+
+export async function sendShopOrderTrackingEmail(order: ShopOrderForEmail) {
+  await sendCustomerShopTrackingEmail(buildShopOrderEmailPayload(order));
+}
+
+export async function sendShopOrderProcessingEmail(order: ShopOrderForEmail) {
+  await sendCustomerShopProcessingEmail(buildShopOrderEmailPayload(order));
+}
+
+export async function sendShopOrderDeliveredEmail(order: ShopOrderForEmail) {
+  await sendCustomerShopDeliveredEmail(buildShopOrderEmailPayload(order));
+}
+
+function buildShopOrderEmailPayload(order: ShopOrderForEmail) {
   const orderUrl = order.stripeCheckoutSessionId
     ? getAbsoluteUrl(`/shop/success?session_id=${encodeURIComponent(order.stripeCheckoutSessionId)}`)
     : getAbsoluteUrl("/shop");
-  const payload = {
+
+  return {
     orderId: order.id,
     customerName: order.customerName,
     customerEmail: order.customerEmail,
@@ -55,16 +87,4 @@ export async function sendShopOrderConfirmationEmails(order: ShopOrderForEmail) 
       totalPriceCents: item.totalPriceCents,
     })),
   };
-
-  const results = await Promise.allSettled([
-    sendAdminShopOrderConfirmationEmail(payload),
-    sendCustomerShopOrderConfirmationEmail(payload),
-  ]);
-  const rejected = results.filter((result) => result.status === "rejected");
-  if (rejected.length > 0) {
-    console.error("Shop order confirmation email failed:", {
-      shopOrderId: order.id,
-      errors: rejected,
-    });
-  }
 }

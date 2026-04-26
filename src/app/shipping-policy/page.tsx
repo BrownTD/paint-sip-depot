@@ -33,23 +33,13 @@ export default function ShippingPolicyPage() {
               <section className="space-y-3">
                 <h2 className="font-display text-2xl font-semibold">Shipping Policy</h2>
                 <p className="leading-7 text-muted-foreground">
-                  We offer both Standard and Expedited shipping options to make sure your paint
-                  kits arrive when you need them.
+                  We currently ship paint kits with USPS Ground Advantage.
                 </p>
                 <ul className="list-disc space-y-2 pl-6 leading-7 text-muted-foreground">
                   <li>
-                    Standard Shipping takes 3-6 business days (Monday-Friday), including
-                    processing time.
+                    Orders include 2 business days of processing before carrier transit begins.
                   </li>
-                  <li>
-                    Expedited Shipping ships the same business day if ordered by 12 PM EST.
-                    Orders placed after 12 PM will ship the following business day.
-                  </li>
-                  <li>
-                    UPS Next Day delivers by 12 PM, while Next Day Air Saver delivers by the end
-                    of the business day. Orders placed after 5 PM EST on Thursday will ship
-                    Friday and arrive Monday.
-                  </li>
+                  <li>Estimated delivery timing is shown during checkout after you enter your shipping address.</li>
                 </ul>
                 <p className="leading-7 text-muted-foreground">
                   Need Saturday delivery? Contact us at{" "}

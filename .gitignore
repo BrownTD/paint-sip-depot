@@ -6,8 +6,9 @@ node_modules/
 out/
 
 # local env files (secrets)
-.env
+.env*
 .env.*
+.env2
 !.env.example
 
 # Vercel
@@ -36,3 +37,4 @@ skills/
 skills-lock.json
 
 src/lib/paint-sip-depot.code-workspace
+.env2

@@ -777,15 +777,15 @@ router.refresh();
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, fulfillmentMethod: "SHIP_TO_HOST" })}
-                  className={`rounded-xl border p-4 text-left transition ${
-                    formData.fulfillmentMethod === "SHIP_TO_HOST"
-                      ? "border-primary bg-primary/5"
-                      : "border-border bg-background hover:bg-muted/40"
+                  className={`rounded-xl p-4 text-left transition ${
+                  formData.fulfillmentMethod === "SHIP_TO_HOST"
+                    ? "bg-black text-white"
+                    : "bg-background hover:bg-muted/40"
                   }`}
                 >
                   <span className="block font-medium">Ship supplies to me</span>
                   <span className="mt-1 block text-sm text-muted-foreground">
-                    Guest checkout includes the event shipping cost.
+                  Shipping cost applied to guest checkout.
                   </span>
                 </button>
                 <button
@@ -803,13 +803,13 @@ router.refresh();
                   }
                   className={`rounded-xl border p-4 text-left transition ${
                     formData.fulfillmentMethod === "PICKUP"
-                      ? "border-primary bg-primary/5"
-                      : "border-border bg-background hover:bg-muted/40"
+                ? "bg-black text-white"
+                    : "bg-background hover:bg-muted/40"
                   }`}
                 >
                   <span className="block font-medium">Pick up from Paint &amp; Sip Depot</span>
                   <span className="mt-1 block text-sm text-muted-foreground">
-                    Guest checkout will not include the event shipping cost.
+                    No shipping cost.
                   </span>
                 </button>
               </div>

@@ -244,8 +244,8 @@ function ShippingReturnSummary() {
         <div>
           <p className="font-medium text-black">Shipping</p>
           <p>
-            Standard shipping takes 3-6 business days, including processing time. Expedited
-            orders ship the same business day when placed by 12 PM EST.
+            Orders ship with USPS Ground Advantage after 2 business days of processing.
+            Estimated delivery timing is shown during checkout after the shipping address is entered.
           </p>
           <Link
             href="/shipping-policy"

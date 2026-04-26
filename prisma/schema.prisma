@@ -286,6 +286,9 @@ model ShopOrder {
   shippingAmountCents     Int             @default(0)
   shippingProvider        String?
   shippingService         String?
+  shippingEstimatedDays   Int?
+  shippingArrivesBy       String?
+  shippingEstimateLabel   String?
   shippoShipmentId        String?
   shippoRateId            String?
   shippoOrderId           String?
@@ -430,6 +433,7 @@ enum ProductVariantSize {
 enum ShopOrderStatus {
   PENDING
   PAID
+  FULFILLED
   REFUNDED
   CANCELED
   EXPIRED

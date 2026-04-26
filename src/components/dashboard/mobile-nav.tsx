@@ -11,6 +11,7 @@ import {
   Image as ImageIcon,
   Package,
   RotateCcw,
+  Truck,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,7 @@ import { Brand } from "@/components/Brand";
 export type MobileNavItem = {
   href: string;
   label: string;
-  icon: "dashboard" | "calendar" | "ticket" | "image" | "package" | "returns";
+  icon: "dashboard" | "calendar" | "ticket" | "image" | "package" | "returns" | "shipping";
 };
 
 const iconMap = {
@@ -39,6 +40,7 @@ const iconMap = {
   image: ImageIcon,
   package: Package,
   returns: RotateCcw,
+  shipping: Truck,
 } as const;
 
 export function DashboardMobileNav({

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ClipboardList, Calendar, Package, RotateCcw } from "lucide-react";
+import { ClipboardList, Calendar, Package, RotateCcw, Truck } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { SignOutButton } from "@/components/sign-out-button";
 import { DashboardMobileNav } from "@/components/dashboard/mobile-nav";
@@ -7,6 +7,7 @@ import { requireAdminSession } from "@/lib/admin";
 
 const navItems = [
   { href: "/admin/orders", label: "Orders", icon: "ticket" },
+  { href: "/admin/shipping", label: "Shipping", icon: "shipping" },
   { href: "/admin/events", label: "Events", icon: "calendar" },
   { href: "/admin/products", label: "Products", icon: "package" },
   { href: "/admin/returns", label: "Returns", icon: "returns" },
@@ -15,6 +16,7 @@ const navItems = [
 const iconMap = {
   calendar: Calendar,
   ticket: ClipboardList,
+  shipping: Truck,
   package: Package,
   returns: RotateCcw,
 } as const;

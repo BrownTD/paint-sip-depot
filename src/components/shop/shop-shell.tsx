@@ -90,6 +90,13 @@ type ShopCartItem = {
   stripePriceId: string | null;
 };
 
+type ShippingEstimate = {
+  provider: string;
+  service: string;
+  estimatedDays?: number | null;
+  estimateLabel: string;
+};
+
 const SHOP_CART_STORAGE_KEY = "paint-sip-depot-shop-cart";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -332,12 +339,97 @@ export function ShopCartPageContent() {
   const [shippingZip, setShippingZip] = useState("");
   const [shippingPhone, setShippingPhone] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isInformationOpen, setIsInformationOpen] = useState(true);
+  const [shippingEstimate, setShippingEstimate] = useState<ShippingEstimate | null>(null);
+  const [shippingEstimateError, setShippingEstimateError] = useState("");
+  const [isLoadingShippingEstimate, setIsLoadingShippingEstimate] = useState(false);
 
   const subtotalCents = items.reduce((sum, item) => sum + item.unitPriceCents * item.quantity, 0);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const cartCurrency = items[0]?.currency ?? "usd";
   const totalLabel = items.length > 0 ? formatCurrencyAmount(subtotalCents, cartCurrency) : null;
   const hasValidCustomerEmail = isValidEmailSyntax(customerEmail);
+  const hasCompleteShippingAddress =
+    Boolean(shippingAddress.trim()) &&
+    Boolean(shippingCity.trim()) &&
+    shippingState.trim().length === 2 &&
+    shippingZip.trim().length >= 5;
+
+  useEffect(() => {
+    if (!hasCompleteShippingAddress || items.length === 0) {
+      setShippingEstimate(null);
+      setShippingEstimateError("");
+      setIsLoadingShippingEstimate(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => {
+      setIsLoadingShippingEstimate(true);
+      setShippingEstimateError("");
+
+      fetch("/api/shop/shipping-estimate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          items: items.map((item) => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            colorOptionId: item.colorOptionId,
+            quantity: item.quantity,
+          })),
+          shippingName: customerName,
+          customerEmail: hasValidCustomerEmail ? customerEmail : undefined,
+          shippingAddress,
+          shippingCity,
+          shippingState,
+          shippingZip,
+          shippingPhone,
+        }),
+      })
+        .then(async (response) => {
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Failed to load shipping estimate.");
+          }
+
+          setShippingEstimate(data as ShippingEstimate);
+        })
+        .catch((error) => {
+          if (error instanceof DOMException && error.name === "AbortError") {
+            return;
+          }
+
+          setShippingEstimate(null);
+          setShippingEstimateError(error instanceof Error ? error.message : "Failed to load shipping estimate.");
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setIsLoadingShippingEstimate(false);
+          }
+        });
+    }, 500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [
+    customerEmail,
+    customerName,
+    hasCompleteShippingAddress,
+    hasValidCustomerEmail,
+    items,
+    shippingAddress,
+    shippingCity,
+    shippingPhone,
+    shippingState,
+    shippingZip,
+  ]);
 
   function handleContinueShopping() {
     if (window.history.length > 1) {
@@ -448,55 +540,115 @@ export function ShopCartPageContent() {
         {items.length > 0 ? (
           <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
             <section className="order-2 flex min-h-[620px] flex-col rounded-lg border border-black/10 bg-white p-5 lg:order-2 lg:p-6">
-              <div className="shrink-0 space-y-3">
-                <Input
-                  value={customerName}
-                  onChange={(event) => setCustomerName(event.target.value)}
-                  placeholder="Your name"
-                  className="h-12 rounded-full bg-[#f3f1ef] px-4"
-                />
-                <Input
-                  type="email"
-                  value={customerEmail}
-                  onChange={(event) => setCustomerEmail(event.target.value)}
-                  placeholder="you@example.com"
-                  pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
-                  className="h-12 rounded-full bg-[#f3f1ef] px-4"
-                />
-                <Input
-                  value={shippingAddress}
-                  onChange={(event) => setShippingAddress(event.target.value)}
-                  placeholder="Shipping address"
-                  className="h-12 rounded-full bg-[#f3f1ef] px-4"
-                />
-                <div className="grid grid-cols-3 gap-2">
-                  <Input
-                    value={shippingCity}
-                    onChange={(event) => setShippingCity(event.target.value)}
-                    placeholder="City"
-                    className="h-12 rounded-full bg-[#f3f1ef] px-4"
+              <div className="shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsInformationOpen((value) => !value)}
+                  className="flex w-full items-center justify-between py-1 text-left"
+                  aria-expanded={isInformationOpen}
+                >
+                  <span className="text-sm font-semibold uppercase tracking-[0.16em] text-black">
+                    Information
+                  </span>
+                  <ChevronRight
+                    className={`h-4 w-4 text-black/55 transition-transform duration-300 ${
+                      isInformationOpen ? "rotate-90" : ""
+                    }`}
                   />
-                  <Input
-                    value={shippingState}
-                    onChange={(event) => setShippingState(event.target.value.toUpperCase())}
-                    placeholder="SC"
-                    maxLength={2}
-                    className="h-12 rounded-full bg-[#f3f1ef] px-4"
-                  />
-                  <Input
-                    value={shippingZip}
-                    onChange={(event) => setShippingZip(event.target.value)}
-                    placeholder="ZIP"
-                    className="h-12 rounded-full bg-[#f3f1ef] px-4"
-                  />
+                </button>
+
+                <div
+                  className={`grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-out ${
+                    isInformationOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  }`}
+                >
+                  <div className="min-h-0">
+                    <div className="space-y-3 pt-4">
+                      <Input
+                        value={customerName}
+                        onChange={(event) => setCustomerName(event.target.value)}
+                        placeholder="Your name"
+                        className="h-12 rounded-full bg-[#f3f1ef] px-4"
+                      />
+                      <Input
+                        type="email"
+                        value={customerEmail}
+                        onChange={(event) => setCustomerEmail(event.target.value)}
+                        placeholder="you@example.com"
+                        pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
+                        className="h-12 rounded-full bg-[#f3f1ef] px-4"
+                      />
+                      <Input
+                        value={shippingAddress}
+                        onChange={(event) => setShippingAddress(event.target.value)}
+                        placeholder="Shipping address"
+                        className="h-12 rounded-full bg-[#f3f1ef] px-4"
+                      />
+                      <div className="grid grid-cols-3 gap-2">
+                        <Input
+                          value={shippingCity}
+                          onChange={(event) => setShippingCity(event.target.value)}
+                          placeholder="City"
+                          className="h-12 rounded-full bg-[#f3f1ef] px-4"
+                        />
+                        <Input
+                          value={shippingState}
+                          onChange={(event) => setShippingState(event.target.value.toUpperCase())}
+                          placeholder="SC"
+                          maxLength={2}
+                          className="h-12 rounded-full bg-[#f3f1ef] px-4"
+                        />
+                        <Input
+                          value={shippingZip}
+                          onChange={(event) => setShippingZip(event.target.value)}
+                          placeholder="ZIP"
+                          className="h-12 rounded-full bg-[#f3f1ef] px-4"
+                        />
+                      </div>
+                      <Input
+                        type="tel"
+                        value={shippingPhone}
+                        onChange={(event) => setShippingPhone(formatPhoneInput(event.target.value))}
+                        placeholder="(123) 456-7890"
+                        className="h-12 rounded-full bg-[#f3f1ef] px-4"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <Input
-                  type="tel"
-                  value={shippingPhone}
-                  onChange={(event) => setShippingPhone(formatPhoneInput(event.target.value))}
-                  placeholder="(123) 456-7890"
-                  className="h-12 rounded-full bg-[#f3f1ef] px-4"
-                />
+
+                <div className="mt-5 border-t border-black/10 pt-5">
+                  <div
+                    className={`text-sm font-semibold uppercase tracking-[0.16em] transition-colors ${
+                      hasCompleteShippingAddress ? "text-black" : "text-black/35"
+                    }`}
+                  >
+                    Shipping
+                  </div>
+                  <div
+                    className={`mt-3 transition-opacity duration-300 ${
+                      hasCompleteShippingAddress ? "opacity-100" : "opacity-0"
+                    }`}
+                    aria-live="polite"
+                  >
+                    {hasCompleteShippingAddress ? (
+                      <div className="rounded-lg bg-[#f3f1ef] p-4 text-sm text-black">
+                        {isLoadingShippingEstimate ? (
+                          <div className="flex items-center gap-2 text-black/60">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Loading delivery estimate...
+                          </div>
+                        ) : shippingEstimate ? (
+                          <div className="space-y-1">
+                            <p className="font-semibold">{shippingEstimate.service}</p>
+                            <p className="text-black/65">{shippingEstimate.estimateLabel}</p>
+                          </div>
+                        ) : shippingEstimateError ? (
+                          <p className="text-red-600">{shippingEstimateError}</p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
               </div>
 
               <div className="mt-auto space-y-3 border-t border-black/10 pt-5">

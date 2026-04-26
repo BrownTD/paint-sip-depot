@@ -17,6 +17,9 @@ type ShippoRate = {
   currency: string;
   provider: string;
   carrier_account?: string;
+  estimated_days?: number | string | null;
+  arrives_by?: string | null;
+  duration_terms?: string | null;
   servicelevel?: {
     name?: string;
     token?: string;
@@ -35,15 +38,51 @@ type ShippoOrderResponse = {
   order_status?: string;
 };
 
+type ShippoTrackingStatus =
+  | string
+  | {
+      status?: string;
+      status_details?: string;
+    }
+  | undefined
+  | null;
+
+type ShippoTransactionResponse = {
+  object_id: string;
+  status?: string;
+  rate?: string;
+  tracking_number?: string | null;
+  tracking_status?: ShippoTrackingStatus;
+  tracking_url_provider?: string | null;
+  label_url?: string | null;
+  qr_code_url?: string | null;
+  order?: string | null;
+  messages?: Array<unknown>;
+};
+
 export type ShippoRateQuote = {
   shipmentId: string;
   rateId: string;
   amountCents: number;
   provider: string;
   service: string;
+  estimatedDays?: number | null;
+  arrivesBy?: string | null;
+  estimateLabel: string;
   carrierAccount?: string;
   parcelSummary: string;
   shipmentCount: number;
+};
+
+export type ShippoLabelPurchase = {
+  shippoTransactionId: string;
+  trackingCarrier: string;
+  trackingNumber?: string | null;
+  trackingStatus?: string | null;
+  trackingStatusDetails?: string | null;
+  trackingUrl?: string | null;
+  labelUrl?: string | null;
+  qrCodeUrl?: string | null;
 };
 
 type RateShipmentInput = {
@@ -76,7 +115,7 @@ type CreateShippoOrderInput = {
 };
 
 const SHIPPO_API_BASE_URL = "https://api.goshippo.com";
-const DEFAULT_FROM_ADDRESS: ShippoAddress = {
+const DEFAULT_RETURN_ADDRESS: ShippoAddress = {
   name: "Paint & Sip Depot",
   company: "Paint & Sip Depot",
   street1: "9600 Two Notch Rd",
@@ -99,19 +138,64 @@ function getShippoToken() {
   );
 }
 
-function getFromAddress(): ShippoAddress {
+function envAddress(prefix: string): Partial<ShippoAddress> {
+  const fields: Array<[keyof ShippoAddress, string | undefined]> = [
+    ["name", process.env[`${prefix}_NAME`]],
+    ["company", process.env[`${prefix}_COMPANY`]],
+    ["street1", process.env[`${prefix}_STREET1`]],
+    ["street2", process.env[`${prefix}_STREET2`]],
+    ["city", process.env[`${prefix}_CITY`]],
+    ["state", process.env[`${prefix}_STATE`]],
+    ["zip", process.env[`${prefix}_ZIP`]],
+    ["country", process.env[`${prefix}_COUNTRY`]],
+    ["phone", process.env[`${prefix}_PHONE`]],
+    ["email", process.env[`${prefix}_EMAIL`]],
+  ];
+
+  return fields.reduce<Partial<ShippoAddress>>((address, [key, value]) => {
+    if (value) {
+      address[key] = value;
+    }
+
+    return address;
+  }, {});
+}
+
+function completeAddress(input: Partial<ShippoAddress>, fallback: ShippoAddress): ShippoAddress {
   return {
-    name: process.env.SHIPPO_FROM_NAME || DEFAULT_FROM_ADDRESS.name,
-    company: process.env.SHIPPO_FROM_COMPANY || DEFAULT_FROM_ADDRESS.company,
-    street1: process.env.SHIPPO_FROM_STREET1 || DEFAULT_FROM_ADDRESS.street1,
-    street2: process.env.SHIPPO_FROM_STREET2 || DEFAULT_FROM_ADDRESS.street2,
-    city: process.env.SHIPPO_FROM_CITY || DEFAULT_FROM_ADDRESS.city,
-    state: process.env.SHIPPO_FROM_STATE || DEFAULT_FROM_ADDRESS.state,
-    zip: process.env.SHIPPO_FROM_ZIP || DEFAULT_FROM_ADDRESS.zip,
-    country: process.env.SHIPPO_FROM_COUNTRY || DEFAULT_FROM_ADDRESS.country,
-    phone: process.env.SHIPPO_FROM_PHONE || DEFAULT_FROM_ADDRESS.phone,
-    email: process.env.SHIPPO_FROM_EMAIL || DEFAULT_FROM_ADDRESS.email,
+    name: input.name || fallback.name,
+    company: input.company || fallback.company,
+    street1: input.street1 || fallback.street1,
+    street2: input.street2 || fallback.street2,
+    city: input.city || fallback.city,
+    state: input.state || fallback.state,
+    zip: input.zip || fallback.zip,
+    country: input.country || fallback.country,
+    phone: input.phone || fallback.phone,
+    email: input.email || fallback.email,
   };
+}
+
+function getReturnAddress(): ShippoAddress {
+  return completeAddress(
+    {
+      ...envAddress("SHIPPO_FROM"),
+      ...envAddress("SHIPPO_RETURN"),
+    },
+    DEFAULT_RETURN_ADDRESS,
+  );
+}
+
+function getOriginAddress(): ShippoAddress {
+  const returnAddress = getReturnAddress();
+
+  return completeAddress(
+    {
+      ...envAddress("SHIPPO_FROM"),
+      ...envAddress("SHIPPO_ORIGIN"),
+    },
+    returnAddress,
+  );
 }
 
 function dollarsFromCents(cents: number) {
@@ -125,6 +209,28 @@ function centsFromDollars(value: string) {
 
 const KIT_WEIGHT_LB = 2;
 const MAX_KITS_PER_SHIPMENT = 25;
+const PROCESSING_DAYS = 2;
+
+function estimatedDaysFromRate(rate: ShippoRate) {
+  if (typeof rate.estimated_days === "number") return rate.estimated_days;
+  if (typeof rate.estimated_days === "string") {
+    const parsedDays = Number.parseInt(rate.estimated_days, 10);
+    return Number.isFinite(parsedDays) ? parsedDays : null;
+  }
+
+  return null;
+}
+
+function buildDeliveryEstimateLabel(estimatedDays: number | null | undefined) {
+  if (!estimatedDays) {
+    return `Estimated delivery includes ${PROCESSING_DAYS} business days of processing plus USPS Ground Advantage transit time.`;
+  }
+
+  const totalBusinessDays = PROCESSING_DAYS + estimatedDays;
+  const dayLabel = totalBusinessDays === 1 ? "business day" : "business days";
+
+  return `Estimated delivery in ${totalBusinessDays} ${dayLabel}, including ${PROCESSING_DAYS} business days of processing.`;
+}
 
 function getKitBoxTier(quantity: number) {
   if (quantity <= 1) return { length: "16", width: "12", height: "3" };
@@ -177,11 +283,36 @@ function shouldRequestDropoffQrCode() {
 }
 
 function shippoReference(value: string) {
-  return value.slice(0, 50);
+  return value.slice(0, 30);
 }
 
 function shippoMetadata(value: string) {
   return value.slice(0, 100);
+}
+
+function readTrackingStatus(status: ShippoTrackingStatus) {
+  if (!status) return { trackingStatus: null, trackingStatusDetails: null };
+  if (typeof status === "string") {
+    return { trackingStatus: status, trackingStatusDetails: null };
+  }
+
+  return {
+    trackingStatus: status.status ?? null,
+    trackingStatusDetails: status.status_details ?? null,
+  };
+}
+
+function shippoMessages(messages: Array<unknown> | undefined) {
+  if (!messages?.length) return "";
+
+  return messages
+    .map((message) => {
+      if (!message || typeof message !== "object") return String(message);
+      const data = message as Record<string, unknown>;
+      return [data.code, data.text, data.message, data.source].filter(Boolean).join(" ");
+    })
+    .filter(Boolean)
+    .join("; ");
 }
 
 async function shippoRequest<T>(path: string, init: RequestInit = {}) {
@@ -215,7 +346,8 @@ export async function getShippoUspsRateQuote(input: RateShipmentInput): Promise<
       const shipment = await shippoRequest<ShippoShipmentResponse>("/shipments/", {
         method: "POST",
         body: JSON.stringify({
-          address_from: getFromAddress(),
+          address_from: getOriginAddress(),
+          address_return: getReturnAddress(),
           address_to: input.toAddress,
           parcels: [getKitParcel(shipmentQuantity)],
           metadata: shippoMetadata(`${input.metadata}; ${getKitParcelSummary(shipmentQuantity)}`),
@@ -232,13 +364,13 @@ export async function getShippoUspsRateQuote(input: RateShipmentInput): Promise<
       });
 
       const uspsRates = (shipment.rates ?? []).filter((rate) => rate.provider.toLowerCase() === "usps");
-      const preferredRate = uspsRates.find((rate) => rate.servicelevel?.token === preferredService);
-      const cheapestRate = [...uspsRates].sort((a, b) => centsFromDollars(a.amount) - centsFromDollars(b.amount))[0];
-      const rate = preferredRate ?? cheapestRate;
+      const rate = uspsRates.find((entry) => entry.servicelevel?.token === preferredService);
 
       if (!rate) {
-        throw new Error("No USPS Shippo rates were returned for this shipping address.");
+        throw new Error("No USPS Ground Advantage Shippo rates were returned for this shipping address.");
       }
+
+      const estimatedDays = estimatedDaysFromRate(rate);
 
       return {
         shipmentId: shipment.object_id,
@@ -246,6 +378,9 @@ export async function getShippoUspsRateQuote(input: RateShipmentInput): Promise<
         amountCents: centsFromDollars(rate.amount),
         provider: rate.provider,
         service: rate.servicelevel?.display_name || rate.servicelevel?.name || rate.servicelevel?.token || "USPS",
+        estimatedDays,
+        arrivesBy: rate.arrives_by ?? null,
+        estimateLabel: buildDeliveryEstimateLabel(estimatedDays),
         carrierAccount: rate.carrier_account,
       };
     }),
@@ -258,6 +393,10 @@ export async function getShippoUspsRateQuote(input: RateShipmentInput): Promise<
 
   const shipmentCount = quotes.length;
   const service = shipmentCount > 1 ? `${firstQuote.service} (${shipmentCount} shipments)` : firstQuote.service;
+  const estimatedDays = quotes.reduce<number | null>((maxDays, quote) => {
+    if (!quote.estimatedDays) return maxDays;
+    return maxDays === null ? quote.estimatedDays : Math.max(maxDays, quote.estimatedDays);
+  }, null);
 
   return {
     shipmentId: quotes.map((quote) => quote.shipmentId).join(","),
@@ -265,6 +404,9 @@ export async function getShippoUspsRateQuote(input: RateShipmentInput): Promise<
     amountCents: quotes.reduce((sum, quote) => sum + quote.amountCents, 0),
     provider: firstQuote.provider,
     service,
+    estimatedDays,
+    arrivesBy: firstQuote.arrivesBy,
+    estimateLabel: buildDeliveryEstimateLabel(estimatedDays),
     carrierAccount: firstQuote.carrierAccount,
     parcelSummary: getKitParcelSummary(input.quantity),
     shipmentCount,
@@ -276,7 +418,7 @@ export async function createShippoOrder(input: CreateShippoOrderInput) {
     method: "POST",
     body: JSON.stringify({
       to_address: input.toAddress,
-      from_address: getFromAddress(),
+      from_address: getOriginAddress(),
       line_items: input.lineItems,
       placed_at: input.placedAt.toISOString(),
       order_number: input.orderNumber,
@@ -302,6 +444,55 @@ export async function createShippoOrder(input: CreateShippoOrderInput) {
   return {
     shippoOrderId: response.object_id,
     shippoOrderStatus: response.order_status ?? "PAID",
+  };
+}
+
+export async function purchaseShippoLabelsFromRates(input: {
+  rateIds: string[];
+  metadata: string;
+}): Promise<ShippoLabelPurchase> {
+  const rateIds = input.rateIds.map((rateId) => rateId.trim()).filter(Boolean);
+
+  if (rateIds.length === 0) {
+    throw new Error("A Shippo rate is required before buying a label.");
+  }
+
+  const transactions = await Promise.all(
+    rateIds.map((rateId, index) =>
+      shippoRequest<ShippoTransactionResponse>("/transactions/", {
+        method: "POST",
+        body: JSON.stringify({
+          rate: rateId,
+          async: false,
+          label_file_type: "PDF",
+          metadata: shippoMetadata(`${input.metadata}; label ${index + 1}/${rateIds.length}`),
+        }),
+      }),
+    ),
+  );
+
+  const failedTransaction = transactions.find((transaction) => transaction.status !== "SUCCESS");
+  if (failedTransaction) {
+    const details = shippoMessages(failedTransaction.messages);
+    throw new Error(
+      `Shippo label purchase failed${
+        failedTransaction.status ? ` with status ${failedTransaction.status}` : ""
+      }${details ? `: ${details}` : "."}`,
+    );
+  }
+
+  const trackingStatuses = transactions.map((transaction) => readTrackingStatus(transaction.tracking_status));
+
+  return {
+    shippoTransactionId: transactions.map((transaction) => transaction.object_id).join(","),
+    trackingCarrier: "usps",
+    trackingNumber: transactions.map((transaction) => transaction.tracking_number).filter(Boolean).join(",") || null,
+    trackingStatus: trackingStatuses.map((status) => status.trackingStatus).filter(Boolean).join(",") || null,
+    trackingStatusDetails:
+      trackingStatuses.map((status) => status.trackingStatusDetails).filter(Boolean).join(",") || null,
+    trackingUrl: transactions.map((transaction) => transaction.tracking_url_provider).filter(Boolean).join(",") || null,
+    labelUrl: transactions.map((transaction) => transaction.label_url).filter(Boolean).join(",") || null,
+    qrCodeUrl: transactions.map((transaction) => transaction.qr_code_url).filter(Boolean).join(",") || null,
   };
 }
 

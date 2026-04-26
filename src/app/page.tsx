@@ -17,7 +17,7 @@ export default function HomePage() {
 
       <section className="relative flex h-screen w-full snap-start snap-always items-start justify-center bg-white pt-20 md:hidden">
         <video
-          className="h-auto max-h-[calc(100svh-5rem)] w-auto max-w-[90%]"
+          className="h-auto max-h-[calc(100svh-5rem)] w-auto max-w-[100%]"
           src="/landing-hero/Poster%2001%20Vectical_1.mp4"
           autoPlay
           muted
@@ -25,6 +25,20 @@ export default function HomePage() {
           playsInline
           preload="auto"
           poster="/landing-hero/Poster%2001%20Vectical.00_00_00_00.Still003.png"
+          aria-label="Paint and Sip Depot landing video"
+        />
+      </section>
+
+      <section className="relative hidden h-screen w-full snap-start snap-always items-start justify-center bg-white pt-20 md:flex">
+        <video
+          className="h-auto max-h-[calc(100svh-5rem)] w-auto max-w-[90%]"
+          src="/landing-hero/Poster%2001%20Wide.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          poster="/landing-hero/Poster%2001%20Wide.00_00_00_00.Still001.png"
           aria-label="Paint and Sip Depot landing video"
         />
       </section>

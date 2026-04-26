@@ -179,6 +179,16 @@ export default async function ShopSuccessPage({
 
             <Separator />
 
+            <div>
+              <h3 className="font-medium">Shipping</h3>
+              <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                <p>{order.shippingService || "USPS Ground Advantage"}</p>
+                {order.shippingEstimateLabel ? <p>{order.shippingEstimateLabel}</p> : null}
+              </div>
+            </div>
+
+            <Separator />
+
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal</span>

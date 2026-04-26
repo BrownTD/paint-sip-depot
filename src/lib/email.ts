@@ -147,6 +147,8 @@ type ShopOrderConfirmationEmailInput = {
   }>;
 };
 
+type ShopOrderTrackingEmailInput = ShopOrderConfirmationEmailInput;
+
 type ReturnSubmissionEmailInput = {
   id: string;
   orderNumber: string;
@@ -813,6 +815,7 @@ export async function sendAdminShopOrderConfirmationEmail(input: ShopOrderConfir
   const subject = `New shop order: ${input.orderId}`;
   const itemRows = buildShopOrderItems(input);
   const shippingSummary = buildShopShippingSummary(input);
+  const adminOrderUrl = getAbsoluteUrl(`/admin/shipping/${input.orderId}`);
   const html = emailShell(
     "New shop order",
     "Admin Alert",
@@ -841,7 +844,7 @@ export async function sendAdminShopOrderConfirmationEmail(input: ShopOrderConfir
       <div style="margin:20px 0 0;padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
         ${shippingSummary.html}
       </div>
-      <p style="margin:20px 0 0;"><a href="${input.orderUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">View Order</a></p>
+      <p style="margin:20px 0 0;"><a href="${adminOrderUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">View Order</a></p>
     `
   );
   const text =
@@ -853,7 +856,7 @@ export async function sendAdminShopOrderConfirmationEmail(input: ShopOrderConfir
     `Shipping: ${centsToDollars(input.shippingAmountCents)}\n` +
     `Total paid: ${centsToDollars(input.amountTotalCents)}\n\n` +
     `${shippingSummary.text}\n\n` +
-    `View order: ${input.orderUrl}`;
+    `View order: ${adminOrderUrl}`;
 
   return sendEmail({
     to: getAdminEmail(),
@@ -861,6 +864,151 @@ export async function sendAdminShopOrderConfirmationEmail(input: ShopOrderConfir
     html,
     text,
     replyTo: input.customerEmail,
+    from: getOrdersFromEmail(),
+  });
+}
+
+export async function sendCustomerShopTrackingEmail(input: ShopOrderTrackingEmailInput) {
+  const firstName = getFirstName(input.customerName);
+  const greeting = `Hi ${firstName},`;
+  const subject = `Tracking update: ${input.orderId}`;
+  const itemRows = buildShopOrderItems(input);
+  const shippingSummary = buildShopShippingSummary(input);
+  const trackingButton =
+    input.trackingUrl && input.trackingNumber
+      ? `<a href="${input.trackingUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#000000;color:#ffffff;text-decoration:none;font-weight:700;">Track Package</a>`
+      : `<a href="${input.orderUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#000000;color:#ffffff;text-decoration:none;font-weight:700;">View Order</a>`;
+
+  const html = emailShell(
+    "Tracking update",
+    "Order Update",
+    `
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${greeting}</p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Your Paint &amp; Sip Depot order has a shipping update.</p>
+      <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        <p style="margin:0 0 10px;"><strong>Order:</strong> ${input.orderId}</p>
+        <p style="margin:0;"><strong>Customer:</strong> ${input.customerName} (${input.customerEmail})</p>
+      </div>
+      <table style="margin-top:20px;width:100%;border-collapse:collapse;border:1px solid #e5e5e5;background:#ffffff;font-size:14px;line-height:1.5;">
+        <thead>
+          <tr>
+            <th align="left" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">Item</th>
+            <th align="center" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">Qty</th>
+            <th align="right" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">Price</th>
+            <th align="right" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">Total</th>
+          </tr>
+        </thead>
+        <tbody>${itemRows.html}</tbody>
+      </table>
+      <div style="margin:20px 0 0;padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        ${shippingSummary.html}
+      </div>
+      <p style="margin:20px 0 0;">${trackingButton}</p>
+      ${signatureBlock()}
+    `,
+  );
+  const text =
+    `${greeting}\n\n` +
+    `Your Paint & Sip Depot order has a shipping update.\n\n` +
+    `Order: ${input.orderId}\n` +
+    `Customer: ${input.customerName} (${input.customerEmail})\n\n` +
+    `${itemRows.text}\n\n` +
+    `${shippingSummary.text}\n\n` +
+    `View order: ${input.orderUrl}`;
+
+  return sendEmail({
+    to: input.customerEmail,
+    subject,
+    html,
+    text,
+    replyTo: getReplyToEmail(),
+    from: getOrdersFromEmail(),
+  });
+}
+
+export async function sendCustomerShopProcessingEmail(input: ShopOrderTrackingEmailInput) {
+  const firstName = getFirstName(input.customerName);
+  const greeting = `Hi ${firstName},`;
+  const subject = `Your order is being prepared: ${input.orderId}`;
+  const itemRows = buildShopOrderItems(input);
+  const shippingSummary = buildShopShippingSummary(input);
+  const html = emailShell(
+    "Order processing",
+    "Order Update",
+    `
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${greeting}</p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Your Paint &amp; Sip Depot order is being prepared for shipment. We will send tracking details when the carrier updates the package.</p>
+      <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        <p style="margin:0 0 10px;"><strong>Order:</strong> ${input.orderId}</p>
+        <p style="margin:0;"><strong>Customer:</strong> ${input.customerName} (${input.customerEmail})</p>
+      </div>
+      <table style="margin-top:20px;width:100%;border-collapse:collapse;border:1px solid #e5e5e5;background:#ffffff;font-size:14px;line-height:1.5;">
+        <thead>
+          <tr>
+            <th align="left" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">Item</th>
+            <th align="center" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">Qty</th>
+            <th align="right" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">Price</th>
+            <th align="right" style="padding:12px;border-bottom:1px solid #111111;background:#f7f7f7;">Total</th>
+          </tr>
+        </thead>
+        <tbody>${itemRows.html}</tbody>
+      </table>
+      <div style="margin:20px 0 0;padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        ${shippingSummary.html}
+      </div>
+      ${signatureBlock()}
+    `,
+  );
+  const text =
+    `${greeting}\n\n` +
+    `Your Paint & Sip Depot order is being prepared for shipment.\n\n` +
+    `Order: ${input.orderId}\n` +
+    `Customer: ${input.customerName} (${input.customerEmail})\n\n` +
+    `${itemRows.text}\n\n` +
+    `${shippingSummary.text}`;
+
+  return sendEmail({
+    to: input.customerEmail,
+    subject,
+    html,
+    text,
+    replyTo: getReplyToEmail(),
+    from: getOrdersFromEmail(),
+  });
+}
+
+export async function sendCustomerShopDeliveredEmail(input: ShopOrderTrackingEmailInput) {
+  const firstName = getFirstName(input.customerName);
+  const greeting = `Hi ${firstName},`;
+  const subject = `Delivered: ${input.orderId}`;
+  const shippingSummary = buildShopShippingSummary(input);
+  const html = emailShell(
+    "Order delivered",
+    "Order Update",
+    `
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${greeting}</p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Your Paint &amp; Sip Depot order has been marked delivered by the carrier.</p>
+      <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        <p style="margin:0 0 10px;"><strong>Order:</strong> ${input.orderId}</p>
+        ${shippingSummary.html}
+      </div>
+      <p style="margin:20px 0 0;"><a href="${input.orderUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#000000;color:#ffffff;text-decoration:none;font-weight:700;">View Order</a></p>
+      ${signatureBlock()}
+    `,
+  );
+  const text =
+    `${greeting}\n\n` +
+    `Your Paint & Sip Depot order has been marked delivered by the carrier.\n\n` +
+    `Order: ${input.orderId}\n\n` +
+    `${shippingSummary.text}\n\n` +
+    `View order: ${input.orderUrl}`;
+
+  return sendEmail({
+    to: input.customerEmail,
+    subject,
+    html,
+    text,
+    replyTo: getReplyToEmail(),
     from: getOrdersFromEmail(),
   });
 }

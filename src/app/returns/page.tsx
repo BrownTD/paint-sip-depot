@@ -81,8 +81,7 @@ export default function ReturnsPage() {
                 <p className="leading-7 text-muted-foreground">
                   Once your return is approved or a replacement is authorized, we&apos;ll process
                   and ship your new item within 2-4 business days. Shipping speed will match your
-                  original order (Standard or Expedited), and you&apos;ll receive a tracking
-                  number once it&apos;s on the way.
+                  original order, and you&apos;ll receive a tracking number once it&apos;s on the way.
                 </p>
               </section>
             </CardContent>

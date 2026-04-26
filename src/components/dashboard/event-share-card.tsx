@@ -42,9 +42,9 @@ export function EventShareCard({
           <div className="text-2xl font-semibold tracking-[0.2em] text-foreground">
             {eventCode}
           </div>
-          <p className="text-sm text-muted-foreground">
-            Share this code with guests so they can quickly find your private event.
-          </p>
+        <p className="text-sm text-muted-foreground">
+  Share this <span className="font-semibold text-foreground">code</span> with guests so they can quickly find your <span className="font-semibold text-foreground">private event</span>.
+</p>
         </div>
 
         <Button type="button" variant="outline" className="rounded-full px-5" onClick={onCopy}>

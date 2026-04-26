@@ -553,50 +553,88 @@ router.refresh();
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Visibility</Label>
-                  <Select
-                    value={formData.visibility}
-                    onValueChange={(value: "PUBLIC" | "PRIVATE") =>
-                      setFormData({ ...formData, visibility: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select visibility" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="PRIVATE">Private Event</SelectItem>
-                      <SelectItem value="PUBLIC">Public Event</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Public events appear in discovery. Private events stay hidden and are accessed by event code.
-                  </p>
-                </div>
+  <Label>Visibility</Label>
+
+  <div className="grid grid-cols-2 gap-2">
+    <button
+      type="button"
+      onClick={() =>
+        setFormData({
+          ...formData,
+          visibility: "PRIVATE",
+        })
+      }
+      className={`h-10 rounded-md border px-3 text-sm font-medium transition ${
+        formData.visibility === "PRIVATE"
+          ? "border-black bg-black text-white"
+          : "border-input bg-background hover:bg-muted/40"
+      }`}
+    >
+      Private
+    </button>
+
+    <button
+      type="button"
+      onClick={() =>
+        setFormData({
+          ...formData,
+          visibility: "PUBLIC",
+        })
+      }
+      className={`h-10 rounded-md border px-3 text-sm font-medium transition ${
+        formData.visibility === "PUBLIC"
+          ? "border-black bg-black text-white"
+          : "border-input bg-background hover:bg-muted/40"
+      }`}
+    >
+      Public
+    </button>
+  </div>
+   <p className="text-sm text-foreground/70">
+    Public events can be accessed by anyone on the web. Private events are only accessible with an event code.
+  </p>
+</div>
 
                 <div className="space-y-2">
-                  <Label>Format</Label>
-                  <Select
-                    value={formData.eventFormat}
-                    onValueChange={(value: "IN_PERSON" | "VIRTUAL") =>
-                      setFormData({
-                        ...formData,
-                        eventFormat: value,
-                        locationName:
-                          value === "VIRTUAL" && !formData.locationName
-                            ? "Virtual Event"
-                            : formData.locationName,
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select event format" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="IN_PERSON">In Person</SelectItem>
-                      <SelectItem value="VIRTUAL">Virtual</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+  <Label>Format</Label>
+
+  <div className="grid grid-cols-2 gap-2">
+    <button
+      type="button"
+      onClick={() =>
+        setFormData({
+          ...formData,
+          eventFormat: "IN_PERSON",
+        })
+      }
+      className={`h-10 rounded-md border px-3 text-sm font-medium transition ${
+        formData.eventFormat === "IN_PERSON"
+          ? "border-black bg-black text-white"
+          : "border-input bg-background hover:bg-muted/40"
+      }`}
+    >
+      In Person
+    </button>
+
+    <button
+      type="button"
+      onClick={() =>
+        setFormData({
+          ...formData,
+          eventFormat: "VIRTUAL",
+          locationName: formData.locationName || "Virtual Event",
+        })
+      }
+      className={`h-10 rounded-md border px-3 text-sm font-medium transition ${
+        formData.eventFormat === "VIRTUAL"
+          ? "border-black bg-black text-white"
+          : "border-input bg-background hover:bg-muted/40"
+      }`}
+    >
+      Virtual
+    </button>
+  </div>
+</div>
               </div>
 
               <div className="space-y-2">
@@ -768,15 +806,26 @@ router.refresh();
             <CardHeader>
               <CardTitle>Shipping Address</CardTitle>
               <CardDescription>
-                Supplies for this event ship to the host. This address is used for guest checkout
-                shipping costs.
+                {formData.fulfillmentMethod === "SHIP_TO_HOST"
+                  ? "Supplies for this event ship to the host. Guest will be charged shipping at checkout."
+                  : "Supplies will be picked up from Paint & Sip Depot. Guests will not be charged shipping at checkout."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 md:grid-cols-2">
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, fulfillmentMethod: "SHIP_TO_HOST" })}
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      fulfillmentMethod: "SHIP_TO_HOST",
+                      shippingRecipientName: "",
+                      shippingAddress: "",
+                      shippingCity: "",
+                      shippingState: "",
+                      shippingZip: "",
+                    })
+                  }
                   className={`rounded-xl p-4 text-left transition ${
                   formData.fulfillmentMethod === "SHIP_TO_HOST"
                     ? "bg-black text-white"

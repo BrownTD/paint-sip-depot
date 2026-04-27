@@ -41,6 +41,14 @@ const statusVariants = {
   ARCHIVED: "outline",
 } as const;
 
+type ProductStatusFilter = "ACTIVE" | "ARCHIVED" | "ALL";
+
+const statusFilterOptions: { label: string; value: ProductStatusFilter }[] = [
+  { label: "Active", value: "ACTIVE" },
+  { label: "Archived", value: "ARCHIVED" },
+  { label: "All", value: "ALL" },
+];
+
 export function AdminProductsPageContent({
   products,
 }: {
@@ -49,6 +57,7 @@ export function AdminProductsPageContent({
   const router = useRouter();
   const [selectedProduct, setSelectedProduct] = useState<AdminProductListItem | null>(null);
   const [actionProductId, setActionProductId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<ProductStatusFilter>("ACTIVE");
 
   const summary = useMemo(
     () => ({
@@ -58,6 +67,11 @@ export function AdminProductsPageContent({
     }),
     [products],
   );
+
+  const filteredProducts = useMemo(() => {
+    if (statusFilter === "ALL") return products;
+    return products.filter((product) => product.status === statusFilter);
+  }, [products, statusFilter]);
 
   async function updateStatus(productId: string, status: "ACTIVE" | "ARCHIVED") {
     setActionProductId(productId);
@@ -106,12 +120,20 @@ export function AdminProductsPageContent({
             Manage the shop catalog, Stripe product sync, and archived product recovery.
           </p>
         </div>
-        <Button asChild>
-          <Link href="/admin/products/new">
-            <PackagePlus className="mr-2 h-4 w-4" />
-            New Product
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+  <Button asChild variant="outline">
+    <Link href="/admin/products/batch-create">
+      Batch Create
+    </Link>
+  </Button>
+
+  <Button asChild>
+    <Link href="/admin/products/new">
+      <PackagePlus className="mr-2 h-4 w-4" />
+      New Product
+    </Link>
+  </Button>
+</div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -142,14 +164,32 @@ export function AdminProductsPageContent({
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Catalog</CardTitle>
+          <div className="flex rounded-lg border bg-muted/20 p-1">
+            {statusFilterOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setStatusFilter(option.value)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                  statusFilter === option.value
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </CardHeader>
         <CardContent>
-          {products.length === 0 ? (
+          {filteredProducts.length === 0 ? (
             <div className="rounded-lg border border-dashed bg-muted/20 px-6 py-12 text-center">
               <p className="text-sm text-muted-foreground">
-                No products yet. Create your first shop product to start selling through the site.
+                {products.length === 0
+                  ? "No products yet. Create your first shop product to start selling through the site."
+                  : `No ${statusFilter === "ALL" ? "" : statusFilter.toLowerCase()} products found.`}
               </p>
             </div>
           ) : (
@@ -187,7 +227,7 @@ export function AdminProductsPageContent({
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((product) => {
+                  {filteredProducts.map((product) => {
                     const isBusy = actionProductId === product.id;
 
                     return (

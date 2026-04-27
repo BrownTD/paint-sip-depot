@@ -95,6 +95,17 @@ export const PAINT_COLOR_CATEGORIES = [
     ],
   },
   {
+  name: "Pinks",
+  colors: [
+    { label: "Light Pink", hex: "#FFB6C1" },   // matches Craft Smart Light Pink
+    { label: "Pink", hex: "#FFC0CB" },         // standard pink
+    { label: "Bright Magenta", hex: "#FF00A8" }, // from Craft Smart magenta
+    { label: "Berry", hex: "#C2185B" },        // deeper pink/red tone
+    { label: "Deep Coral", hex: "#FF6F61" },   // coral pink
+    { label: "Rose", hex: "#FF007F" },         // strong rose tone
+  ],
+},
+  {
     name: "Browns / Earth Tones",
     colors: [
       { label: "Brown", hex: "#8B4513" },

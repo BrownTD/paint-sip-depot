@@ -23,7 +23,7 @@ const hostSteps = [
     number: "2",
     title: "Choose your canvas and publish your event",
     description:
-      "Pick a design, add your event details, and launch a booking page your guests can start registering for right away.",
+      "Pick a design, add your event details, and launch a booking page your guests can start registering from right away.",
     imageSrc: "/Misc/Frame 61.png",
   },
   {

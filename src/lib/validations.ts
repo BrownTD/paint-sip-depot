@@ -1,7 +1,6 @@
 import { z } from "zod";
 import {
   CANVASES_CATEGORY_ID,
-  DEFAULT_PRODUCT_CURRENCY,
   PAINT_CATEGORY_ID,
   PRODUCT_VARIANT_SIZE,
   normalizeCurrency,

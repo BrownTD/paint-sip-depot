@@ -23,10 +23,7 @@ const BOOKING_EMAIL_STATUS = {
 const EMAIL_PROVIDER = "resend";
 type PrismaLike = {
   booking: PrismaClient["booking"];
-  bookingEmailLog: {
-    create: (...args: any[]) => Promise<any>;
-    update: (...args: any[]) => Promise<any>;
-  };
+  bookingEmailLog: Pick<PrismaClient["bookingEmailLog"], "create" | "update">;
 };
 type ExpirableBookingStatus = typeof BOOKING_STATUS.pending | typeof BOOKING_STATUS.reserved;
 

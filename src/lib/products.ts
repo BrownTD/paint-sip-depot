@@ -600,17 +600,6 @@ function getDefaultVariant<T extends { size: ProductVariantSize }>(variants: T[]
   return mediumVariant;
 }
 
-function getDefaultCanvasDescription() {
-  return CANVAS_DEFAULT_DESCRIPTION;
-}
-
-function getDefaultCanvasPricing() {
-  return {
-    medium: CANVAS_DEFAULT_MEDIUM_PRICE,
-    large: CANVAS_DEFAULT_LARGE_PRICE,
-  };
-}
-
 export async function getProductCategories() {
   return prisma.productCategory.findMany({
     include: {

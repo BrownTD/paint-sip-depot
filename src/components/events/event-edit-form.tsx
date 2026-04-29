@@ -320,7 +320,7 @@ const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   toast({ title: "Image selected", description: "Will upload when you save/publish." });
 };
 
-  const handleSubmit = async (e: React.FormEvent, action?: "draft" | "publish") => {
+  const handleSubmit = async (e: React.SyntheticEvent, action?: "draft" | "publish") => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -350,7 +350,7 @@ if (isTooSoon) {
         throw new Error(`Capacity cannot be less than tickets sold (${minCapacity}).`);
       }
 
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         ...formData,
         startDateTime: startDateTimeIso,
         endDateTime: endDateTimeIso,
@@ -1111,7 +1111,7 @@ router.refresh();
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={(e) => handleSubmit(e as any, "draft")}
+                  onClick={(e) => handleSubmit(e, "draft")}
                   disabled={isLoading}
                 >
                   Save as Draft
@@ -1119,7 +1119,7 @@ router.refresh();
 
                 <Button
                   type="button"
-                  onClick={(e) => handleSubmit(e as any, "publish")}
+                  onClick={(e) => handleSubmit(e, "publish")}
                   disabled={isLoading}
                 >
                   {isLoading ? (

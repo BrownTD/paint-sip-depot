@@ -105,6 +105,38 @@ type OrderNotificationInput = {
   trackingUrl?: string | null;
 };
 
+type EventShippingEmailInput = {
+  to: string;
+  recipientName?: string | null;
+  eventTitle: string;
+  eventUrl: string;
+  startDateTime: Date;
+  locationName: string;
+  totalKits: number;
+  paidBookingCount: number;
+  shippingName?: string | null;
+  shippingAddress?: string | null;
+  shippingCity?: string | null;
+  shippingState?: string | null;
+  shippingZip?: string | null;
+  shippingAmountCents?: number | null;
+  shippingProvider?: string | null;
+  shippingService?: string | null;
+  trackingNumber?: string | null;
+  trackingStatus?: string | null;
+  trackingUrl?: string | null;
+};
+
+type HostKitReminderEmailInput = {
+  to: string;
+  recipientName?: string | null;
+  eventTitle: string;
+  eventUrl: string;
+  dashboardUrl: string;
+  cutoffDate: Date;
+  daysBeforeCutoff: 1 | 3;
+};
+
 type ExpiredCheckoutEmailInput = {
   to: string;
   purchaserName?: string | null;
@@ -425,6 +457,9 @@ export async function sendHostEventCreatedEmail(input: EventCreatedEmailInput & 
         ${privateEventCode ? `<p style="margin:0 0 10px;"><strong>Event code:</strong> ${privateEventCode}</p>` : ""}
         <p style="margin:0;"><strong>Visibility:</strong> ${input.visibility}</p>
       </div>
+      <p style="margin:20px 0 0;font-size:16px;line-height:1.6;">
+        Reminder: if you plan to paint along at your event, purchase your own kit from your host dashboard before booking closes.
+      </p>
       <p style="margin:20px 0 0;"><a href="${previewUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">Preview Event Page</a></p>
     `
   );
@@ -436,6 +471,7 @@ export async function sendHostEventCreatedEmail(input: EventCreatedEmailInput & 
     `Location: ${input.locationName}\n` +
     `${privateEventCode ? `Event code: ${privateEventCode}\n` : ""}` +
     `Visibility: ${input.visibility}\n` +
+    `Reminder: if you plan to paint along at your event, purchase your own kit from your host dashboard before booking closes.\n` +
     `Preview: ${previewUrl}`;
 
   await sendEmail({
@@ -444,6 +480,45 @@ export async function sendHostEventCreatedEmail(input: EventCreatedEmailInput & 
     html,
     text,
     from: getEventsFromEmail(),
+  });
+}
+
+export async function sendHostKitReminderEmail(input: HostKitReminderEmailInput) {
+  const greeting = input.recipientName ? `Hi ${input.recipientName},` : "Hi,";
+  const subject = `Reminder: buy your kit for ${input.eventTitle}`;
+  const html = emailShell(
+    "Buy your host kit",
+    "Host Reminder",
+    `
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${greeting}</p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">
+        Booking closes for <strong>${input.eventTitle}</strong> in ${input.daysBeforeCutoff} day${input.daysBeforeCutoff === 1 ? "" : "s"}.
+      </p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">
+        If you want to paint along at your event, buy your own kit before checkout closes so it is included with your event supplies.
+      </p>
+      <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        <p style="margin:0 0 10px;"><strong>Event:</strong> ${input.eventTitle}</p>
+        <p style="margin:0;"><strong>Booking closes:</strong> ${formatDate(input.cutoffDate)} at ${formatTime(input.cutoffDate)}</p>
+      </div>
+      <p style="margin:20px 0 0;"><a href="${input.dashboardUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">Buy Your Kit</a></p>
+      ${signatureBlock()}
+    `
+  );
+  const text =
+    `${greeting}\n\n` +
+    `Booking closes for "${input.eventTitle}" in ${input.daysBeforeCutoff} day${input.daysBeforeCutoff === 1 ? "" : "s"}.\n` +
+    `If you want to paint along at your event, buy your own kit before checkout closes so it is included with your event supplies.\n` +
+    `Booking closes: ${formatDate(input.cutoffDate)} at ${formatTime(input.cutoffDate)}\n\n` +
+    `${input.dashboardUrl}`;
+
+  await sendEmail({
+    to: input.to,
+    subject,
+    html,
+    text,
+    replyTo: getReplyToEmail(),
+    from: getTicketsFromEmail(),
   });
 }
 
@@ -580,6 +655,109 @@ export async function sendHostOrderCreatedEmail(input: OrderNotificationInput & 
     `${privateEventCode ? `Event code: ${privateEventCode}\n` : ""}` +
     `Preview: ${previewUrl}\n` +
     `Dashboard: ${dashboardUrl}`;
+
+  await sendEmail({
+    to: input.to,
+    subject,
+    html,
+    text,
+    replyTo: getReplyToEmail(),
+    from: getTicketsFromEmail(),
+  });
+}
+
+export async function sendHostEventShippingPreparedEmail(input: EventShippingEmailInput) {
+  const greeting = input.recipientName ? `Hi ${input.recipientName},` : "Hi,";
+  const shippingMethod = [input.shippingProvider, input.shippingService].filter(Boolean).join(" ") || "USPS";
+  const addressLine = [
+    input.shippingName,
+    input.shippingAddress,
+    [input.shippingCity, input.shippingState, input.shippingZip].filter(Boolean).join(", "),
+  ]
+    .filter(Boolean)
+    .join("<br />");
+  const subject = `Your ${input.eventTitle} kit order is being prepared`;
+  const html = emailShell(
+    "Your event kits are being prepared",
+    "Host Shipping Update",
+    `
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${greeting}</p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">
+        Booking has closed for <strong>${input.eventTitle}</strong>, and your event kit shipment has been created.
+      </p>
+      <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        <p style="margin:0 0 10px;"><strong>Event date:</strong> ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}</p>
+        <p style="margin:0 0 10px;"><strong>Location:</strong> ${input.locationName}</p>
+        <p style="margin:0 0 10px;"><strong>Total kits:</strong> ${input.totalKits}</p>
+        <p style="margin:0 0 10px;"><strong>Paid bookings:</strong> ${input.paidBookingCount}</p>
+        <p style="margin:0 0 10px;"><strong>Shipping:</strong> ${shippingMethod}${input.shippingAmountCents ? ` (${centsToDollars(input.shippingAmountCents)})` : ""}</p>
+        ${addressLine ? `<p style="margin:0;"><strong>Ship to:</strong><br />${addressLine}</p>` : ""}
+      </div>
+      <p style="margin:20px 0 0;font-size:16px;line-height:1.6;">
+        We will send tracking once the shipping label is purchased.
+      </p>
+      <p style="margin:20px 0 0;"><a href="${input.eventUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">View Event</a></p>
+      ${signatureBlock()}
+    `
+  );
+
+  const text =
+    `${greeting}\n\n` +
+    `Booking has closed for "${input.eventTitle}", and your event kit shipment has been created.\n` +
+    `Event date: ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}\n` +
+    `Location: ${input.locationName}\n` +
+    `Total kits: ${input.totalKits}\n` +
+    `Paid bookings: ${input.paidBookingCount}\n` +
+    `Shipping: ${shippingMethod}${input.shippingAmountCents ? ` (${centsToDollars(input.shippingAmountCents)})` : ""}\n` +
+    `We will send tracking once the shipping label is purchased.\n\n` +
+    `${input.eventUrl}`;
+
+  await sendEmail({
+    to: input.to,
+    subject,
+    html,
+    text,
+    replyTo: getReplyToEmail(),
+    from: getTicketsFromEmail(),
+  });
+}
+
+export async function sendHostEventShippingTrackingEmail(input: EventShippingEmailInput) {
+  const greeting = input.recipientName ? `Hi ${input.recipientName},` : "Hi,";
+  const shippingMethod = [input.shippingProvider, input.shippingService].filter(Boolean).join(" ") || "USPS";
+  const trackingLine = input.trackingNumber
+    ? input.trackingUrl
+      ? `<a href="${input.trackingUrl}" style="color:#000000;">${input.trackingNumber}</a>`
+      : input.trackingNumber
+    : "Tracking is being prepared";
+  const subject = `Tracking for your ${input.eventTitle} kits`;
+  const html = emailShell(
+    "Your event kits are on the way",
+    "Host Shipping Update",
+    `
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${greeting}</p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">
+        Your kit shipment for <strong>${input.eventTitle}</strong> has been updated.
+      </p>
+      <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        <p style="margin:0 0 10px;"><strong>Total kits:</strong> ${input.totalKits}</p>
+        <p style="margin:0 0 10px;"><strong>Shipping:</strong> ${shippingMethod}</p>
+        <p style="margin:0 0 10px;"><strong>Tracking:</strong> ${trackingLine}</p>
+        ${input.trackingStatus ? `<p style="margin:0;"><strong>Status:</strong> ${input.trackingStatus}</p>` : ""}
+      </div>
+      <p style="margin:20px 0 0;"><a href="${input.trackingUrl || input.eventUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">Track Shipment</a></p>
+      ${signatureBlock()}
+    `
+  );
+
+  const text =
+    `${greeting}\n\n` +
+    `Your kit shipment for "${input.eventTitle}" has been updated.\n` +
+    `Total kits: ${input.totalKits}\n` +
+    `Shipping: ${shippingMethod}\n` +
+    `Tracking: ${input.trackingNumber || "Tracking is being prepared"}\n` +
+    `${input.trackingStatus ? `Status: ${input.trackingStatus}\n` : ""}` +
+    `${input.trackingUrl || input.eventUrl}`;
 
   await sendEmail({
     to: input.to,

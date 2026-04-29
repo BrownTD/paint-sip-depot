@@ -25,6 +25,7 @@ function isUsableSignedShippoUrl(value: string | null) {
 
 export function AdminShippingActions({
   orderId,
+  source,
   labelUrl,
   trackingNumber,
   trackingUrl,
@@ -34,6 +35,7 @@ export function AdminShippingActions({
   status,
 }: {
   orderId: string;
+  source: "shop" | "event";
   labelUrl: string | null;
   trackingNumber: string | null;
   trackingUrl: string | null;
@@ -62,7 +64,7 @@ export function AdminShippingActions({
     setPendingAction(action);
 
     try {
-      const response = await fetch(`/api/admin/shop-orders/${orderId}/${action}`, {
+      const response = await fetch(`/api/admin/${source === "event" ? "event-shipping-orders" : "shop-orders"}/${orderId}/${action}`, {
         method: "POST",
       });
       const data = await response.json().catch(() => ({}));

@@ -5,6 +5,7 @@ export type AdminShippingOrder = Awaited<ReturnType<typeof getAdminShippingOrder
 
 function serializeShopOrder(order: Awaited<ReturnType<typeof getRawShopOrders>>[number]) {
   return {
+    source: "shop" as const,
     id: order.id,
     customerName: order.customerName,
     customerEmail: order.customerEmail,
@@ -43,6 +44,62 @@ function serializeShopOrder(order: Awaited<ReturnType<typeof getRawShopOrders>>[
   };
 }
 
+function serializeEventShippingOrder(order: Awaited<ReturnType<typeof getRawEventShippingOrders>>[number]) {
+  const eventItem = {
+    id: `${order.id}-event-kits`,
+    productNameSnapshot: `${order.event.title} event kits`,
+    variantLabelSnapshot: "Event kits",
+    colorLabelSnapshot: null,
+    quantity: order.totalKits,
+    unitPriceCents: 0,
+    totalPriceCents: 0,
+    currency: order.currency,
+  };
+
+  return {
+    source: "event" as const,
+    id: order.id,
+    customerName: order.hostName || "Event host",
+    customerEmail: order.hostEmail || "",
+    shippingName: order.shippingName,
+    shippingAddress: order.shippingAddress,
+    shippingCity: order.shippingCity,
+    shippingState: order.shippingState,
+    shippingZip: order.shippingZip,
+    shippingPhone: null,
+    shippingAmountCents: order.shippingAmountCents,
+    shippingProvider: order.shippingProvider,
+    shippingService: order.shippingService,
+    shippingEstimatedDays: order.shippingEstimatedDays,
+    shippingArrivesBy: order.shippingArrivesBy,
+    shippingEstimateLabel: order.shippingEstimateLabel,
+    shippoShipmentId: order.shippoShipmentId,
+    shippoRateId: order.shippoRateId,
+    shippoOrderId: order.shippoOrderId,
+    shippoOrderStatus: order.shippoOrderStatus,
+    shippoTransactionId: order.shippoTransactionId,
+    trackingCarrier: order.trackingCarrier,
+    trackingNumber: order.trackingNumber,
+    trackingStatus: order.trackingStatus,
+    trackingStatusDetails: order.trackingStatusDetails,
+    trackingUrl: order.trackingUrl,
+    labelUrl: order.labelUrl,
+    qrCodeUrl: order.qrCodeUrl,
+    packingSlipUrl: order.packingSlipUrl,
+    currency: order.currency,
+    status: order.status,
+    stripeCheckoutSessionId: null,
+    amountSubtotalCents: 0,
+    amountTotalCents: order.shippingAmountCents,
+    createdAt: order.createdAt.toISOString(),
+    eventTitle: order.event.title,
+    eventId: order.eventId,
+    totalKits: order.totalKits,
+    paidBookingCount: order.paidBookingCount,
+    items: [eventItem],
+  };
+}
+
 async function getRawShopOrders() {
   return prisma.shopOrder.findMany({
     where: {
@@ -69,9 +126,29 @@ async function getRawShopOrders() {
   });
 }
 
+async function getRawEventShippingOrders() {
+  return prisma.eventShippingOrder.findMany({
+    where: {
+      status: {
+        in: [ShopOrderStatus.PAID, ShopOrderStatus.FULFILLED],
+      },
+    },
+    include: {
+      event: {
+        select: {
+          title: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
 export async function getAdminShippingOrders() {
-  const orders = await getRawShopOrders();
-  return orders.map(serializeShopOrder);
+  const [shopOrders, eventOrders] = await Promise.all([getRawShopOrders(), getRawEventShippingOrders()]);
+  return [...shopOrders.map(serializeShopOrder), ...eventOrders.map(serializeEventShippingOrder)].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
 }
 
 export async function getAdminShippingOrder(orderId: string) {
@@ -94,5 +171,18 @@ export async function getAdminShippingOrder(orderId: string) {
     },
   });
 
-  return order ? serializeShopOrder(order) : null;
+  if (order) return serializeShopOrder(order);
+
+  const eventOrder = await prisma.eventShippingOrder.findUnique({
+    where: { id: orderId },
+    include: {
+      event: {
+        select: {
+          title: true,
+        },
+      },
+    },
+  });
+
+  return eventOrder ? serializeEventShippingOrder(eventOrder) : null;
 }

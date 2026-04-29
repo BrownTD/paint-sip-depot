@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { ShopOrderStatus } from "@prisma/client";
+import { sendHostEventShippingTrackingEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { sendShopOrderDeliveredEmail, sendShopOrderTrackingEmail } from "@/lib/shop-order-emails";
+import { getAbsoluteUrl } from "@/lib/utils";
 
 type ShippoWebhookPayload = Record<string, unknown>;
 
@@ -89,10 +91,74 @@ async function updateMatchingOrders(data: {
       }
     }
 
-    await prisma.booking.updateMany({
+    const eventShippingOrders = await prisma.eventShippingOrder.findMany({
       where,
-      data: carrierUpdateData,
+      include: {
+        event: {
+          select: {
+            title: true,
+            slug: true,
+            startDateTime: true,
+            locationName: true,
+          },
+        },
+      },
     });
+
+    for (const order of eventShippingOrders) {
+      const trackingChanged =
+        Boolean(data.trackingNumber) &&
+        (order.trackingNumber !== data.trackingNumber ||
+          order.trackingStatus !== data.trackingStatus ||
+          order.trackingUrl !== data.trackingUrl);
+
+      const updatedOrder = await prisma.eventShippingOrder.update({
+        where: { id: order.id },
+        data: {
+          ...carrierUpdateData,
+          status: data.trackingStatus?.toUpperCase() === "TRANSIT" ? ShopOrderStatus.FULFILLED : undefined,
+        },
+        include: {
+          event: {
+            select: {
+              title: true,
+              slug: true,
+              startDateTime: true,
+              locationName: true,
+            },
+          },
+        },
+      });
+
+      if (trackingChanged && updatedOrder.hostEmail) {
+        await sendHostEventShippingTrackingEmail({
+          to: updatedOrder.hostEmail,
+          recipientName: updatedOrder.hostName,
+          eventTitle: updatedOrder.event.title,
+          eventUrl: getAbsoluteUrl(`/e/${updatedOrder.event.slug}`),
+          startDateTime: updatedOrder.event.startDateTime,
+          locationName: updatedOrder.event.locationName,
+          totalKits: updatedOrder.totalKits,
+          paidBookingCount: updatedOrder.paidBookingCount,
+          shippingName: updatedOrder.shippingName,
+          shippingAddress: updatedOrder.shippingAddress,
+          shippingCity: updatedOrder.shippingCity,
+          shippingState: updatedOrder.shippingState,
+          shippingZip: updatedOrder.shippingZip,
+          shippingAmountCents: updatedOrder.shippingAmountCents,
+          shippingProvider: updatedOrder.shippingProvider,
+          shippingService: updatedOrder.shippingService,
+          trackingNumber: updatedOrder.trackingNumber,
+          trackingStatus: updatedOrder.trackingStatus,
+          trackingUrl: updatedOrder.trackingUrl,
+        }).catch((emailError: unknown) => {
+          console.error("Event shipping tracking email failed:", {
+            eventShippingOrderId: updatedOrder.id,
+            error: emailError instanceof Error ? emailError.message : String(emailError),
+          });
+        });
+      }
+    }
   }
 }
 

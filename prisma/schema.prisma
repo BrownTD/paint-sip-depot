@@ -108,6 +108,8 @@ model Event {
   qrCodeImageUrl          String?
   bookingCutoffOverrideAt DateTime?
   bookings                Booking[]
+  shippingOrder           EventShippingOrder?
+  hostKitReminders        EventHostKitReminder[]
   host                    User                   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
   @@index([hostId])
@@ -280,6 +282,66 @@ model Booking {
   @@index([shippoOrderId])
   @@index([trackingNumber])
   @@map("bookings")
+}
+
+model EventShippingOrder {
+  id                    String          @id @default(cuid())
+  eventId               String          @unique
+  hostName              String?
+  hostEmail             String?
+  shippingName          String?
+  shippingAddress       String?
+  shippingCity          String?
+  shippingState         String?
+  shippingZip           String?
+  totalKits             Int
+  paidBookingCount      Int
+  shippingAmountCents   Int             @default(0)
+  shippingProvider      String?
+  shippingService       String?
+  shippingEstimatedDays Int?
+  shippingArrivesBy     String?
+  shippingEstimateLabel String?
+  shippoShipmentId      String?
+  shippoRateId          String?
+  shippoOrderId         String?
+  shippoOrderStatus     String?
+  shippoTransactionId   String?
+  trackingCarrier       String?
+  trackingNumber        String?
+  trackingStatus        String?
+  trackingStatusDetails String?
+  trackingUrl           String?
+  labelUrl              String?
+  qrCodeUrl             String?
+  packingSlipUrl        String?
+  currency              String          @default("usd")
+  status                ShopOrderStatus @default(PAID)
+  preparedEmailSentAt   DateTime?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  event                 Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([hostEmail])
+  @@index([shippoOrderId])
+  @@index([trackingNumber])
+  @@map("event_shipping_orders")
+}
+
+model EventHostKitReminder {
+  id             String   @id @default(cuid())
+  eventId        String
+  reminderType   String
+  recipientEmail String
+  sentAt         DateTime @default(now())
+  provider       String   @default("resend")
+  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, reminderType, recipientEmail])
+  @@index([eventId])
+  @@index([reminderType, sentAt])
+  @@map("event_host_kit_reminders")
 }
 
 model ShopOrder {

@@ -62,7 +62,7 @@ export default async function AdminShippingPage() {
         <div>
           <h1 className="font-display text-3xl font-bold">Shipping</h1>
           <p className="mt-1 text-muted-foreground">
-            Review paid shop orders, buy labels, and manage tracking.
+            Review paid shop and event kit shipments, buy labels, and manage tracking.
           </p>
         </div>
         <Button asChild variant="outline">
@@ -73,7 +73,7 @@ export default async function AdminShippingPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Paid Shop Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">Paid Shipping Orders</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{orders.length}</div>
@@ -99,11 +99,11 @@ export default async function AdminShippingPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Shop Orders</CardTitle>
+          <CardTitle>Shipping Orders</CardTitle>
         </CardHeader>
         <CardContent>
           {orders.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No paid shop orders yet.</p>
+            <p className="text-sm text-muted-foreground">No paid shipping orders yet.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[980px]">
@@ -123,7 +123,10 @@ export default async function AdminShippingPage() {
                   {orders.map((order) => (
                     <tr key={order.id} className="border-b last:border-0 hover:bg-muted/40">
                       <td className="px-4 py-3 align-top">
-                        <p className="font-medium">{order.id}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-medium">{order.id}</p>
+                          <Badge variant="outline">{order.source === "event" ? "event" : "shop"}</Badge>
+                        </div>
                         <p className="text-sm text-muted-foreground">{formatDateTime(order.createdAt)}</p>
                       </td>
                       <td className="px-4 py-3 align-top">

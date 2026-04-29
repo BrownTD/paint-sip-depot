@@ -188,6 +188,7 @@ export default async function AdminShippingOrderPage({
             <CardContent>
               <AdminShippingActions
                 orderId={order.id}
+                source={order.source}
                 labelUrl={order.labelUrl}
                 trackingNumber={order.trackingNumber}
                 trackingUrl={order.trackingUrl}

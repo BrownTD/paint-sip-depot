@@ -103,7 +103,9 @@ export function EventEditForm({
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [pendingSaveAction, setPendingSaveAction] = useState<"publish" | "save" | null>(null);
   const shippingAddressRef = useRef<HTMLInputElement>(null);
+  const isFulfillmentLocked = mode === "edit";
   const previewCanvases = useMemo(
     () => canvasSections.flatMap((section) => section.items).slice(0, 5),
     [canvasSections]
@@ -313,8 +315,13 @@ const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   toast({ title: "Image selected", description: "Will upload when you save/publish." });
 };
 
-  const handleSubmit = async (e: React.SyntheticEvent, action?: "draft" | "publish") => {
+  const openSaveConfirmation = (e: React.SyntheticEvent, action: "publish" | "save") => {
     e.preventDefault();
+    setPendingSaveAction(action);
+  };
+
+  const handleSubmit = async (action?: "publish" | "save") => {
+    setPendingSaveAction(null);
     setIsLoading(true);
 
     try {
@@ -388,7 +395,7 @@ if (pendingImageFile) {
 
       // only on create do we set status via action buttons
       if (mode === "create") {
-        payload.status = action === "publish" ? "PUBLISHED" : "DRAFT";
+        payload.status = "PUBLISHED";
       } else if (publishOnSubmit) {
         payload.status = "PUBLISHED";
       }
@@ -458,7 +465,10 @@ router.refresh();
           ) : null}
         </div>
 
-        <form className="space-y-6" onSubmit={(e) => handleSubmit(e, mode === "create" ? "draft" : undefined)}>
+        <form
+          className="space-y-6"
+          onSubmit={(e) => openSaveConfirmation(e, mode === "create" || publishOnSubmit ? "publish" : "save")}
+        >
           {/* Canvas Selection */}
           <Card>
             <CardHeader>
@@ -901,9 +911,16 @@ router.refresh();
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {isFulfillmentLocked ? (
+                <div className="rounded-xl border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+                  Fulfillment option and shipping address are locked after the event is saved. Contact us if this needs to be updated.
+                </div>
+              ) : null}
+
               <div className="grid gap-3 md:grid-cols-2">
                 <button
                   type="button"
+                  disabled={isFulfillmentLocked}
                   onClick={() =>
                     setFormData({
                       ...formData,
@@ -915,7 +932,7 @@ router.refresh();
                       shippingZip: "",
                     })
                   }
-                  className={`rounded-xl p-4 text-left transition ${
+                  className={`rounded-xl p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-70 ${
                   formData.fulfillmentMethod === "SHIP_TO_HOST"
                     ? "bg-black text-white"
                     : "bg-background hover:bg-muted/40"
@@ -928,6 +945,7 @@ router.refresh();
                 </button>
                 <button
                   type="button"
+                  disabled={isFulfillmentLocked}
                   onClick={() =>
                     setFormData({
                       ...formData,
@@ -939,7 +957,7 @@ router.refresh();
                       shippingZip: "29223",
                     })
                   }
-                  className={`rounded-xl border p-4 text-left transition ${
+                  className={`rounded-xl border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-70 ${
                     formData.fulfillmentMethod === "PICKUP"
                 ? "bg-black text-white"
                     : "bg-background hover:bg-muted/40"
@@ -965,7 +983,7 @@ router.refresh();
                 <Button
                   type="button"
                   variant="outline"
-                  disabled={formData.fulfillmentMethod === "PICKUP"}
+                  disabled={formData.fulfillmentMethod === "PICKUP" || isFulfillmentLocked}
                   onClick={() =>
                     setFormData({
                       ...formData,
@@ -989,6 +1007,7 @@ router.refresh();
                       id="shippingRecipientName"
                       placeholder="Host or venue contact"
                       value={formData.shippingRecipientName}
+                      disabled={isFulfillmentLocked}
                       onChange={(e) =>
                         setFormData({ ...formData, shippingRecipientName: e.target.value })
                       }
@@ -1003,6 +1022,7 @@ router.refresh();
                       ref={shippingAddressRef}
                       placeholder="123 Main Street"
                       value={formData.shippingAddress}
+                      disabled={isFulfillmentLocked}
                       onChange={(e) => setFormData({ ...formData, shippingAddress: e.target.value })}
                       required
                     />
@@ -1015,6 +1035,7 @@ router.refresh();
                         id="shippingCity"
                         placeholder="Columbia"
                         value={formData.shippingCity}
+                        disabled={isFulfillmentLocked}
                         onChange={(e) => setFormData({ ...formData, shippingCity: e.target.value })}
                         required
                       />
@@ -1024,6 +1045,7 @@ router.refresh();
                       <Label htmlFor="shippingState">State</Label>
                       <Select
                         value={formData.shippingState}
+                        disabled={isFulfillmentLocked}
                         onValueChange={(value) => setFormData({ ...formData, shippingState: value })}
                       >
                         <SelectTrigger>
@@ -1045,6 +1067,7 @@ router.refresh();
                         id="shippingZip"
                         placeholder="29229"
                         value={formData.shippingZip}
+                        disabled={isFulfillmentLocked}
                         onChange={(e) => setFormData({ ...formData, shippingZip: e.target.value })}
                         required
                       />
@@ -1115,33 +1138,26 @@ router.refresh();
           {/* Actions */}
           <div className="flex items-center justify-end gap-4 pt-4">
             {mode === "create" ? (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={(e) => handleSubmit(e, "draft")}
-                  disabled={isLoading}
-                >
-                  Save as Draft
-                </Button>
-
-                <Button
-                  type="button"
-                  onClick={(e) => handleSubmit(e, "publish")}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    "Publish Event"
-                  )}
-                </Button>
-              </>
+              <Button
+                type="button"
+                onClick={(e) => openSaveConfirmation(e, "publish")}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Continue"
+                )}
+              </Button>
             ) : (
-              <Button type="submit" disabled={isLoading}>
+              <Button
+                type="button"
+                onClick={(e) => openSaveConfirmation(e, publishOnSubmit ? "publish" : "save")}
+                disabled={isLoading}
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1154,6 +1170,50 @@ router.refresh();
             )}
           </div>
         </form>
+        <Dialog open={Boolean(pendingSaveAction)} onOpenChange={(open) => !open && setPendingSaveAction(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Before You Save</DialogTitle>
+              <DialogDescription className="space-y-3 pt-2 text-left">
+                <span className="block">
+                  Once you save this event, your fulfillment option and shipping address are locked and can&apos;t be changed.
+                </span>
+                <span className="block">
+                  If anything needs to be updated later, you&apos;ll need to contact us.
+                </span>
+                <span className="block">
+                  Make sure everything is correct before continuing.
+                </span>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPendingSaveAction(null)}
+                disabled={isLoading}
+              >
+                Go Back
+              </Button>
+              <Button
+                type="button"
+                onClick={() => handleSubmit(pendingSaveAction ?? undefined)}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : pendingSaveAction === "publish" ? (
+                  "Publish Event"
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

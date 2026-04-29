@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { getHostKitBannerEvent } from "@/lib/host-kit";
+import { formatDate } from "@/lib/utils";
 import {
   LayoutDashboard,
   Calendar,
@@ -11,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/sign-out-button";
 import { DashboardMobileNav } from "@/components/dashboard/mobile-nav";
+import { HostKitBanner } from "@/components/dashboard/host-kit-banner";
 import { Brand } from "@/components/Brand";
 
 const baseNavItems = [
@@ -43,6 +46,7 @@ export default async function DashboardLayout({
   }
 
   const navItems = [...baseNavItems];
+  const hostKitEvent = await getHostKitBannerEvent(session.user.id, session.user.email);
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -113,6 +117,13 @@ export default async function DashboardLayout({
 
       <main className="lg:pl-64 pt-16 lg:pt-0">
         <div className="p-6 lg:p-8">
+          {hostKitEvent ? (
+            <HostKitBanner
+              eventId={hostKitEvent.id}
+              eventTitle={hostKitEvent.title}
+              cutoffDate={formatDate(hostKitEvent.cutoffDate)}
+            />
+          ) : null}
           {children}
         </div>
       </main>

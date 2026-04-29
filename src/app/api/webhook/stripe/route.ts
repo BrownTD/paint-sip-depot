@@ -9,7 +9,6 @@ import {
 import { expireBookingsForCheckoutSession } from "@/lib/booking";
 import { prisma } from "@/lib/prisma";
 import {
-  buildShippoEventHostAddress,
   buildShippoShopAddress,
   createShippoOrder,
   getKitParcelSummary,
@@ -99,83 +98,6 @@ async function createShippoShopOrder(shopOrderId: string) {
   }
 }
 
-async function createShippoBookingOrder(bookingId: string) {
-  const booking = await prisma.booking.findUnique({
-    where: { id: bookingId },
-    include: {
-      event: {
-        include: {
-          host: {
-            select: {
-              name: true,
-              email: true,
-            },
-          },
-        },
-      },
-    },
-  });
-
-  if (!booking || booking.shippoOrderId || booking.event.fulfillmentMethod === "PICKUP") {
-    return booking;
-  }
-
-  try {
-    const subtotalCents = Math.max(0, booking.amountPaidCents - booking.shippingAmountCents);
-    const shippoOrder = await createShippoOrder({
-      toAddress: buildShippoEventHostAddress({
-        shippingRecipientName: booking.event.shippingRecipientName,
-        shippingAddress: booking.event.shippingAddress,
-        shippingCity: booking.event.shippingCity,
-        shippingState: booking.event.shippingState,
-        shippingZip: booking.event.shippingZip,
-        hostEmail: booking.event.host.email,
-      }),
-      lineItems: [
-        {
-          quantity: booking.quantity,
-          title: `${booking.event.title} event kit`,
-          total_price: (subtotalCents / 100).toFixed(2),
-          currency: "USD",
-          weight: "2",
-          weight_unit: "lb",
-        },
-      ],
-      placedAt: booking.createdAt,
-      orderNumber: booking.id,
-      subtotalCents,
-      totalCents: booking.amountPaidCents,
-      shippingAmountCents: booking.shippingAmountCents,
-      shippingMethod: [booking.shippingProvider, booking.shippingService].filter(Boolean).join(" "),
-      notes: getKitParcelSummary(booking.quantity),
-      currency: "usd",
-    });
-
-    return await prisma.booking.update({
-      where: { id: booking.id },
-      data: shippoOrder,
-      include: {
-        event: {
-          include: {
-            host: {
-              select: {
-                name: true,
-                email: true,
-              },
-            },
-          },
-        },
-      },
-    });
-  } catch (error) {
-    console.error("Shippo booking order creation failed:", {
-      bookingId: booking.id,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return booking;
-  }
-}
-
 export async function POST(request: Request) {
   const body = await request.text();
   const headersList = await headers();
@@ -254,7 +176,23 @@ export async function POST(request: Request) {
               where: { stripeCheckoutSessionId: session.id },
               select: { id: true },
             });
-            const booking = reservedBooking ? await createShippoBookingOrder(reservedBooking.id) : null;
+            const booking = reservedBooking
+              ? await prisma.booking.findUnique({
+                  where: { id: reservedBooking.id },
+                  include: {
+                    event: {
+                      include: {
+                        host: {
+                          select: {
+                            name: true,
+                            email: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                })
+              : null;
 
             if (booking) {
               const eventUrl =
@@ -285,12 +223,6 @@ export async function POST(request: Request) {
                   purchaserName: booking.purchaserName,
                   purchaserEmail: booking.purchaserEmail,
                   amountPaidCents: booking.amountPaidCents,
-                  shippingAmountCents: booking.shippingAmountCents,
-                  shippingProvider: booking.shippingProvider,
-                  shippingService: booking.shippingService,
-                  trackingNumber: booking.trackingNumber,
-                  trackingStatus: booking.trackingStatus,
-                  trackingUrl: booking.trackingUrl,
                 }),
               ];
 
@@ -310,12 +242,6 @@ export async function POST(request: Request) {
                     purchaserName: booking.purchaserName,
                     purchaserEmail: booking.purchaserEmail,
                     amountPaidCents: booking.amountPaidCents,
-                    shippingAmountCents: booking.shippingAmountCents,
-                    shippingProvider: booking.shippingProvider,
-                    shippingService: booking.shippingService,
-                    trackingNumber: booking.trackingNumber,
-                    trackingStatus: booking.trackingStatus,
-                    trackingUrl: booking.trackingUrl,
                   })
                 );
               }

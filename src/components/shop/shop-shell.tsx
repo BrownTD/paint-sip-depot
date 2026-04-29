@@ -714,10 +714,13 @@ export function ShopCartPageContent() {
                 {items.map((item) => (
                   <div key={item.id} className="flex gap-4 border-b border-black/10 pb-4 last:border-0 last:pb-0">
                     {item.imageUrl ? (
-                      <img
+                      <Image
                         src={item.imageUrl}
                         alt={item.productName}
+                        width={192}
+                        height={224}
                         className="h-28 w-24 object-cover"
+                        unoptimized
                       />
                     ) : (
                       <div className="flex h-28 w-24 items-center justify-center text-sm text-black/35">
@@ -925,10 +928,13 @@ function ShopCartAddedNotice() {
       </div>
       <div className="mt-3 flex gap-3">
         {renderedItem.imageUrl ? (
-          <img
+          <Image
             src={renderedItem.imageUrl}
             alt={renderedItem.productName}
+            width={128}
+            height={160}
             className="h-20 w-16 shrink-0 object-cover"
+            unoptimized
           />
         ) : (
           <div className="flex h-20 w-16 shrink-0 items-center justify-center bg-[#f3f1ef] text-xs text-black/35">

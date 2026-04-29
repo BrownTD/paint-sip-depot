@@ -210,11 +210,14 @@ export function StorefrontHome({
                   >
                     <div className="relative aspect-[1.55/1] overflow-hidden rounded-[1.3rem]">
                       {theme.imageUrls[0] ? (
-                        <img
+                        <Image
                           src={theme.imageUrls[0]}
                           alt={theme.name}
+                          width={1200}
+                          height={774}
                           className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
                           loading="lazy"
+                          unoptimized
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center bg-muted text-sm text-muted-foreground">

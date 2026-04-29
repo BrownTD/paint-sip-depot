@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, ShoppingBag, Star } from "lucide-react";
@@ -131,9 +132,13 @@ export function ShopProductCard({
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const defaultVariant =
     product.variants.find((variant) => variant.isDefault) ?? product.variants[0] ?? null;
+  const firstColorOptionId = useMemo(
+    () => product.colorOptions[0]?.id ?? "",
+    [product.colorOptions],
+  );
   const [selectedVariantId, setSelectedVariantId] = useState(defaultVariant?.id ?? "");
   const [selectedColorOptionId, setSelectedColorOptionId] = useState(
-    product.colorOptions[0]?.id ?? "",
+    firstColorOptionId,
   );
   const [quantity, setQuantity] = useState("1");
   const [customerName, setCustomerName] = useState("");
@@ -162,8 +167,8 @@ export function ShopProductCard({
 
   useEffect(() => {
     setSelectedImageIndex(0);
-    setSelectedColorOptionId(product.colorOptions[0]?.id ?? "");
-  }, [product.id, isDialogOpen]);
+    setSelectedColorOptionId(firstColorOptionId);
+  }, [firstColorOptionId, product.id, isDialogOpen]);
 
   async function handleCheckout(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -244,21 +249,27 @@ export function ShopProductCard({
             product.isCouples && product.imageUrls.length >= 2 ? (
               <div className="grid aspect-[3/4] grid-cols-2 gap-2">
                 {product.imageUrls.slice(0, 2).map((imageUrl, index) => (
-                  <img
+                  <Image
                     key={`${product.id}-${index}`}
                     src={imageUrl}
                     alt={product.name}
+                    width={600}
+                    height={800}
                     className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
                     loading="lazy"
+                    unoptimized
                   />
                 ))}
               </div>
             ) : (
-              <img
+              <Image
                 src={product.imageUrls[0]}
                 alt={product.name}
+                width={900}
+                height={1200}
                 className="aspect-[3/4] w-full object-cover transition duration-500 group-hover:scale-[1.04]"
                 loading="lazy"
+                unoptimized
               />
             )
           ) : (
@@ -334,10 +345,13 @@ export function ShopProductCard({
               {selectedImageUrl ? (
                 <>
                   <div className="flex aspect-[3/4] items-center justify-center overflow-hidden">
-                    <img
+                    <Image
                       src={selectedImageUrl}
                       alt={product.name}
+                      width={900}
+                      height={1200}
                       className="h-full w-full object-contain"
+                      unoptimized
                     />
                   </div>
 
@@ -355,10 +369,13 @@ export function ShopProductCard({
                           }`}
                           aria-label={`View image ${index + 1} for ${product.name}`}
                         >
-                          <img
+                          <Image
                             src={imageUrl}
                             alt={`${product.name} thumbnail ${index + 1}`}
+                            width={160}
+                            height={160}
                             className="aspect-square h-full w-full object-cover"
+                            unoptimized
                           />
                         </button>
                       ))}

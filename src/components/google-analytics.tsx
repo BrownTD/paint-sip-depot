@@ -2,8 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-
-export const GOOGLE_ANALYTICS_ID = "G-SV0FKHXD6N";
+import { GOOGLE_ANALYTICS_ID } from "@/lib/google-analytics";
 
 declare global {
   interface Window {

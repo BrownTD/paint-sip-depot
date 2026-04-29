@@ -7,9 +7,9 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import {
-  GOOGLE_ANALYTICS_ID,
   GoogleAnalyticsPageView,
 } from "@/components/google-analytics";
+import { GOOGLE_ANALYTICS_ID } from "@/lib/google-analytics";
 import { Toaster } from "@/components/ui/toaster";
 
 const familjenGrotesk = Familjen_Grotesk({
@@ -52,19 +52,19 @@ export default function RootLayout({
       lang="en"
       className={`${familjenGrotesk.variable} ${oswald.variable}`}
     >
+      <Script
+        src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`}
+        strategy="afterInteractive"
+      />
+      <Script id="google-analytics" strategy="afterInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', '${GOOGLE_ANALYTICS_ID}');
+        `}
+      </Script>
       <body className="min-h-screen bg-background font-sans antialiased">
-        <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`}
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${GOOGLE_ANALYTICS_ID}');
-          `}
-        </Script>
         <Suspense fallback={null}>
           <GoogleAnalyticsPageView />
         </Suspense>

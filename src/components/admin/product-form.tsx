@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -1112,10 +1113,13 @@ export function ProductForm({
                       className="overflow-hidden rounded-lg border bg-background shadow-sm"
                     >
                       <div className="relative aspect-square bg-muted">
-                        <img
+                        <Image
                           src={imageUrl}
                           alt={`Product image ${index + 1}`}
+                          width={360}
+                          height={360}
                           className="h-full w-full object-cover"
+                          unoptimized
                         />
                         <button
                           type="button"
@@ -1180,20 +1184,26 @@ export function ProductForm({
                 ) : isCouplesLayout ? (
                   <div className="grid aspect-[4/4.4] grid-cols-2 gap-2 overflow-hidden rounded-[1.2rem]">
                     {form.imageUrls.slice(0, 2).map((imageUrl) => (
-                      <img
+                      <Image
                         key={imageUrl}
                         src={imageUrl}
                         alt="Product preview"
+                        width={360}
+                        height={396}
                         className="h-full w-full object-cover"
+                        unoptimized
                       />
                     ))}
                   </div>
                 ) : (
                   <div className="aspect-[4/4.4] overflow-hidden rounded-[1.2rem]">
-                    <img
+                    <Image
                       src={form.imageUrls[0]}
                       alt="Product preview"
+                      width={720}
+                      height={792}
                       className="h-full w-full object-cover"
+                      unoptimized
                     />
                   </div>
                 )}

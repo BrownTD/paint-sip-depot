@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import { ShopOrderStatus } from "@prisma/client";
@@ -142,10 +143,13 @@ export default async function ShopSuccessPage({
                 <div key={item.id} className="flex items-start gap-4">
                   <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
                     {item.imageUrlSnapshot ? (
-                      <img
+                      <Image
                         src={item.imageUrlSnapshot}
                         alt={item.productNameSnapshot}
+                        width={80}
+                        height={80}
                         className="h-full w-full object-cover"
+                        unoptimized
                       />
                     ) : null}
                   </div>

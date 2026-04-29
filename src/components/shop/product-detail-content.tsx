@@ -194,11 +194,14 @@ function RelatedProductCard({ product }: { product: ProductDetailRelatedProduct 
     <Link href={product.href} className="group block">
       <div className="overflow-hidden rounded-[1.25rem] bg-[#f3f1ef]">
         {product.imageUrl ? (
-          <img
+          <Image
             src={product.imageUrl}
             alt={product.name}
+            width={600}
+            height={800}
             className="aspect-[3/4] w-full object-cover transition duration-500 group-hover:scale-[1.03]"
             loading="lazy"
+            unoptimized
           />
         ) : (
           <div className="flex aspect-[3/4] items-center justify-center text-sm text-black/40">
@@ -674,10 +677,13 @@ export function ProductDetailContent({
                   onClick={() => setSelectedImageIndex(index)}
                   className={cn("shrink-0 overflow-hidden transition", selectedImageIndex === index ? "opacity-100" : "opacity-60 hover:opacity-100")}
                 >
-                  <img
+                  <Image
                     src={imageUrl}
                     alt={`${product.name} thumbnail ${index + 1}`}
+                    width={112}
+                    height={112}
                     className="h-24 w-24 object-cover md:h-28 md:w-28"
+                    unoptimized
                   />
                 </button>
               ))}
@@ -685,10 +691,13 @@ export function ProductDetailContent({
 
             <div className="order-1 flex min-h-[420px] items-center justify-center md:order-2 md:min-h-[620px]">
               {selectedImageUrl ? (
-                <img
+                <Image
                   src={selectedImageUrl}
                   alt={product.name}
+                  width={1000}
+                  height={1000}
                   className="max-h-full max-w-full object-contain"
+                  unoptimized
                 />
               ) : (
                 <div className="text-sm text-black/40">No image</div>
@@ -981,11 +990,14 @@ export function ProductDetailContent({
                         </div>
                         {review.imageUrl ? (
                           <div className="shrink-0 overflow-hidden rounded-2xl bg-[#f3f1ef]">
-                            <img
+                            <Image
                               src={review.imageUrl}
                               alt={`Review photo from ${review.name}`}
+                              width={112}
+                              height={112}
                               className="h-24 w-24 object-cover sm:h-28 sm:w-28"
                               loading="lazy"
+                              unoptimized
                             />
                           </div>
                         ) : null}
@@ -1044,11 +1056,14 @@ export function ProductDetailContent({
 
               {selectedReview.imageUrl ? (
                 <div className="overflow-hidden rounded-2xl bg-[#f3f1ef]">
-                  <img
+                  <Image
                     src={selectedReview.imageUrl}
                     alt={`Review photo from ${selectedReview.name}`}
+                    width={900}
+                    height={600}
                     className="max-h-[420px] w-full object-cover"
                     loading="lazy"
+                    unoptimized
                   />
                 </div>
               ) : null}
@@ -1179,10 +1194,13 @@ export function ProductDetailContent({
 
               {reviewImageUrl ? (
                 <div className="overflow-hidden rounded-2xl bg-[#f3f1ef]">
-                  <img
+                  <Image
                     src={reviewImageUrl}
                     alt="Review upload preview"
+                    width={900}
+                    height={480}
                     className="h-48 w-full object-cover"
+                    unoptimized
                   />
                 </div>
               ) : null}

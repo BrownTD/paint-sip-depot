@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useRef } from "react";
 
 import type { CanvasGalleryItem, CanvasGallerySection } from "@/lib/canvas-gallery";
@@ -87,10 +88,13 @@ export function CanvasGalleryDialog({
                             }`}
                           >
                             <div className="flex aspect-[4/5] items-center justify-center overflow-hidden rounded-xl bg-muted/40 p-3">
-                              <img
+                              <Image
                                 src={item.imageUrl}
                                 alt={item.name}
+                                width={280}
+                                height={350}
                                 className="h-full w-full object-contain"
+                                unoptimized
                               />
                             </div>
                             <span className="mt-3 line-clamp-2 text-sm font-medium">{item.name}</span>

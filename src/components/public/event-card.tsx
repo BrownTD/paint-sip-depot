@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { CalendarDays, MapPin, Paintbrush2, Sparkles, Ticket } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,10 +36,13 @@ export function PublicEventCard({ event }: PublicEventCardProps) {
     <article className="group overflow-hidden rounded-[28px] border border-border/70 bg-card shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_30px_80px_rgba(15,23,42,0.12)]">
       <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-primary/15 via-background to-accent/20">
         {cover ? (
-          <img
+          <Image
             src={cover}
             alt={event.title}
+            width={900}
+            height={675}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            unoptimized
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">

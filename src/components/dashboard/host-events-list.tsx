@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Calendar, ExternalLink, Image as ImageIcon, MapPin, Users } from "lucide-react";
 import { EventQrDownloadButton } from "@/components/dashboard/event-qr-download-button";
 import { EventCodeCopyButton } from "@/components/dashboard/event-code-copy-button";
@@ -55,10 +56,13 @@ function EventCard({ event }: { event: HostEventsListItem }) {
       <div className="flex flex-col md:flex-row">
         <div className="relative h-32 w-full shrink-0 bg-muted md:h-auto md:w-48">
           {event.canvasImageUrl ? (
-            <img
+            <Image
               src={event.canvasImageUrl}
               alt={event.title}
+              width={192}
+              height={128}
               className="h-full w-full object-cover"
+              unoptimized
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -147,8 +151,6 @@ function EventCard({ event }: { event: HostEventsListItem }) {
               <EventQrDownloadButton
                 fileName={`${event.slug}-qr.png`}
                 qrCodeImageUrl={event.qrCodeImageUrl}
-                organizerName={event.organizerName}
-                eventTitle={event.title}
                 startDateTime={event.startDateTime}
                 locationName={event.locationName}
                 visibility={event.visibility}

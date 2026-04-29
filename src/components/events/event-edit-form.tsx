@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, Images, Loader2, Upload, X } from "lucide-react";
 
 import type { CanvasGalleryItem, CanvasGallerySection } from "@/lib/canvas-gallery";
 import { CanvasGalleryDialog } from "@/components/events/canvas-gallery-dialog";
-import { dateTimeInZoneToIso, formatDateInputValue, formatTimeInputValue } from "@/lib/utils";
+import { dateTimeInZoneToIso, formatDateInputValue } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -73,13 +74,6 @@ export type EventEditFormInitialData = {
   canvasName?: string;
 };
 
-function isoToDate(iso?: string | null) {
-  return formatDateInputValue(iso);
-}
-function isoToTime(iso?: string | null) {
-  return formatTimeInputValue(iso);
-}
-
 export function EventEditForm({
   mode,
   eventId,
@@ -90,7 +84,6 @@ export function EventEditForm({
   subtitleText,
   initialData,
   canvasSections,
-  initialStatus, // "DRAFT" | "PUBLISHED" etc (optional, used for button labels)
   submitButtonLabel,
   publishOnSubmit = false,
 }: {
@@ -414,8 +407,6 @@ if (pendingImageFile) {
         throw new Error(data.error || "Request failed");
       }
 
-      const data = await res.json();
-
       if (mode === "create") {
         toast({
           title: action === "publish" ? "Event published!" : "Draft saved!",
@@ -482,10 +473,13 @@ router.refresh();
                   <Label>Selected Canvas</Label>
                   <div className="max-w-[180px] rounded-2xl border p-3 sm:max-w-[220px]">
                     <div className="flex aspect-[4/5] items-center justify-center rounded-xl bg-muted/40 p-2 sm:p-3">
-                      <img
+                      <Image
                         src={formData.canvasImageUrl}
                         alt={formData.canvasName || "Selected canvas"}
+                        width={320}
+                        height={400}
                         className="h-full w-full object-contain"
+                        unoptimized
                       />
                     </div>
                     <p className="mt-3 text-sm font-medium">{formData.canvasName || "Selected canvas"}</p>
@@ -527,7 +521,14 @@ router.refresh();
                               }`}
                             >
                               <div className="flex aspect-[4/5] items-center justify-center rounded-xl bg-muted/40 p-2">
-                                <img src={canvas.imageUrl} alt={canvas.name} className="h-full w-full object-contain" />
+                                <Image
+                                  src={canvas.imageUrl}
+                                  alt={canvas.name}
+                                  width={240}
+                                  height={300}
+                                  className="h-full w-full object-contain"
+                                  unoptimized
+                                />
                               </div>
                               <p className="mt-2 line-clamp-2 text-xs font-medium sm:mt-3 sm:text-sm">{canvas.name}</p>
                             </button>
@@ -544,7 +545,14 @@ router.refresh();
                     <div className="mt-2">
                       {imagePreview && !selectedCanvas ? (
                         <div className="relative flex w-32 aspect-square items-center justify-center rounded-lg border bg-muted/40 p-2 sm:w-40 sm:p-3">
-                          <img src={imagePreview} alt="Preview" className="h-full w-full object-contain" />
+                          <Image
+                            src={imagePreview}
+                            alt="Preview"
+                            width={200}
+                            height={200}
+                            className="h-full w-full object-contain"
+                            unoptimized
+                          />
                           <button
                             type="button"
                             onClick={() => {

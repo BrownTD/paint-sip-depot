@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { PAINT_COLOR_CATEGORIES } from "@/lib/product-catalog";
@@ -337,7 +338,14 @@ export function BatchPaintKitForm({ subcategories }: { subcategories: Subcategor
                   <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
                     {row.imageUrls.map((imageUrl) => (
                       <div key={imageUrl} className="relative aspect-square overflow-hidden rounded-lg border bg-muted">
-                        <img src={imageUrl} alt={row.name || "Product"} className="h-full w-full object-cover" />
+                        <Image
+                          src={imageUrl}
+                          alt={row.name || "Product"}
+                          width={160}
+                          height={160}
+                          className="h-full w-full object-cover"
+                          unoptimized
+                        />
                         <button
                           type="button"
                           onClick={() =>

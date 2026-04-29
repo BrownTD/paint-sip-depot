@@ -1,5 +1,6 @@
 "use client";
 
+import NextImage from "next/image";
 import { useState } from "react";
 import { Download, Loader2, QrCode, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,6 @@ import { formatDate, formatTime } from "@/lib/utils";
 type EventQrDownloadButtonProps = {
   fileName: string;
   qrCodeImageUrl: string;
-  organizerName?: string | null;
-  eventTitle: string;
   startDateTime: Date;
   locationName: string;
   visibility: "PUBLIC" | "PRIVATE";
@@ -77,8 +76,6 @@ async function svgUrlToPngBlob(qrCodeImageUrl: string) {
 export function EventQrDownloadButton({
   fileName,
   qrCodeImageUrl,
-  organizerName,
-  eventTitle,
   startDateTime,
   locationName,
   visibility,
@@ -175,10 +172,13 @@ export function EventQrDownloadButton({
 
         <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-6 px-4 pb-8 pt-4">
           <div className="w-full max-w-md overflow-hidden rounded-3xl border bg-white p-4 shadow-sm">
-            <img
+            <NextImage
               src={qrCodeImageUrl}
               alt="Event QR code"
+              width={512}
+              height={512}
               className="mx-auto block aspect-square w-full"
+              unoptimized
             />
           </div>
 

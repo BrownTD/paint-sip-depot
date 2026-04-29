@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Loader2, PackagePlus, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
@@ -239,10 +240,13 @@ export function AdminProductsPageContent({
                           <div className="flex items-start gap-3">
                             <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
                               {product.thumbnailUrl ? (
-                                <img
+                                <Image
                                   src={product.thumbnailUrl}
                                   alt={product.name}
+                                  width={64}
+                                  height={64}
                                   className="h-full w-full object-cover"
+                                  unoptimized
                                 />
                               ) : null}
                             </div>

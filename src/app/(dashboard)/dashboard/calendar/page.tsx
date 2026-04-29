@@ -105,54 +105,60 @@ export default function CalendarPage() {
         </CardHeader>
         <CardContent>
           {/* Calendar Grid */}
-          <div className="grid grid-cols-7 gap-px bg-muted rounded-lg overflow-hidden">
-            {/* Day headers */}
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-              <div
-                key={day}
-                className="bg-card p-3 text-center text-sm font-medium text-muted-foreground"
-              >
-                {day}
-              </div>
-            ))}
-
-            {/* Calendar days */}
-            {calendarDays.map((day) => {
-              const dayEvents = getEventsForDay(day);
-              const isCurrentMonth = isSameMonth(day, currentDate);
-              const isToday = isSameDay(day, new Date());
-
-              return (
+          {isLoading ? (
+            <div className="rounded-lg border bg-muted/30 p-8 text-center text-sm text-muted-foreground">
+              Loading events...
+            </div>
+          ) : (
+            <div className="grid grid-cols-7 gap-px bg-muted rounded-lg overflow-hidden">
+              {/* Day headers */}
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
                 <div
-                  key={day.toISOString()}
-                  className={`bg-card p-2 text-xs align-top ${
-                    !isCurrentMonth ? "text-muted-foreground bg-muted/40" : ""
-                  } ${isToday ? "ring-2 ring-primary" : ""}`}
+                  key={day}
+                  className="bg-card p-3 text-center text-sm font-medium text-muted-foreground"
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium">{format(day, "d")}</span>
-                  </div>
-
-                  <div className="space-y-1">
-                    {dayEvents.map((event) => (
-                      <Link
-                        key={event.id}
-                        href="/dashboard/events"
-                        className={`block rounded px-1 py-0.5 text-[10px] leading-tight border ${
-                          statusColors[event.status] || "bg-muted"
-                        }`}
-                      >
-                        <div className="truncate font-medium">{event.title}</div>
-                        <div className="opacity-80">
-                          {event.ticketsSold}/{event.capacity}
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+                  {day}
                 </div>
-              );
-            })}
-          </div>
+              ))}
+
+              {/* Calendar days */}
+              {calendarDays.map((day) => {
+                const dayEvents = getEventsForDay(day);
+                const isCurrentMonth = isSameMonth(day, currentDate);
+                const isToday = isSameDay(day, new Date());
+
+                return (
+                  <div
+                    key={day.toISOString()}
+                    className={`bg-card p-2 text-xs align-top ${
+                      !isCurrentMonth ? "text-muted-foreground bg-muted/40" : ""
+                    } ${isToday ? "ring-2 ring-primary" : ""}`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-medium">{format(day, "d")}</span>
+                    </div>
+
+                    <div className="space-y-1">
+                      {dayEvents.map((event) => (
+                        <Link
+                          key={event.id}
+                          href="/dashboard/events"
+                          className={`block rounded px-1 py-0.5 text-[10px] leading-tight border ${
+                            statusColors[event.status] || "bg-muted"
+                          }`}
+                        >
+                          <div className="truncate font-medium">{event.title}</div>
+                          <div className="opacity-80">
+                            {event.ticketsSold}/{event.capacity}
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

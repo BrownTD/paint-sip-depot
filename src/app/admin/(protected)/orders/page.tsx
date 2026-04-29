@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/admin";
 import { formatAmountForDisplay } from "@/lib/money";
@@ -128,10 +129,13 @@ export default async function AdminOrdersPage() {
                         <div className="flex items-start gap-3">
                           <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
                             {order.event.canvasImageUrl ? (
-                              <img
+                              <Image
                                 src={order.event.canvasImageUrl}
                                 alt={order.event.canvasName || order.event.title}
+                                width={56}
+                                height={56}
                                 className="h-full w-full object-cover"
+                                unoptimized
                               />
                             ) : null}
                           </div>

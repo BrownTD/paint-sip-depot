@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/admin";
 import { getBookingCutoffDate, getPaidTicketQuantitiesForEvents } from "@/lib/booking";
@@ -119,10 +120,13 @@ export default async function AdminEventsPage() {
                         <div className="flex items-start gap-3">
                           <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
                             {event.canvasImageUrl ? (
-                              <img
+                              <Image
                                 src={event.canvasImageUrl}
                                 alt={event.canvasName || event.title}
+                                width={64}
+                                height={64}
                                 className="h-full w-full object-cover"
+                                unoptimized
                               />
                             ) : null}
                           </div>

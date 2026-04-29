@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -77,11 +78,14 @@ function GoogleReviewCard({ review }: { review: GoogleReview }) {
       </div>
       {review.imageUrl ? (
         <div className="shrink-0 overflow-hidden rounded-2xl bg-[#f3f1ef]">
-          <img
+          <Image
             src={review.imageUrl}
             alt={`Review photo from ${review.name}`}
+            width={112}
+            height={112}
             className="h-24 w-24 object-cover sm:h-28 sm:w-28"
             loading="lazy"
+            unoptimized
           />
         </div>
       ) : null}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Images, Loader2, Upload, X } from "lucide-react";
@@ -20,6 +20,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "@/components/ui/use-toast";
 
 const US_STATES = [
@@ -102,6 +110,7 @@ export function EventEditForm({
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const shippingAddressRef = useRef<HTMLInputElement>(null);
   const previewCanvases = useMemo(
     () => canvasSections.flatMap((section) => section.items).slice(0, 5),
     [canvasSections]
@@ -155,6 +164,9 @@ export function EventEditForm({
 const [errors, setErrors] = useState<Record<string, string>>({});
 const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
 const [previewObjectUrl, setPreviewObjectUrl] = useState<string | null>(null);
+const [isShippingReviewPromptOpen, setIsShippingReviewPromptOpen] = useState(false);
+const [hasPromptedShippingReview, setHasPromptedShippingReview] = useState(false);
+const [hasPendingLocationChange, setHasPendingLocationChange] = useState(false);
 
 useEffect(() => {
   return () => {
@@ -171,6 +183,40 @@ const clearFieldError = (field: string) =>
     delete next[field];
     return next;
   });
+
+const maybePromptShippingReview = (force = false) => {
+  if (
+    mode !== "edit" ||
+    formData.fulfillmentMethod !== "SHIP_TO_HOST" ||
+    hasPromptedShippingReview ||
+    (!force && !hasPendingLocationChange)
+  ) {
+    return;
+  }
+
+  setHasPendingLocationChange(false);
+  setHasPromptedShippingReview(true);
+  setIsShippingReviewPromptOpen(true);
+};
+
+const updateLocationField = (
+  field: "locationName" | "address" | "city" | "state" | "zip",
+  value: string
+) => {
+  if (formData[field] !== value) {
+    setHasPendingLocationChange(true);
+  }
+
+  setFormData((prev) => ({ ...prev, [field]: value }));
+};
+
+const handleReviewShippingAddress = () => {
+  setIsShippingReviewPromptOpen(false);
+  requestAnimationFrame(() => {
+    shippingAddressRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    shippingAddressRef.current?.focus();
+  });
+};
 
   // Enforce min date: today + 7 days
   const minEventDate = useMemo(() => {
@@ -545,6 +591,29 @@ router.refresh();
             onConfirm={handleConfirmCanvas}
           />
 
+          <Dialog open={isShippingReviewPromptOpen} onOpenChange={setIsShippingReviewPromptOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Review shipping address?</DialogTitle>
+                <DialogDescription>
+                  You changed the event location while Ship supplies to me is selected. Do you need to update the shipping address before saving?
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsShippingReviewPromptOpen(false)}
+                >
+                  No, keep it
+                </Button>
+                <Button type="button" onClick={handleReviewShippingAddress}>
+                  Yes, review address
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           {/* Event Details */}
           <Card>
             <CardHeader>
@@ -618,13 +687,16 @@ router.refresh();
 
     <button
       type="button"
-      onClick={() =>
+      onClick={() => {
         setFormData({
           ...formData,
           eventFormat: "VIRTUAL",
           locationName: formData.locationName || "Virtual Event",
-        })
-      }
+        });
+        if (!formData.locationName) {
+          maybePromptShippingReview(true);
+        }
+      }}
       className={`h-10 rounded-md border px-3 text-sm font-medium transition ${
         formData.eventFormat === "VIRTUAL"
           ? "border-black bg-black text-white"
@@ -732,7 +804,8 @@ router.refresh();
                   id="locationName"
                   placeholder={formData.eventFormat === "VIRTUAL" ? "e.g., Virtual Event" : "e.g., The Art Loft Studio"}
                   value={formData.locationName}
-                  onChange={(e) => setFormData({ ...formData, locationName: e.target.value })}
+                  onChange={(e) => updateLocationField("locationName", e.target.value)}
+                  onBlur={() => maybePromptShippingReview()}
                   required
                 />
               </div>
@@ -745,7 +818,8 @@ router.refresh();
                       id="address"
                       placeholder="123 Main Street"
                       value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      onChange={(e) => updateLocationField("address", e.target.value)}
+                      onBlur={() => maybePromptShippingReview()}
                       required
                     />
                   </div>
@@ -757,7 +831,8 @@ router.refresh();
                         id="city"
                         placeholder="Columbia"
                         value={formData.city}
-                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                        onChange={(e) => updateLocationField("city", e.target.value)}
+                        onBlur={() => maybePromptShippingReview()}
                         required
                       />
                     </div>
@@ -766,7 +841,12 @@ router.refresh();
                       <Label htmlFor="state">State</Label>
                       <Select
                         value={formData.state}
-                        onValueChange={(value) => setFormData({ ...formData, state: value })}
+                        onValueChange={(value) => {
+                          updateLocationField("state", value);
+                          if (value !== formData.state) {
+                            maybePromptShippingReview(true);
+                          }
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select" />
@@ -787,7 +867,8 @@ router.refresh();
                         id="zip"
                         placeholder="29229"
                         value={formData.zip}
-                        onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
+                        onChange={(e) => updateLocationField("zip", e.target.value)}
+                        onBlur={() => maybePromptShippingReview()}
                         required
                       />
                     </div>
@@ -911,6 +992,7 @@ router.refresh();
                     <Label htmlFor="shippingAddress">Street Address</Label>
                     <Input
                       id="shippingAddress"
+                      ref={shippingAddressRef}
                       placeholder="123 Main Street"
                       value={formData.shippingAddress}
                       onChange={(e) => setFormData({ ...formData, shippingAddress: e.target.value })}

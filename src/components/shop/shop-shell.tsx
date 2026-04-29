@@ -1106,6 +1106,53 @@ export function ShopChrome({
 }
 
 export function ShopNewsletterSection() {
+  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubscribe = async () => {
+    const normalizedEmail = email.trim();
+
+    if (!isValidEmailSyntax(normalizedEmail)) {
+      toast({
+        title: "Enter a valid email",
+        description: "Use a valid email address before subscribing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "Could not subscribe to newsletter");
+      }
+
+      toast({
+        title: "Subscribed",
+        description: data.message || "Check your inbox for a welcome email.",
+      });
+      setEmail("");
+    } catch (error) {
+      toast({
+        title: "Subscription failed",
+        description: error instanceof Error ? error.message : "Could not subscribe to newsletter",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <section className="px-4 pb-14 pt-6 sm:pb-20">
       <div className="mx-auto max-w-7xl rounded-[2rem] bg-black px-6 py-8 text-white sm:px-10 sm:py-10">
@@ -1122,11 +1169,31 @@ export function ShopNewsletterSection() {
               <Input
                 type="email"
                 placeholder="Enter your email address"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    void handleSubscribe();
+                  }
+                }}
                 className="h-12 rounded-full border-white/10 bg-white px-12 text-sm text-black placeholder:text-black/45"
+                disabled={isSubmitting}
               />
             </div>
-            <Button className="h-12 w-full rounded-full bg-white text-sm font-medium text-black hover:bg-white/90">
-              Subscribe to Newsletter
+            <Button
+              className="h-12 w-full rounded-full bg-white text-sm font-medium text-black hover:bg-white/90"
+              onClick={() => void handleSubscribe()}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Subscribing...
+                </>
+              ) : (
+                "Subscribe to Newsletter"
+              )}
             </Button>
           </div>
         </div>

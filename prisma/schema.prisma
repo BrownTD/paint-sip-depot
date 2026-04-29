@@ -25,6 +25,15 @@ model User {
   @@map("users")
 }
 
+model NewsLetterOptIn {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("news_letter_opt_in")
+}
+
 model Account {
   userId            String
   type              String

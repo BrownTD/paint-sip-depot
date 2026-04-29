@@ -72,6 +72,10 @@ type PasswordResetEmailInput = {
   expires: Date;
 };
 
+type NewsletterWelcomeEmailInput = {
+  to: string;
+};
+
 type OrderNotificationInput = {
   recipientName?: string | null;
   organizerName?: string | null;
@@ -188,6 +192,10 @@ function getReturnsFromEmail() {
 
 function getOrdersFromEmail() {
   return process.env.RESEND_ORDERS_FROM_EMAIL || getFromEmail();
+}
+
+function getSubscribeFromEmail() {
+  return process.env.RESEND_SUBSCRIBE_FROM_EMAIL || getFromEmail();
 }
 
 function getAdminEmail() {
@@ -1229,5 +1237,36 @@ export async function sendPasswordResetEmail(input: PasswordResetEmailInput) {
     html,
     text,
     from: getAccountFromEmail(),
+  });
+}
+
+export async function sendNewsletterWelcomeEmail(input: NewsletterWelcomeEmailInput) {
+  const subject = "Welcome to the Paint & Sip Depot newsletter";
+  const html = emailShell(
+    "You're subscribed",
+    "Newsletter",
+    `
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Thanks for subscribing to Paint &amp; Sip Depot updates.</p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">We&apos;ll send you new offers, product drops, and event highlights as they&apos;re available.</p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">You&apos;re on the list now. Keep an eye on your inbox.</p>
+      ${signatureBlock()}
+    `
+  );
+  const text =
+    `Thanks for subscribing to Paint & Sip Depot updates.\n\n` +
+    `We'll send you new offers, product drops, and event highlights as they're available.\n\n` +
+    `You're on the list now. Keep an eye on your inbox.\n\n` +
+    `Paint & Sip Depot\n` +
+    `Creating unforgettable paint & sip experiences\n` +
+    `(803) 938-4775\n` +
+    `info@paintsipdepot.com\n` +
+    `www.paintsipdepot.com`;
+
+  return sendEmail({
+    to: input.to,
+    subject,
+    html,
+    text,
+    from: getSubscribeFromEmail(),
   });
 }

@@ -151,7 +151,10 @@ export function ProductForm({
     () => categories.find((category) => category.id === form.categoryId) ?? null,
     [categories, form.categoryId],
   );
-  const availableSubcategories = selectedCategory?.subcategories ?? [];
+  const availableSubcategories = useMemo(
+    () => selectedCategory?.subcategories ?? [],
+    [selectedCategory],
+  );
   const selectedSubcategory = useMemo(
     () =>
       availableSubcategories.find((subcategory) => subcategory.id === form.subcategoryId) ?? null,

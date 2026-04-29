@@ -378,23 +378,39 @@ model BookingEmailLog {
 }
 
 model ReturnSubmission {
-  id                 String   @id @default(cuid())
-  orderNumber        String
-  customerName       String
-  customerEmail      String
-  phoneNumber        String?
-  issueType          String
-  description        String
-  photoUrls          String[]
-  didNotReceiveOrder Boolean  @default(false)
-  status             String   @default("SUBMITTED")
-  adminNotes         String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                       String   @id @default(cuid())
+  orderNumber              String
+  customerName             String
+  customerEmail            String
+  phoneNumber              String?
+  issueType                String
+  description              String
+  photoUrls                String[]
+  didNotReceiveOrder       Boolean  @default(false)
+  status                   String   @default("SUBMITTED")
+  adminNotes               String?
+  decisionReason           String?
+  customerMessage          String?
+  resolutionType           String?
+  refundAmountCents        Int?
+  stripeRefundId           String?
+  refundedAt               DateTime?
+  replacementOrderId       String?
+  replacementCreatedAt     DateTime?
+  returnLabelUrl           String?
+  returnLabelTrackingUrl   String?
+  returnLabelTrackingNumber String?
+  returnLabelTransactionId String?
+  returnLabelCreatedAt     DateTime?
+  customerNotifiedAt       DateTime?
+  resolvedAt               DateTime?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
 
   @@index([status, createdAt])
   @@index([customerEmail])
   @@index([orderNumber])
+  @@index([replacementOrderId])
   @@map("return_submissions")
 }
 

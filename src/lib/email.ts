@@ -166,6 +166,22 @@ type ReturnSubmissionEmailInput = {
   adminUrl: string;
 };
 
+type ReturnDecisionEmailInput = {
+  orderNumber: string;
+  customerName: string;
+  customerEmail: string;
+  status: "APPROVED" | "DENIED";
+  resolutionType?: "REFUND" | "REPLACEMENT" | null;
+  decisionReason?: string | null;
+  customerMessage?: string | null;
+  refundAmountCents?: number | null;
+  replacementOrderId?: string | null;
+  replacementOrderUrl?: string | null;
+  returnLabelUrl?: string | null;
+  returnTrackingNumber?: string | null;
+  returnTrackingUrl?: string | null;
+};
+
 function getResendApiKey() {
   return process.env.RESEND_API_KEY;
 }
@@ -1101,6 +1117,73 @@ export async function sendCustomerReturnSubmissionEmail(input: ReturnSubmissionE
     `${input.didNotReceiveOrder ? "Order received: No\n" : ""}` +
     `Description: ${input.description}\n` +
     `Return submission ID: ${input.id}`;
+
+  return sendEmail({
+    to: input.customerEmail,
+    subject,
+    html,
+    text,
+    replyTo: getReplyToEmail(),
+    from: getReturnsFromEmail(),
+  });
+}
+
+export async function sendCustomerReturnDecisionEmail(input: ReturnDecisionEmailInput) {
+  const firstName = getFirstName(input.customerName);
+  const greeting = `Hi ${firstName},`;
+  const isApproved = input.status === "APPROVED";
+  const resolutionLine =
+    input.resolutionType === "REFUND"
+      ? input.refundAmountCents
+        ? `Refund approved for ${centsToDollars(input.refundAmountCents)}`
+        : "Refund approved"
+      : input.resolutionType === "REPLACEMENT"
+        ? "Replacement approved"
+        : isApproved
+          ? "Return request approved"
+          : "Return request denied";
+  const subject = isApproved
+    ? `Update on your return request for ${input.orderNumber}`
+    : `Return request decision for ${input.orderNumber}`;
+  const replacementLink = input.replacementOrderUrl
+    ? `<p style="margin:16px 0 0;"><a href="${input.replacementOrderUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#feaa08;color:#000000;text-decoration:none;font-weight:700;">View Replacement Order</a></p>`
+    : "";
+  const returnLabelLink = input.returnLabelUrl
+    ? `<p style="margin:16px 0 0;"><a href="${input.returnLabelUrl}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#000000;color:#ffffff;text-decoration:none;font-weight:700;">Download Return Label</a></p>`
+    : "";
+  const html = emailShell(
+    isApproved ? "Return request approved" : "Return request update",
+    "Returns Update",
+    `
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${greeting}</p>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">${resolutionLine} for order <strong>${input.orderNumber}</strong>.</p>
+      <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
+        <p style="margin:0 0 10px;"><strong>Status:</strong> ${input.status}</p>
+        ${input.resolutionType ? `<p style="margin:0 0 10px;"><strong>Resolution:</strong> ${input.resolutionType}</p>` : ""}
+        ${input.refundAmountCents ? `<p style="margin:0 0 10px;"><strong>Refund amount:</strong> ${centsToDollars(input.refundAmountCents)}</p>` : ""}
+        ${input.replacementOrderId ? `<p style="margin:0 0 10px;"><strong>Replacement order:</strong> ${input.replacementOrderId}</p>` : ""}
+        ${input.returnTrackingNumber ? `<p style="margin:0 0 10px;"><strong>Return tracking:</strong> ${input.returnTrackingNumber}</p>` : ""}
+        ${input.decisionReason ? `<p style="margin:0 0 10px;"><strong>Reason:</strong></p><p style="margin:0 0 10px;white-space:pre-line;">${input.decisionReason}</p>` : ""}
+        ${input.customerMessage ? `<p style="margin:0 0 10px;"><strong>Message from our team:</strong></p><p style="margin:0;white-space:pre-line;">${input.customerMessage}</p>` : ""}
+      </div>
+      ${replacementLink}
+      ${returnLabelLink}
+      ${signatureBlock()}
+    `
+  );
+  const text =
+    `${greeting}\n\n` +
+    `${resolutionLine} for order ${input.orderNumber}.\n\n` +
+    `Status: ${input.status}\n` +
+    `${input.resolutionType ? `Resolution: ${input.resolutionType}\n` : ""}` +
+    `${input.refundAmountCents ? `Refund amount: ${centsToDollars(input.refundAmountCents)}\n` : ""}` +
+    `${input.replacementOrderId ? `Replacement order: ${input.replacementOrderId}\n` : ""}` +
+    `${input.decisionReason ? `Reason: ${input.decisionReason}\n` : ""}` +
+    `${input.customerMessage ? `Message from our team: ${input.customerMessage}\n` : ""}` +
+    `${input.returnTrackingNumber ? `Return tracking: ${input.returnTrackingNumber}\n` : ""}` +
+    `${input.returnTrackingUrl ? `Return tracking link: ${input.returnTrackingUrl}\n` : ""}` +
+    `${input.returnLabelUrl ? `Return label: ${input.returnLabelUrl}\n` : ""}` +
+    `${input.replacementOrderUrl ? `Replacement order link: ${input.replacementOrderUrl}\n` : ""}`;
 
   return sendEmail({
     to: input.customerEmail,

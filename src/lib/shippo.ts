@@ -517,6 +517,53 @@ export function buildShippoShopAddress(input: {
   };
 }
 
+export async function createShopOrderReturnLabel(input: {
+  fromAddress: ShippoAddress;
+  quantity: number;
+  metadata: string;
+}) {
+  const shipmentQuantities = splitQuantityIntoShipments(input.quantity);
+  const preferredService = process.env.SHIPPO_USPS_SERVICELEVEL_TOKEN || "usps_ground_advantage";
+
+  const quotes = await Promise.all(
+    shipmentQuantities.map(async (shipmentQuantity, index) => {
+      const shipment = await shippoRequest<ShippoShipmentResponse>("/shipments/", {
+        method: "POST",
+        body: JSON.stringify({
+          address_from: input.fromAddress,
+          address_return: input.fromAddress,
+          address_to: getReturnAddress(),
+          parcels: [getKitParcel(shipmentQuantity)],
+          metadata: shippoMetadata(`${input.metadata}; return ${index + 1}/${shipmentQuantities.length}`),
+          extra: {
+            qr_code_requested: shouldRequestDropoffQrCode(),
+            reference_1: shippoReference("Paint & Sip Depot return"),
+            reference_2: shippoReference(`${input.metadata}; ${index + 1}/${shipmentQuantities.length}`),
+          },
+          carrier_accounts: process.env.SHIPPO_USPS_CARRIER_ACCOUNT_ID
+            ? [process.env.SHIPPO_USPS_CARRIER_ACCOUNT_ID]
+            : undefined,
+          async: false,
+        }),
+      });
+
+      const uspsRates = (shipment.rates ?? []).filter((rate) => rate.provider.toLowerCase() === "usps");
+      const rate = uspsRates.find((entry) => entry.servicelevel?.token === preferredService);
+
+      if (!rate) {
+        throw new Error("No USPS return-label rates were returned for this address.");
+      }
+
+      return rate.object_id;
+    }),
+  );
+
+  return purchaseShippoLabelsFromRates({
+    rateIds: quotes,
+    metadata: `${input.metadata}; return label`,
+  });
+}
+
 export function buildShippoEventHostAddress(input: {
   shippingRecipientName?: string | null;
   shippingAddress?: string | null;

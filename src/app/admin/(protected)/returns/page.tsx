@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 
@@ -86,6 +87,9 @@ export default async function AdminReturnsPage() {
                   {submission.didNotReceiveOrder ? (
                     <Badge variant="outline">Not received</Badge>
                   ) : null}
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/admin/returns/${submission.id}`}>Review</Link>
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="grid gap-6 p-6 lg:grid-cols-[0.8fr_1.2fr]">

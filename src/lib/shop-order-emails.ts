@@ -16,6 +16,7 @@ type ShopOrderForEmail = {
   shippingAmountCents: number;
   shippingProvider: string | null;
   shippingService: string | null;
+  shippingEstimateLabel: string | null;
   trackingNumber: string | null;
   trackingStatus: string | null;
   trackingUrl: string | null;
@@ -64,15 +65,20 @@ function buildShopOrderEmailPayload(order: ShopOrderForEmail) {
     ? getAbsoluteUrl(`/shop/success?session_id=${encodeURIComponent(order.stripeCheckoutSessionId)}`)
     : getAbsoluteUrl("/shop");
 
+  const purchaseCents = order.items.reduce((sum, item) => sum + item.totalPriceCents, 0);
+  const taxAmountCents = Math.max(0, order.amountTotalCents - purchaseCents - order.shippingAmountCents);
+
   return {
     orderId: order.id,
     customerName: order.customerName,
     customerEmail: order.customerEmail,
-    amountSubtotalCents: order.amountSubtotalCents,
+    amountSubtotalCents: purchaseCents,
     amountTotalCents: order.amountTotalCents,
+    taxAmountCents,
     shippingAmountCents: order.shippingAmountCents,
     shippingProvider: order.shippingProvider,
     shippingService: order.shippingService,
+    shippingEstimateLabel: order.shippingEstimateLabel,
     trackingNumber: order.trackingNumber,
     trackingStatus: order.trackingStatus,
     trackingUrl: order.trackingUrl,

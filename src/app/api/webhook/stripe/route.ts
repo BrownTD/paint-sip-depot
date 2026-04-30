@@ -7,6 +7,7 @@ import {
   sendShopExpiredCheckoutEmail,
 } from "@/lib/email";
 import { expireBookingsForCheckoutSession } from "@/lib/booking";
+import { getCheckoutTotalCents } from "@/lib/checkout-pricing";
 import { prisma } from "@/lib/prisma";
 import {
   buildShippoShopAddress,
@@ -195,6 +196,13 @@ export async function POST(request: Request) {
               : null;
 
             if (booking) {
+              const ticketPricing = getCheckoutTotalCents(booking.event.ticketPriceCents, booking.quantity, {
+                includeShipping: false,
+              });
+              const shippingAmountCents = booking.shippingAmountCents ?? 0;
+              const taxAmountCents =
+                session.total_details?.amount_tax ??
+                Math.max(0, (session.amount_total ?? booking.amountPaidCents) - ticketPricing.totalCents - shippingAmountCents);
               const eventUrl =
                 booking.event.visibility === "PRIVATE" && booking.event.eventCode
                   ? getAbsoluteUrl(`/e/${booking.event.slug}?code=${encodeURIComponent(booking.event.eventCode)}`)
@@ -223,6 +231,10 @@ export async function POST(request: Request) {
                   purchaserName: booking.purchaserName,
                   purchaserEmail: booking.purchaserEmail,
                   amountPaidCents: booking.amountPaidCents,
+                  ticketSubtotalCents: ticketPricing.subtotalCents,
+                  processingFeeCents: ticketPricing.processingFeeCents,
+                  shippingAmountCents,
+                  taxAmountCents,
                 }),
               ];
 
@@ -242,6 +254,10 @@ export async function POST(request: Request) {
                     purchaserName: booking.purchaserName,
                     purchaserEmail: booking.purchaserEmail,
                     amountPaidCents: booking.amountPaidCents,
+                    ticketSubtotalCents: ticketPricing.subtotalCents,
+                    processingFeeCents: ticketPricing.processingFeeCents,
+                    shippingAmountCents,
+                    taxAmountCents,
                   })
                 );
               }

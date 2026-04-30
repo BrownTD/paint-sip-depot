@@ -5,6 +5,7 @@ import { Compass, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PublicHeader } from "@/components/public/public-header";
 import { PublicEventCard } from "@/components/public/event-card";
+import { BasicFooter } from "@/components/public/basic-footer";
 import { FindEventCodeForm } from "@/components/public/find-event-code-form";
 import { findEventByCode, getDiscoverableEvents, isLiveEvent, normalizeEventCode } from "@/lib/event-discovery";
 
@@ -151,6 +152,7 @@ export default async function EventsPage({
           )}
         </section>
       </main>
+      <BasicFooter />
     </div>
   );
 }

@@ -195,29 +195,51 @@ type StorefrontNavCategory = {
 };
 
 export async function getStorefrontNavCategories(): Promise<StorefrontNavCategory[]> {
-  const categories = await prisma.productCategory.findMany({
-    include: {
-      subcategories: {
-        orderBy: {
-          name: "asc",
+  const [categories, activeProducts] = await Promise.all([
+    prisma.productCategory.findMany({
+      include: {
+        subcategories: {
+          orderBy: {
+            name: "asc",
+          },
         },
       },
-    },
-    orderBy: {
-      name: "asc",
-    },
-  });
+      orderBy: {
+        name: "asc",
+      },
+    }),
+    prisma.product.findMany({
+      where: {
+        status: ProductStatus.ACTIVE,
+      },
+      select: {
+        categoryId: true,
+        subcategoryId: true,
+      },
+    }),
+  ]);
 
-  return categories.map((category) => ({
-    id: category.id,
-    name: category.name,
-    slug: category.slug,
-    subcategories: category.subcategories.map((subcategory) => ({
-      id: subcategory.id,
-      name: subcategory.name,
-      slug: subcategory.slug,
-    })),
-  }));
+  const activeCategoryIds = new Set(activeProducts.map((product) => product.categoryId));
+  const activeSubcategoryIds = new Set(
+    activeProducts
+      .map((product) => product.subcategoryId)
+      .filter((subcategoryId): subcategoryId is string => Boolean(subcategoryId)),
+  );
+
+  return categories
+    .filter((category) => activeCategoryIds.has(category.id))
+    .map((category) => ({
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+      subcategories: category.subcategories
+        .filter((subcategory) => activeSubcategoryIds.has(subcategory.id))
+        .map((subcategory) => ({
+          id: subcategory.id,
+          name: subcategory.name,
+          slug: subcategory.slug,
+        })),
+    }));
 }
 
 type PreparedVariant = {

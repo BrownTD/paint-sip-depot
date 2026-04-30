@@ -151,6 +151,11 @@ export async function getAdminShippingOrders() {
   );
 }
 
+export async function getAdminShopOrders() {
+  const shopOrders = await getRawShopOrders();
+  return shopOrders.map(serializeShopOrder);
+}
+
 export async function getAdminShippingOrder(orderId: string) {
   const order = await prisma.shopOrder.findUnique({
     where: { id: orderId },

@@ -23,6 +23,7 @@ type LookupOrder = {
   id: string;
   customerName: string;
   customerEmail: string;
+  shippingPhone: string | null;
   createdAt: string;
   amountTotalCents: number;
   currency: string;
@@ -34,6 +35,36 @@ type LookupOrder = {
     quantity: number;
   }>;
 };
+
+function getReturnFormErrorMessage(error: unknown, fallback: string) {
+  if (!(error instanceof Error) || !error.message.trim()) {
+    return fallback;
+  }
+
+  const message = error.message.trim();
+
+  if (/network|fetch/i.test(message)) {
+    return "We could not connect. Check your internet connection and try again.";
+  }
+
+  if (/email/i.test(message)) {
+    return "Enter the email address used for the order.";
+  }
+
+  if (/phone/i.test(message)) {
+    return "Enter a phone number where we can reach you.";
+  }
+
+  if (/photo|upload|file/i.test(message)) {
+    return "We could not upload that photo. Try another image or try again.";
+  }
+
+  if (/required|invalid|string|minimum|maximum/i.test(message)) {
+    return "Check the form for missing or incorrect information.";
+  }
+
+  return message;
+}
 
 export function ReturnSubmissionForm() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -73,8 +104,8 @@ export function ReturnSubmissionForm() {
       setLookupOrders(data.orders || []);
     } catch (error) {
       toast({
-        title: "Search failed",
-        description: error instanceof Error ? error.message : "Failed to search orders.",
+        title: "We could not search orders",
+        description: getReturnFormErrorMessage(error, "Try searching again in a moment."),
         variant: "destructive",
       });
       setLookupOrders([]);
@@ -87,6 +118,7 @@ export function ReturnSubmissionForm() {
     setOrderNumber(order.id);
     setCustomerName(order.customerName);
     setCustomerEmail(order.customerEmail);
+    setPhoneNumber(order.shippingPhone ?? "");
     setLookupEmail(order.customerEmail);
     toast({
       title: "Order selected",
@@ -113,8 +145,8 @@ export function ReturnSubmissionForm() {
       setPhotoUrls((current) => [...current, data.url].slice(0, 6));
     } catch (error) {
       toast({
-        title: "Upload failed",
-        description: error instanceof Error ? error.message : "Failed to upload photo.",
+        title: "Photo upload did not work",
+        description: getReturnFormErrorMessage(error, "Try uploading the photo again."),
         variant: "destructive",
       });
     } finally {
@@ -177,8 +209,8 @@ export function ReturnSubmissionForm() {
       });
     } catch (error) {
       toast({
-        title: "Submission failed",
-        description: error instanceof Error ? error.message : "Failed to submit return request.",
+        title: "We could not submit your return",
+        description: getReturnFormErrorMessage(error, "Please check the form and try again."),
         variant: "destructive",
       });
     } finally {

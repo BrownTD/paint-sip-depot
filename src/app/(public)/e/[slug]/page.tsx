@@ -243,14 +243,6 @@ export default async function EventPage({
                       <Users className="w-5 h-5" />
                       <span>{spotsRemaining} spots remaining</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary">
-                        {event.eventFormat === "VIRTUAL" ? "Virtual" : "In Person"}
-                      </Badge>
-                      {event.visibility === "PRIVATE" ? (
-                        <Badge variant="outline">Code Access</Badge>
-                      ) : null}
-                    </div>
                   </div>
                 </div>
 
@@ -342,6 +334,7 @@ export default async function EventPage({
                           eventId={event.id}
                           maxQuantity={Math.min(spotsRemaining, 10)}
                           ticketPrice={event.ticketPriceCents}
+                          fulfillmentMethod={event.fulfillmentMethod}
                         />
                       ) : (
                         <div className="py-4 text-center">

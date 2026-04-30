@@ -43,6 +43,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
+      amountCents: quote.amountCents,
       provider: quote.provider,
       service: quote.service,
       estimatedDays: quote.estimatedDays,

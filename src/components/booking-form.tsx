@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 import { Loader2, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getCheckoutTotalCents } from "@/lib/checkout-pricing";
@@ -9,22 +10,69 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/use-toast";
 import { formatAmountForDisplay } from "@/lib/money";
+import { getGroundAdvantageLabel } from "@/lib/shipping-display";
 
 interface BookingFormProps {
   eventId: string;
   maxQuantity: number;
   ticketPrice: number;
+  fulfillmentMethod: "SHIP_TO_HOST" | "PICKUP";
 }
 
-export function BookingForm({ eventId, maxQuantity, ticketPrice }: BookingFormProps) {
+export function BookingForm({ eventId, maxQuantity, ticketPrice, fulfillmentMethod }: BookingFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [shippingEstimate, setShippingEstimate] = useState<{
+    amountCents: number;
+    service: string | null;
+    estimateLabel: string | null;
+  } | null>(null);
+  const [isLoadingShipping, setIsLoadingShipping] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
   });
 
-  const pricing = getCheckoutTotalCents(ticketPrice, quantity);
+  const pricing = getCheckoutTotalCents(ticketPrice, quantity, { includeShipping: false });
+  const shippingCents = shippingEstimate?.amountCents ?? 0;
+  const totalBeforeTaxCents = pricing.totalCents + shippingCents;
+
+  useEffect(() => {
+    if (fulfillmentMethod !== "SHIP_TO_HOST") {
+      setShippingEstimate(null);
+      return;
+    }
+
+    let isCanceled = false;
+    setIsLoadingShipping(true);
+
+    fetch(`/api/events/${eventId}/shipping-estimate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quantity }),
+    })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "Could not load shipping.");
+        if (!isCanceled) {
+          setShippingEstimate({
+            amountCents: data.amountCents ?? 0,
+            service: data.service ?? null,
+            estimateLabel: data.estimateLabel ?? null,
+          });
+        }
+      })
+      .catch(() => {
+        if (!isCanceled) setShippingEstimate(null);
+      })
+      .finally(() => {
+        if (!isCanceled) setIsLoadingShipping(false);
+      });
+
+    return () => {
+      isCanceled = true;
+    };
+  }, [eventId, fulfillmentMethod, quantity]);
 
   const handleQuantityChange = (delta: number) => {
     setQuantity((prev) => Math.max(1, Math.min(maxQuantity, prev + delta)));
@@ -149,15 +197,26 @@ export function BookingForm({ eventId, maxQuantity, ticketPrice }: BookingFormPr
           <span className="text-muted-foreground">Processing Fee</span>
           <span>{formatAmountForDisplay(pricing.processingFeeCents)}</span>
         </div>
-        {pricing.shippingFeeCents > 0 ? (
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Shipping to Host</span>
-            <span>{formatAmountForDisplay(pricing.shippingFeeCents)}</span>
+        {fulfillmentMethod === "SHIP_TO_HOST" ? (
+          <div className="rounded-lg bg-muted/40 p-3 text-sm">
+            <div className="flex items-center justify-between gap-4">
+              <span className="font-semibold text-foreground">
+                {isLoadingShipping ? "Loading shipping..." : `${getGroundAdvantageLabel(shippingEstimate?.service)}:`}
+              </span>
+              <span className="font-medium">{formatAmountForDisplay(shippingCents)}</span>
+            </div>
+            {shippingEstimate?.estimateLabel ? (
+              <p className="mt-1 text-base font-medium text-foreground">{shippingEstimate.estimateLabel}</p>
+            ) : null}
           </div>
         ) : null}
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Taxes</span>
+          <span>Calculated at checkout</span>
+        </div>
         <div className="flex items-center justify-between border-t pt-3">
-          <span className="font-medium">Total</span>
-          <span className="text-xl font-bold">{formatAmountForDisplay(pricing.totalCents)}</span>
+          <span className="font-medium">Total before tax</span>
+          <span className="text-xl font-bold">{formatAmountForDisplay(totalBeforeTaxCents)}</span>
         </div>
       </div>
 
@@ -166,10 +225,19 @@ export function BookingForm({ eventId, maxQuantity, ticketPrice }: BookingFormPr
         {isLoading ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Processing...
+            Redirecting...
           </>
         ) : (
-          "Book Now"
+          <span className="inline-flex items-center gap-2.5">
+            Continue with
+            <Image
+              src="/Misc/Stripe wordmark - White.svg"
+              alt="Stripe"
+              width={72}
+              height={30}
+              className="h-5 w-auto"
+            />
+          </span>
         )}
       </Button>
 

@@ -86,7 +86,7 @@ export default async function AdminEventsPage() {
           </p>
         </div>
         <Button asChild variant="outline">
-          <Link href="/admin/orders">View Orders</Link>
+          <Link href="/admin/orders">Ticket Orders</Link>
         </Button>
       </div>
 

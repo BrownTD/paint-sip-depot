@@ -34,6 +34,7 @@ export async function POST(request: Request) {
         id: order.id,
         customerName: order.customerName,
         customerEmail: order.customerEmail,
+        shippingPhone: order.shippingPhone,
         createdAt: order.createdAt.toISOString(),
         amountTotalCents: order.amountTotalCents,
         currency: order.currency,

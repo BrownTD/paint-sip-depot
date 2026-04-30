@@ -65,9 +65,14 @@ export default async function AdminShippingPage() {
             Review paid shop and event kit shipments, buy labels, and manage tracking.
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link href="/admin/orders">Ticket Orders</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href="/admin/shop-orders">Shop Orders</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/admin/orders">Ticket Orders</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

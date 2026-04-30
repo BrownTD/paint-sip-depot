@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, ShoppingBag, Star } from "lucide-react";
+import { Loader2, Star } from "lucide-react";
 import { formatCurrencyAmount } from "@/lib/money";
+import { getGroundAdvantageLabel } from "@/lib/shipping-display";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
@@ -122,6 +123,17 @@ function formatDisplayedRating(rating: number | null) {
   return Number.isInteger(rating) ? String(rating) : rating.toFixed(1);
 }
 
+function formatPhoneInput(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 10);
+  const areaCode = digits.slice(0, 3);
+  const prefix = digits.slice(3, 6);
+  const lineNumber = digits.slice(6, 10);
+
+  if (digits.length <= 3) return areaCode ? `(${areaCode}` : "";
+  if (digits.length <= 6) return `(${areaCode}) ${prefix}`;
+  return `(${areaCode}) ${prefix}-${lineNumber}`;
+}
+
 export function ShopProductCard({
   product,
 }: {
@@ -148,6 +160,13 @@ export function ShopProductCard({
   const [shippingState, setShippingState] = useState("");
   const [shippingZip, setShippingZip] = useState("");
   const [shippingPhone, setShippingPhone] = useState("");
+  const [shippingEstimate, setShippingEstimate] = useState<{
+    amountCents: number;
+    service: string;
+    estimateLabel: string;
+  } | null>(null);
+  const [shippingEstimateError, setShippingEstimateError] = useState("");
+  const [isLoadingShippingEstimate, setIsLoadingShippingEstimate] = useState(false);
 
   const selectedVariant = useMemo(
     () => product.variants.find((variant) => variant.id === selectedVariantId) ?? defaultVariant,
@@ -159,7 +178,15 @@ export function ShopProductCard({
   const hasSelectableColorOptions = isPaintProduct && product.colorOptions.length > 0;
   const unitPriceCents = selectedVariant?.priceCents ?? product.priceCents;
   const checkoutCurrency = selectedVariant?.currency ?? product.currency;
+  const lineSubtotalCents = unitPriceCents * quantityNumber;
+  const shippingCents = shippingEstimate?.amountCents ?? 0;
+  const totalBeforeTaxCents = lineSubtotalCents + shippingCents;
   const selectedImageUrl = product.imageUrls[selectedImageIndex] ?? product.imageUrls[0] ?? null;
+  const hasCompleteShippingAddress =
+    Boolean(shippingAddress.trim()) &&
+    Boolean(shippingCity.trim()) &&
+    shippingState.trim().length === 2 &&
+    shippingZip.trim().length >= 5;
   const discountPercent =
     product.compareAtCents && product.compareAtCents > product.priceCents
       ? Math.round(((product.compareAtCents - product.priceCents) / product.compareAtCents) * 100)
@@ -169,6 +196,72 @@ export function ShopProductCard({
     setSelectedImageIndex(0);
     setSelectedColorOptionId(firstColorOptionId);
   }, [firstColorOptionId, product.id, isDialogOpen]);
+
+  useEffect(() => {
+    if (!isDialogOpen || !hasCompleteShippingAddress) {
+      setShippingEstimate(null);
+      setShippingEstimateError("");
+      setIsLoadingShippingEstimate(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => {
+      setIsLoadingShippingEstimate(true);
+      setShippingEstimateError("");
+
+      fetch("/api/shop/shipping-estimate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          items: [
+            {
+              productId: product.id,
+              variantId: selectedVariant?.id ?? null,
+              colorOptionId: hasSelectableColorOptions ? selectedColorOptionId || null : null,
+              quantity: quantityNumber,
+            },
+          ],
+          shippingName: "Paint & Sip Depot Customer",
+          shippingAddress,
+          shippingCity,
+          shippingState,
+          shippingZip,
+        }),
+      })
+        .then(async (response) => {
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "Failed to load shipping estimate.");
+          setShippingEstimate(data as { amountCents: number; service: string; estimateLabel: string });
+        })
+        .catch((error) => {
+          if (error instanceof DOMException && error.name === "AbortError") return;
+          setShippingEstimate(null);
+          setShippingEstimateError(error instanceof Error ? error.message : "Failed to load shipping estimate.");
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setIsLoadingShippingEstimate(false);
+        });
+    }, 500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [
+    hasCompleteShippingAddress,
+    hasSelectableColorOptions,
+    isDialogOpen,
+    product.id,
+    quantityNumber,
+    selectedColorOptionId,
+    selectedVariant?.id,
+    shippingAddress,
+    shippingCity,
+    shippingState,
+    shippingZip,
+  ]);
 
   async function handleCheckout(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -415,7 +508,7 @@ export function ShopProductCard({
 
               {hasSelectableColorOptions ? (
                 <div className="space-y-3">
-                  <Label>Color</Label>
+                  <Label>Paint Color</Label>
                   <div className="flex flex-wrap gap-2">
                     {product.colorOptions.map((colorOption) => {
                       const isSelected = selectedColorOptionId === colorOption.id;
@@ -534,19 +627,56 @@ export function ShopProductCard({
                   id={`shipping-phone-${product.id}`}
                   type="tel"
                   value={shippingPhone}
-                  onChange={(event) => setShippingPhone(event.target.value)}
-                  placeholder="Phone for shipping"
+                  onChange={(event) => setShippingPhone(formatPhoneInput(event.target.value))}
+                  placeholder="(123) 456-7890"
                   required
                   disabled={isSubmitting}
                 />
               </div>
 
+              <div className="rounded-lg bg-muted/40 p-3 text-sm">
+                {isLoadingShippingEstimate ? (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading delivery estimate...
+                  </div>
+                ) : shippingEstimate ? (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-base font-semibold text-foreground">
+                        {getGroundAdvantageLabel(shippingEstimate.service)}:
+                      </span>
+                      <span className="font-medium">{formatCurrencyAmount(shippingCents, checkoutCurrency)}</span>
+                    </div>
+                    <p className="text-base font-medium text-muted-foreground">{shippingEstimate.estimateLabel}</p>
+                  </div>
+                ) : shippingEstimateError ? (
+                  <p className="text-destructive">{shippingEstimateError}</p>
+                ) : (
+                  <p className="text-muted-foreground">Enter the shipping address to estimate delivery.</p>
+                )}
+              </div>
+
               <div className="pt-2">
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-lg font-semibold text-foreground sm:text-xl">Total</span>
-                  <span className="text-2xl font-bold text-foreground sm:text-3xl">
-                    {formatCurrencyAmount(unitPriceCents * quantityNumber, checkoutCurrency)}
-                  </span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>Purchase</span>
+                    <span>{formatCurrencyAmount(lineSubtotalCents, checkoutCurrency)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>Shipping</span>
+                    <span>{hasCompleteShippingAddress ? formatCurrencyAmount(shippingCents, checkoutCurrency) : "Enter address"}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>Taxes</span>
+                    <span>Calculated at checkout</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 border-t pt-3">
+                    <span className="text-lg font-semibold text-foreground sm:text-xl">Total before tax</span>
+                    <span className="text-2xl font-bold text-foreground sm:text-3xl">
+                      {formatCurrencyAmount(totalBeforeTaxCents, checkoutCurrency)}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -571,10 +701,16 @@ export function ShopProductCard({
                     Redirecting...
                   </>
                 ) : (
-                  <>
-                    <ShoppingBag className="mr-2 h-4 w-4" />
-                    Continue to Checkout
-                  </>
+                  <span className="inline-flex items-center gap-2.5">
+                    Checkout with
+                    <Image
+                      src="/Misc/Stripe wordmark - White.svg"
+                      alt="Stripe"
+                      width={72}
+                      height={30}
+                      className="h-5 w-auto"
+                    />
+                  </span>
                 )}
               </Button>
             </form>

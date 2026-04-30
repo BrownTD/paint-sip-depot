@@ -37,6 +37,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { formatCurrencyAmount } from "@/lib/money";
+import { getGroundAdvantageLabel } from "@/lib/shipping-display";
 import { toast } from "@/components/ui/use-toast";
 
 const shopAnnouncement =
@@ -91,6 +92,7 @@ type ShopCartItem = {
 };
 
 type ShippingEstimate = {
+  amountCents: number;
   provider: string;
   service: string;
   estimatedDays?: number | null;
@@ -230,7 +232,7 @@ function MobileNavigation({ categories }: { categories: StorefrontNavCategory[] 
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="no-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
             {paintKitsCategory ? (
-              <details className="group rounded-2xl bg-white/70 px-4 py-3">
+              <details open className="group rounded-2xl bg-white/70 px-4 py-3">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-base font-medium">
                   <span>{paintKitsCategory.name}</span>
                   <ChevronRight className="h-4 w-4 transition group-open:rotate-90" />
@@ -347,7 +349,9 @@ export function ShopCartPageContent() {
   const subtotalCents = items.reduce((sum, item) => sum + item.unitPriceCents * item.quantity, 0);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const cartCurrency = items[0]?.currency ?? "usd";
-  const totalLabel = items.length > 0 ? formatCurrencyAmount(subtotalCents, cartCurrency) : null;
+  const shippingCents = shippingEstimate?.amountCents ?? 0;
+  const totalBeforeTaxCents = subtotalCents + shippingCents;
+  const totalLabel = items.length > 0 ? formatCurrencyAmount(totalBeforeTaxCents, cartCurrency) : null;
   const hasValidCustomerEmail = isValidEmailSyntax(customerEmail);
   const hasCompleteShippingAddress =
     Boolean(shippingAddress.trim()) &&
@@ -381,13 +385,11 @@ export function ShopCartPageContent() {
             colorOptionId: item.colorOptionId,
             quantity: item.quantity,
           })),
-          shippingName: customerName,
-          customerEmail: hasValidCustomerEmail ? customerEmail : undefined,
+          shippingName: "Paint & Sip Depot Customer",
           shippingAddress,
           shippingCity,
           shippingState,
           shippingZip,
-          shippingPhone,
         }),
       })
         .then(async (response) => {
@@ -419,26 +421,13 @@ export function ShopCartPageContent() {
       controller.abort();
     };
   }, [
-    customerEmail,
-    customerName,
     hasCompleteShippingAddress,
-    hasValidCustomerEmail,
     items,
     shippingAddress,
     shippingCity,
-    shippingPhone,
     shippingState,
     shippingZip,
   ]);
-
-  function handleContinueShopping() {
-    if (window.history.length > 1) {
-      window.history.back();
-      return;
-    }
-
-    window.location.href = "/shop";
-  }
 
   async function handleCheckout() {
     if (items.length === 0) {
@@ -516,15 +505,13 @@ export function ShopCartPageContent() {
     <main className="px-4 py-8 sm:py-12">
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={handleContinueShopping}
-            className="w-fit rounded-full px-0 text-black hover:bg-transparent"
+          <Link
+            href="/shop"
+            className="inline-flex w-fit items-center gap-2 rounded-full text-sm font-semibold text-black/65 transition hover:text-black"
           >
-              <ChevronRight className="mr-1 h-4 w-4 rotate-180" />
-              Continue Shopping
-          </Button>
+            <span className="text-lg leading-none">←</span>
+            Back to Shop
+          </Link>
           <div className="sm:text-right">
             <h1 className="font-display text-4xl uppercase leading-none tracking-tight text-black sm:text-5xl">
               Your Cart
@@ -639,8 +626,8 @@ export function ShopCartPageContent() {
                           </div>
                         ) : shippingEstimate ? (
                           <div className="space-y-1">
-                            <p className="font-semibold">{shippingEstimate.service}</p>
-                            <p className="text-black/65">{shippingEstimate.estimateLabel}</p>
+                            <p className="text-base font-semibold">{getGroundAdvantageLabel(shippingEstimate.service)}:</p>
+                            <p className="text-base font-medium text-black/75">{shippingEstimate.estimateLabel}</p>
                           </div>
                         ) : shippingEstimateError ? (
                           <p className="text-red-600">{shippingEstimateError}</p>
@@ -652,8 +639,26 @@ export function ShopCartPageContent() {
               </div>
 
               <div className="mt-auto space-y-3 border-t border-black/10 pt-5">
+                <div className="flex items-center justify-between text-sm text-black/65">
+                  <span>Purchase</span>
+                  <span>{formatCurrencyAmount(subtotalCents, cartCurrency)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-black/65">
+                  <span>Shipping</span>
+                  <span>
+                    {hasCompleteShippingAddress
+                      ? isLoadingShippingEstimate
+                        ? "Loading..."
+                        : formatCurrencyAmount(shippingCents, cartCurrency)
+                      : "Enter address"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-black/65">
+                  <span>Taxes</span>
+                  <span>Calculated at checkout</span>
+                </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-semibold text-black">Total</span>
+                  <span className="text-lg font-semibold text-black">Total before tax</span>
                   <span className="text-2xl font-bold text-black">{totalLabel}</span>
                 </div>
 
@@ -901,6 +906,11 @@ function ShopCartAddedNotice() {
     setDragOffset(0);
   }
 
+  function goToCart() {
+    dismissCartNotice();
+    window.location.href = "/shop/cart";
+  }
+
   return (
     <div
       className={`fixed right-4 top-24 z-50 w-[calc(100vw-2rem)] max-w-sm touch-pan-y rounded-lg border border-black/10 bg-white p-4 shadow-2xl duration-300 ${
@@ -954,10 +964,13 @@ function ShopCartAddedNotice() {
           <p className="mt-2 text-sm font-medium text-black">Quantity: {renderedItem.quantity}</p>
         </div>
       </div>
-      <Button asChild className="mt-4 h-11 w-full rounded-full bg-black text-white hover:bg-black/95">
-        <Link href="/shop/cart" onClick={dismissWithAnimation}>
-          View Cart
-        </Link>
+      <Button
+        type="button"
+        className="mt-4 h-11 w-full rounded-full bg-black text-white hover:bg-black/95"
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={goToCart}
+      >
+        View Cart
       </Button>
     </div>
   );

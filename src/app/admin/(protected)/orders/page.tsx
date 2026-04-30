@@ -56,20 +56,25 @@ export default async function AdminOrdersPage() {
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-bold">Orders</h1>
+          <h1 className="font-display text-3xl font-bold">Ticket Orders</h1>
           <p className="mt-1 text-muted-foreground">
-            Review all bookings and payment statuses for fulfillment.
+            Review event ticket bookings and payment statuses.
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link href="/admin/events">View Events</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href="/admin/shop-orders">Shop Orders</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/admin/events">View Events</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">Ticket Orders</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{orders.length}</div>
@@ -97,7 +102,7 @@ export default async function AdminOrdersPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Orders</CardTitle>
+          <CardTitle>All Ticket Orders</CardTitle>
         </CardHeader>
         <CardContent>
           {orders.length === 0 ? (

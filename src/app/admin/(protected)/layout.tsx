@@ -6,7 +6,8 @@ import { DashboardMobileNav } from "@/components/dashboard/mobile-nav";
 import { requireAdminSession } from "@/lib/admin";
 
 const navItems = [
-  { href: "/admin/orders", label: "Orders", icon: "ticket" },
+  { href: "/admin/orders", label: "Ticket Orders", icon: "ticket" },
+  { href: "/admin/shop-orders", label: "Shop Orders", icon: "package" },
   { href: "/admin/shipping", label: "Shipping", icon: "shipping" },
   { href: "/admin/events", label: "Events", icon: "calendar" },
   { href: "/admin/products", label: "Products", icon: "package" },

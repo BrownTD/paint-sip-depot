@@ -1,4 +1,5 @@
 import { formatDate, formatTime, getAbsoluteUrl } from "@/lib/utils";
+import { getGroundAdvantageLabel } from "@/lib/shipping-display";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 const DEFAULT_FROM_EMAIL = "onboarding@resend.dev";
@@ -97,6 +98,9 @@ type OrderNotificationInput = {
   purchaserName: string;
   purchaserEmail: string;
   amountPaidCents: number;
+  ticketSubtotalCents?: number | null;
+  processingFeeCents?: number | null;
+  taxAmountCents?: number | null;
   shippingAmountCents?: number | null;
   shippingProvider?: string | null;
   shippingService?: string | null;
@@ -165,9 +169,11 @@ type ShopOrderConfirmationEmailInput = {
   customerEmail: string;
   amountSubtotalCents: number;
   amountTotalCents: number;
+  taxAmountCents?: number;
   shippingAmountCents: number;
   shippingProvider?: string | null;
   shippingService?: string | null;
+  shippingEstimateLabel?: string | null;
   trackingNumber?: string | null;
   trackingStatus?: string | null;
   trackingUrl?: string | null;
@@ -529,24 +535,10 @@ export async function sendAdminOrderCreatedEmail(input: OrderNotificationInput) 
   const addressLine = formatAddressLine(input);
   const privateEventCode =
     input.visibility === "PRIVATE" && input.eventCode ? input.eventCode : null;
-  const shippingMethod = [input.shippingProvider, input.shippingService].filter(Boolean).join(" ");
-  const shippingHtml = input.shippingAmountCents
-    ? `
-        <p style="margin:0 0 10px;"><strong>Event kit shipping:</strong> ${shippingMethod || "USPS"} (${centsToDollars(input.shippingAmountCents)})</p>
-        <p style="margin:0 0 10px;"><strong>Tracking:</strong> ${
-          input.trackingNumber
-            ? input.trackingUrl
-              ? `<a href="${input.trackingUrl}" style="color:#000000;">${input.trackingNumber}</a>`
-              : input.trackingNumber
-            : "Pending fulfillment"
-        }${input.trackingStatus ? ` (${input.trackingStatus})` : ""}</p>
-      `
-    : "";
-  const shippingText = input.shippingAmountCents
-    ? `Event kit shipping: ${shippingMethod || "USPS"} (${centsToDollars(input.shippingAmountCents)})\nTracking: ${
-        input.trackingNumber || "Pending fulfillment"
-      }${input.trackingStatus ? ` (${input.trackingStatus})` : ""}${input.trackingUrl ? `\nTracking link: ${input.trackingUrl}` : ""}\n`
-    : "";
+  const ticketSubtotalCents = input.ticketSubtotalCents ?? Math.max(0, input.amountPaidCents - (input.processingFeeCents ?? 0) - (input.shippingAmountCents ?? 0) - (input.taxAmountCents ?? 0));
+  const processingFeeCents = input.processingFeeCents ?? 0;
+  const shippingAmountCents = input.shippingAmountCents ?? 0;
+  const taxAmountCents = input.taxAmountCents ?? 0;
   const subject = `New order: ${input.quantity} ticket${input.quantity > 1 ? "s" : ""} for ${input.eventTitle}`;
   const html = emailShell(
     "New order received",
@@ -562,8 +554,11 @@ export async function sendAdminOrderCreatedEmail(input: OrderNotificationInput) 
         ${addressLine ? `<p style="margin:0 0 10px;"><strong>Address:</strong> ${addressLine}</p>` : ""}
         <p style="margin:0 0 10px;"><strong>Customer:</strong> ${input.purchaserName} (${input.purchaserEmail})</p>
         <p style="margin:0 0 10px;"><strong>Tickets:</strong> ${input.quantity}</p>
-        <p style="margin:0 0 10px;"><strong>Total:</strong> ${centsToDollars(input.amountPaidCents)}</p>
-        ${shippingHtml}
+        <p style="margin:0 0 10px;"><strong>Purchase:</strong> ${centsToDollars(ticketSubtotalCents)}</p>
+        <p style="margin:0 0 10px;"><strong>Processing fee:</strong> ${centsToDollars(processingFeeCents)}</p>
+        <p style="margin:0 0 10px;"><strong>Shipping:</strong> ${centsToDollars(shippingAmountCents)}</p>
+        <p style="margin:0 0 10px;"><strong>Taxes:</strong> ${centsToDollars(taxAmountCents)}</p>
+        <p style="margin:0 0 10px;"><strong>Total paid:</strong> ${centsToDollars(input.amountPaidCents)}</p>
         ${input.purchasedAt ? `<p style="margin:0 0 10px;"><strong>Purchased at:</strong> ${formatDate(input.purchasedAt)} at ${formatTime(input.purchasedAt)}</p>` : ""}
         ${input.bookingId ? `<p style="margin:0;"><strong>Booking ID:</strong> ${input.bookingId}</p>` : ""}
       </div>
@@ -581,8 +576,11 @@ export async function sendAdminOrderCreatedEmail(input: OrderNotificationInput) 
     `${addressLine ? `Address: ${addressLine}\n` : ""}` +
     `Customer: ${input.purchaserName} (${input.purchaserEmail})\n` +
     `Tickets: ${input.quantity}\n` +
-    `Total: ${centsToDollars(input.amountPaidCents)}\n` +
-    shippingText +
+    `Purchase: ${centsToDollars(ticketSubtotalCents)}\n` +
+    `Processing fee: ${centsToDollars(processingFeeCents)}\n` +
+    `Shipping: ${centsToDollars(shippingAmountCents)}\n` +
+    `Taxes: ${centsToDollars(taxAmountCents)}\n` +
+    `Total paid: ${centsToDollars(input.amountPaidCents)}\n` +
     `${input.purchasedAt ? `Purchased at: ${formatDate(input.purchasedAt)} at ${formatTime(input.purchasedAt)}\n` : ""}` +
     `${input.bookingId ? `Booking ID: ${input.bookingId}\n` : ""}` +
     `${input.eventUrl}`;
@@ -603,24 +601,10 @@ export async function sendHostOrderCreatedEmail(input: OrderNotificationInput & 
     input.visibility === "PRIVATE" && input.eventCode ? input.eventCode : null;
   const previewUrl = input.previewUrl || input.eventUrl;
   const dashboardUrl = getAbsoluteUrl("/login");
-  const shippingMethod = [input.shippingProvider, input.shippingService].filter(Boolean).join(" ");
-  const shippingHtml = input.shippingAmountCents
-    ? `
-        <p style="margin:0 0 10px;"><strong>Event kit shipping:</strong> ${shippingMethod || "USPS"} (${centsToDollars(input.shippingAmountCents)})</p>
-        <p style="margin:0 0 10px;"><strong>Tracking:</strong> ${
-          input.trackingNumber
-            ? input.trackingUrl
-              ? `<a href="${input.trackingUrl}" style="color:#000000;">${input.trackingNumber}</a>`
-              : input.trackingNumber
-            : "Pending fulfillment"
-        }${input.trackingStatus ? ` (${input.trackingStatus})` : ""}</p>
-      `
-    : "";
-  const shippingText = input.shippingAmountCents
-    ? `Event kit shipping: ${shippingMethod || "USPS"} (${centsToDollars(input.shippingAmountCents)})\nTracking: ${
-        input.trackingNumber || "Pending fulfillment"
-      }${input.trackingStatus ? ` (${input.trackingStatus})` : ""}${input.trackingUrl ? `\nTracking link: ${input.trackingUrl}` : ""}\n`
-    : "";
+  const ticketSubtotalCents = input.ticketSubtotalCents ?? Math.max(0, input.amountPaidCents - (input.processingFeeCents ?? 0) - (input.shippingAmountCents ?? 0) - (input.taxAmountCents ?? 0));
+  const processingFeeCents = input.processingFeeCents ?? 0;
+  const shippingAmountCents = input.shippingAmountCents ?? 0;
+  const taxAmountCents = input.taxAmountCents ?? 0;
   const html = emailShell(
     "New Ticket Purchased",
     "Host Update",
@@ -631,8 +615,11 @@ export async function sendHostOrderCreatedEmail(input: OrderNotificationInput & 
       <div style="padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
         <p style="margin:0 0 10px;"><strong>Customer:</strong> ${input.purchaserName} (${input.purchaserEmail})</p>
         <p style="margin:0 0 10px;"><strong>Tickets:</strong> ${input.quantity}</p>
-        <p style="margin:0 0 10px;"><strong>Total:</strong> ${centsToDollars(input.amountPaidCents)}</p>
-        ${shippingHtml}
+        <p style="margin:0 0 10px;"><strong>Purchase:</strong> ${centsToDollars(ticketSubtotalCents)}</p>
+        <p style="margin:0 0 10px;"><strong>Processing fee:</strong> ${centsToDollars(processingFeeCents)}</p>
+        <p style="margin:0 0 10px;"><strong>Shipping:</strong> ${centsToDollars(shippingAmountCents)}</p>
+        <p style="margin:0 0 10px;"><strong>Taxes:</strong> ${centsToDollars(taxAmountCents)}</p>
+        <p style="margin:0 0 10px;"><strong>Total paid:</strong> ${centsToDollars(input.amountPaidCents)}</p>
         <p style="margin:0 0 10px;"><strong>Event date:</strong> ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}</p>
         ${privateEventCode ? `<p style="margin:0;"><strong>Event code:</strong> ${privateEventCode}</p>` : ""}
       </div>
@@ -649,8 +636,11 @@ export async function sendHostOrderCreatedEmail(input: OrderNotificationInput & 
     `Check your dashboard to view the details.\n` +
     `Customer: ${input.purchaserName} (${input.purchaserEmail})\n` +
     `Tickets: ${input.quantity}\n` +
-    `Total: ${centsToDollars(input.amountPaidCents)}\n` +
-    shippingText +
+    `Purchase: ${centsToDollars(ticketSubtotalCents)}\n` +
+    `Processing fee: ${centsToDollars(processingFeeCents)}\n` +
+    `Shipping: ${centsToDollars(shippingAmountCents)}\n` +
+    `Taxes: ${centsToDollars(taxAmountCents)}\n` +
+    `Total paid: ${centsToDollars(input.amountPaidCents)}\n` +
     `Event date: ${formatDate(input.startDateTime)} at ${formatTime(input.startDateTime)}\n` +
     `${privateEventCode ? `Event code: ${privateEventCode}\n` : ""}` +
     `Preview: ${previewUrl}\n` +
@@ -944,11 +934,12 @@ function buildShopShippingSummary(input: ShopOrderConfirmationEmailInput) {
 
   return {
     html: `
-      <p style="margin:0 0 10px;"><strong>Shipping:</strong> ${method || "USPS"}</p>
+      <p style="margin:0 0 10px;"><strong>${getGroundAdvantageLabel(method)}:</strong></p>
+      ${input.shippingEstimateLabel ? `<p style="margin:0 0 10px;"><strong>${input.shippingEstimateLabel}</strong></p>` : ""}
       <p style="margin:0 0 10px;"><strong>Shipping cost:</strong> ${centsToDollars(input.shippingAmountCents)}</p>
       ${trackingLine}
     `,
-    text: `Shipping: ${method || "USPS"}\nShipping cost: ${centsToDollars(input.shippingAmountCents)}\n${textTracking}`,
+    text: `${getGroundAdvantageLabel(method)}:\n${input.shippingEstimateLabel ? `${input.shippingEstimateLabel}\n` : ""}Shipping cost: ${centsToDollars(input.shippingAmountCents)}\n${textTracking}`,
   };
 }
 
@@ -980,8 +971,9 @@ export async function sendCustomerShopOrderConfirmationEmail(input: ShopOrderCon
         <tbody>${itemRows.html}</tbody>
       </table>
       <div style="margin:20px 0 0;padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
-        <p style="margin:0 0 10px;"><strong>Subtotal:</strong> ${centsToDollars(input.amountSubtotalCents)}</p>
+        <p style="margin:0 0 10px;"><strong>Purchase:</strong> ${centsToDollars(input.amountSubtotalCents)}</p>
         <p style="margin:0 0 10px;"><strong>Shipping:</strong> ${centsToDollars(input.shippingAmountCents)}</p>
+        <p style="margin:0 0 10px;"><strong>Taxes:</strong> ${centsToDollars(input.taxAmountCents ?? 0)}</p>
         <p style="margin:0;font-size:18px;"><strong>Total paid:</strong> ${centsToDollars(input.amountTotalCents)}</p>
       </div>
       <div style="margin:20px 0 0;padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
@@ -997,8 +989,9 @@ export async function sendCustomerShopOrderConfirmationEmail(input: ShopOrderCon
     `Order: ${input.orderId}\n` +
     `Customer: ${input.customerName} (${input.customerEmail})\n\n` +
     `${itemRows.text}\n\n` +
-    `Subtotal: ${centsToDollars(input.amountSubtotalCents)}\n` +
+    `Purchase: ${centsToDollars(input.amountSubtotalCents)}\n` +
     `Shipping: ${centsToDollars(input.shippingAmountCents)}\n` +
+    `Taxes: ${centsToDollars(input.taxAmountCents ?? 0)}\n` +
     `Total paid: ${centsToDollars(input.amountTotalCents)}\n\n` +
     `${shippingSummary.text}\n\n` +
     `View order: ${input.orderUrl}`;
@@ -1039,8 +1032,9 @@ export async function sendAdminShopOrderConfirmationEmail(input: ShopOrderConfir
         <tbody>${itemRows.html}</tbody>
       </table>
       <div style="margin:20px 0 0;padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
-        <p style="margin:0 0 10px;"><strong>Subtotal:</strong> ${centsToDollars(input.amountSubtotalCents)}</p>
+        <p style="margin:0 0 10px;"><strong>Purchase:</strong> ${centsToDollars(input.amountSubtotalCents)}</p>
         <p style="margin:0 0 10px;"><strong>Shipping:</strong> ${centsToDollars(input.shippingAmountCents)}</p>
+        <p style="margin:0 0 10px;"><strong>Taxes:</strong> ${centsToDollars(input.taxAmountCents ?? 0)}</p>
         <p style="margin:0;font-size:18px;"><strong>Total paid:</strong> ${centsToDollars(input.amountTotalCents)}</p>
       </div>
       <div style="margin:20px 0 0;padding:20px;border:1px solid #000000;border-radius:18px;background:#ffffff;">
@@ -1054,8 +1048,9 @@ export async function sendAdminShopOrderConfirmationEmail(input: ShopOrderConfir
     `Order: ${input.orderId}\n` +
     `Customer: ${input.customerName} (${input.customerEmail})\n\n` +
     `${itemRows.text}\n\n` +
-    `Subtotal: ${centsToDollars(input.amountSubtotalCents)}\n` +
+    `Purchase: ${centsToDollars(input.amountSubtotalCents)}\n` +
     `Shipping: ${centsToDollars(input.shippingAmountCents)}\n` +
+    `Taxes: ${centsToDollars(input.taxAmountCents ?? 0)}\n` +
     `Total paid: ${centsToDollars(input.amountTotalCents)}\n\n` +
     `${shippingSummary.text}\n\n` +
     `View order: ${adminOrderUrl}`;

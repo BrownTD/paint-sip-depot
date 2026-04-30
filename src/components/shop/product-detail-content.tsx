@@ -482,6 +482,7 @@ export function ProductDetailContent({
   const isPaintProduct = product.categoryId === "cat_paint";
   const hasProductSpecs =
     product.categoryId === "cat_canvases" || Boolean(categoryProductSpecs[product.categoryId]?.length);
+  const backTarget = [...product.breadcrumbs].reverse().find((item) => item.href);
   const currentPriceCents = selectedSize?.priceCents ?? product.priceCents;
   const currentCurrency = selectedSize?.currency ?? product.currency;
   const currentStripePriceId = selectedSize?.stripePriceId ?? product.stripePriceId;
@@ -643,6 +644,15 @@ export function ProductDetailContent({
   return (
     <div className="px-4 py-10 sm:py-14">
       <div className="mx-auto max-w-7xl">
+        {backTarget ? (
+          <Link
+            href={backTarget.href ?? "/shop"}
+            className="mb-5 inline-flex w-fit items-center gap-2 rounded-full text-sm font-semibold text-black/65 transition hover:text-black"
+          >
+            <span className="text-lg leading-none">←</span>
+            Back to {backTarget.label}
+          </Link>
+        ) : null}
         <nav className="flex flex-wrap items-center gap-2 text-xs font-medium tracking-wide text-black/45 sm:text-sm">
           {product.breadcrumbs.map((item, index) => (
             <div key={`${item.label}-${index}`} className="flex items-center gap-2">

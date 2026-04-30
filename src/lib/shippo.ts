@@ -223,13 +223,13 @@ function estimatedDaysFromRate(rate: ShippoRate) {
 
 function buildDeliveryEstimateLabel(estimatedDays: number | null | undefined) {
   if (!estimatedDays) {
-    return `Estimated delivery includes ${PROCESSING_DAYS} business days of processing plus USPS Ground Advantage transit time.`;
+    return "Estimated Delivery: USPS Ground Advantage transit time plus 2 business days processing";
   }
 
   const totalBusinessDays = PROCESSING_DAYS + estimatedDays;
-  const dayLabel = totalBusinessDays === 1 ? "business day" : "business days";
+  const dayLabel = totalBusinessDays === 1 ? "Business Day" : "Business Days";
 
-  return `Estimated delivery in ${totalBusinessDays} ${dayLabel}, including ${PROCESSING_DAYS} business days of processing.`;
+  return `Estimated Delivery: ${totalBusinessDays} ${dayLabel}`;
 }
 
 function getKitBoxTier(quantity: number) {

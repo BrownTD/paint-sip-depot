@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { getCheckoutTotalCents } from "@/lib/checkout-pricing";
 import { stripe } from "@/lib/stripe";
 import { formatAmountForDisplay } from "@/lib/money";
 import { formatDate, formatTime } from "@/lib/utils";
-import { CheckCircle, Palette, Calendar, MapPin, Ticket } from "lucide-react";
+import { Calendar, MapPin, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -34,7 +35,7 @@ async function getBookingDetails(sessionId: string) {
       },
     });
 
-    return booking;
+    return booking ? { booking, session } : null;
   } catch {
     return null;
   }
@@ -49,14 +50,20 @@ export default async function BookingSuccessPage({
     redirect("/");
   }
 
-  const booking = await getBookingDetails(searchParams.session_id);
+  const details = await getBookingDetails(searchParams.session_id);
 
-  if (!booking) {
+  if (!details) {
     redirect("/");
   }
 
+  const { booking, session } = details;
   const event = booking.event;
-  const pricing = getCheckoutTotalCents(event.ticketPriceCents, booking.quantity);
+  const pricing = getCheckoutTotalCents(event.ticketPriceCents, booking.quantity, {
+    includeShipping: false,
+  });
+  const shippingCents = booking.shippingAmountCents;
+  const taxCents = session.total_details?.amount_tax ?? Math.max(0, (session.amount_total ?? booking.amountPaidCents) - pricing.totalCents - shippingCents);
+  const totalPaidCents = session.amount_total ?? booking.amountPaidCents;
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -65,7 +72,7 @@ export default async function BookingSuccessPage({
         <div className="container mx-auto px-4 py-4">
           <Link href="/" className="inline-flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Palette className="w-4 h-4 text-white" />
+              <Image src="/Misc/logo.svg" alt="Paint & Sip Depot" width={24} height={24} priority />
             </div>
             <span className="font-display font-bold">Paint & Sip Depot</span>
           </Link>
@@ -75,8 +82,8 @@ export default async function BookingSuccessPage({
       <main className="container mx-auto px-4 py-12 max-w-2xl">
         {/* Success Message */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-10 h-10 text-green-600" />
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-sm">
+            <Image src="/Misc/logo.svg" alt="Paint & Sip Depot" width={52} height={52} priority />
           </div>
           <h1 className="font-display text-3xl font-bold mb-2">
             Booking Confirmed!
@@ -139,16 +146,18 @@ export default async function BookingSuccessPage({
                 <span className="text-muted-foreground">Processing Fee</span>
                 <span>{formatAmountForDisplay(pricing.processingFeeCents)}</span>
               </div>
-              {pricing.shippingFeeCents > 0 ? (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Shipping to Host</span>
-                  <span>{formatAmountForDisplay(pricing.shippingFeeCents)}</span>
-                </div>
-              ) : null}
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Shipping</span>
+                <span>{formatAmountForDisplay(shippingCents)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Taxes</span>
+                <span>{formatAmountForDisplay(taxCents)}</span>
+              </div>
               <div className="flex items-center justify-between border-t pt-3">
                 <span className="font-medium">Total Paid</span>
                 <span className="text-xl font-bold">
-                  {formatAmountForDisplay(booking.amountPaidCents)}
+                  {formatAmountForDisplay(totalPaidCents)}
                 </span>
               </div>
             </div>

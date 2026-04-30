@@ -4,10 +4,10 @@ import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import { ShopOrderStatus } from "@prisma/client";
 import Stripe from "stripe";
-import { CheckCircle2, Package2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { sendShopOrderConfirmationEmails } from "@/lib/shop-order-emails";
 import { formatCurrencyAmount } from "@/lib/money";
+import { getGroundAdvantageLabel } from "@/lib/shipping-display";
 import { formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -101,7 +101,11 @@ export default async function ShopSuccessPage({
     redirect("/shop");
   }
 
-  const { order } = result;
+  const { order, session } = result;
+  const purchaseCents = order.items.reduce((sum, item) => sum + item.totalPriceCents, 0);
+  const shippingCents = order.shippingAmountCents;
+  const totalPaidCents = session.amount_total ?? order.amountTotalCents;
+  const taxCents = session.total_details?.amount_tax ?? Math.max(0, totalPaidCents - purchaseCents - shippingCents);
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -109,7 +113,7 @@ export default async function ShopSuccessPage({
         <div className="mx-auto flex max-w-5xl items-center px-4 py-4">
           <Link href="/shop" className="inline-flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white">
-              <Package2 className="h-4 w-4" />
+              <Image src="/Misc/logo.svg" alt="Paint & Sip Depot" width={26} height={26} priority />
             </div>
             <span className="font-display font-bold">Paint &amp; Sip Depot</span>
           </Link>
@@ -118,8 +122,8 @@ export default async function ShopSuccessPage({
 
       <main className="mx-auto max-w-3xl px-4 py-12">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
-            <CheckCircle2 className="h-10 w-10 text-green-600" />
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-sm">
+            <Image src="/Misc/logo.svg" alt="Paint & Sip Depot" width={52} height={52} priority />
           </div>
           <h1 className="font-display text-3xl font-bold">Order Confirmed</h1>
           <p className="mt-2 text-muted-foreground">
@@ -185,9 +189,9 @@ export default async function ShopSuccessPage({
 
             <div>
               <h3 className="font-medium">Shipping</h3>
-              <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                <p>{order.shippingService || "USPS Ground Advantage"}</p>
-                {order.shippingEstimateLabel ? <p>{order.shippingEstimateLabel}</p> : null}
+              <div className="mt-2 space-y-1 text-base text-muted-foreground">
+                <p className="font-semibold text-foreground">{getGroundAdvantageLabel(order.shippingService)}:</p>
+                {order.shippingEstimateLabel ? <p className="font-medium">{order.shippingEstimateLabel}</p> : null}
               </div>
             </div>
 
@@ -195,13 +199,21 @@ export default async function ShopSuccessPage({
 
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span>{formatCurrencyAmount(order.amountSubtotalCents, order.currency)}</span>
+                <span className="text-muted-foreground">Purchase</span>
+                <span>{formatCurrencyAmount(purchaseCents, order.currency)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Shipping</span>
+                <span>{formatCurrencyAmount(shippingCents, order.currency)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Taxes</span>
+                <span>{formatCurrencyAmount(taxCents, order.currency)}</span>
               </div>
               <div className="flex items-center justify-between border-t pt-3">
                 <span className="font-medium">Total Paid</span>
                 <span className="text-xl font-bold">
-                  {formatCurrencyAmount(order.amountTotalCents, order.currency)}
+                  {formatCurrencyAmount(totalPaidCents, order.currency)}
                 </span>
               </div>
             </div>

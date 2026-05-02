@@ -24,6 +24,8 @@ type CategoryPageParams = {
   slugs: string[];
 };
 
+export const dynamic = "force-dynamic";
+
 function mapProduct(product: Awaited<ReturnType<typeof getStorefrontCategoryProducts>>["products"][number]) {
   const reviewStats = getProductReviewStats(product.reviews);
 

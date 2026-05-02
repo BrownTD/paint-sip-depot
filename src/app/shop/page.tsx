@@ -15,6 +15,8 @@ export const metadata: Metadata = {
     "Browse canvases, paint party kits, and creative supplies curated for unforgettable Paint & Sip Depot experiences.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function ShopPage() {
   const { newArrivals, topSelling, themes, categories } = await getStorefrontProducts();
 

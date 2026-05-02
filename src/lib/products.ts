@@ -179,6 +179,7 @@ type StorefrontTheme = {
   id: string;
   name: string;
   slug: string;
+  categorySlug: string;
   imageUrls: string[];
   productCount: number;
 };
@@ -738,6 +739,7 @@ export async function getStorefrontProducts() {
       id: product.subcategory.id,
       name: product.subcategory.name,
       slug: product.subcategory.slug,
+      categorySlug: product.category.slug,
       imageUrls: product.imageUrls.slice(0, 2),
       productCount: 1,
     });

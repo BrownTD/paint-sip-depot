@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   description: "Review your Paint & Sip Depot cart and continue to checkout.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function ShopCartPage() {
   const categories = await getStorefrontNavCategories();
 

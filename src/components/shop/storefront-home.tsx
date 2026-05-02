@@ -30,6 +30,7 @@ type StorefrontTheme = {
   id: string;
   name: string;
   slug: string;
+  categorySlug: string;
   imageUrls: string[];
   productCount: number;
 };
@@ -205,7 +206,7 @@ export function StorefrontHome({
                 {themes.map((theme) => (
                   <Link
                     key={theme.id}
-                    href="#new-arrivals"
+                    href={`/shop/category/${theme.categorySlug}/${theme.slug}`}
                     className="group relative overflow-hidden rounded-[1.6rem] bg-white p-4 sm:p-5"
                   >
                     <div className="relative aspect-[1.55/1] overflow-hidden rounded-[1.3rem]">

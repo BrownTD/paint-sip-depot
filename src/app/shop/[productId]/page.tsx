@@ -14,6 +14,8 @@ import {
 } from "@/lib/products";
 import { getCategoryBadgeLabel, getCategoryDisplayName } from "@/lib/product-catalog";
 
+export const dynamic = "force-dynamic";
+
 function getShortDescription(description: string) {
   const firstParagraph = description
     .split(/\n\s*\n/)

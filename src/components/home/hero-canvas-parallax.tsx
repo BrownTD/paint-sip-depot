@@ -110,13 +110,13 @@ export function HeroCanvasParallax() {
                 } as CSSProperties
               }
             >
-              <div className="relative aspect-square overflow-hidden rounded-[22px] bg-transparent">
+              <div className="relative aspect-[2/3] bg-transparent">
                 <Image
                   src={canvas.src}
                   alt={canvas.alt}
                   fill
                   sizes="(max-width: 640px) 28vw, (max-width: 768px) 22vw, (max-width: 1024px) 18vw, 16vw"
-                  className="object-cover"
+                  className="object-contain"
                   priority={index < 2}
                 />
               </div>
@@ -144,13 +144,13 @@ export function HeroCanvasParallax() {
               } as CSSProperties
             }
           >
-            <div className="relative aspect-square overflow-hidden rounded-[22px] bg-transparent">
+            <div className="relative aspect-[2/3] bg-transparent">
               <Image
                 src={canvas.src}
                 alt={canvas.alt}
                 fill
                 sizes="(max-width: 640px) 28vw, (max-width: 768px) 22vw, (max-width: 1024px) 18vw, 16vw"
-                className="object-cover"
+                className="object-contain"
                 priority={index < 2}
               />
             </div>
@@ -177,13 +177,13 @@ export function HeroCanvasParallax() {
               } as CSSProperties
             }
           >
-            <div className="relative aspect-square overflow-hidden rounded-[22px] bg-transparent">
+            <div className="relative aspect-[2/3] bg-transparent">
               <Image
                 src={canvas.src}
                 alt={canvas.alt}
                 fill
                 sizes="(max-width: 640px) 28vw, (max-width: 768px) 22vw, (max-width: 1024px) 18vw, 16vw"
-                className="object-cover"
+                className="object-contain"
                 priority
               />
             </div>

@@ -35,6 +35,26 @@ const hostSteps = [
   },
 ];
 
+const hostStepBackgrounds = ["#efe7ff", "#ffe8d6", "#e4f6df"];
+
+function SectionWave({ fill }: { fill: string }) {
+  return (
+    <div className="absolute inset-x-0 bottom-[-1px] z-0 overflow-hidden leading-none">
+      <svg
+        viewBox="0 0 1440 220"
+        preserveAspectRatio="none"
+        className="block h-24 w-full md:h-32 lg:h-40"
+        aria-hidden="true"
+      >
+        <path
+          fill={fill}
+          d="M0,118C72,92,144,67,237,71C330,75,443,109,560,131C677,153,798,162,907,145C1015,128,1110,84,1207,77C1304,70,1404,100,1440,115L1440,220L0,220Z"
+        />
+      </svg>
+    </div>
+  );
+}
+
 export default async function HostPage() {
   const upcomingEvents = await getDiscoverableEvents({ limit: 6 });
 
@@ -56,12 +76,15 @@ export default async function HostPage() {
         <FloatingCanvasSection />
       </div>
 
-      {hostSteps.map((step) => (
+      {hostSteps.map((step, index) => (
         <section
           key={step.number}
-          className="flex min-h-screen snap-start snap-always items-center bg-muted/20 px-4 py-20"
+          className="relative flex min-h-screen snap-start snap-always items-center overflow-visible px-4 py-20"
+          style={{ backgroundColor: hostStepBackgrounds[index] }}
         >
-          <div className="mx-auto grid w-full max-w-[1200px] items-center gap-8 md:grid-cols-[0.8fr_1.2fr] md:gap-12">
+          <SectionWave fill={hostStepBackgrounds[index + 1] ?? "hsl(var(--primary))"} />
+
+          <div className="relative z-10 mx-auto grid w-full max-w-[1200px] items-center gap-8 md:grid-cols-[0.8fr_1.2fr] md:gap-12">
             <div className="text-center md:text-left">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground shadow-sm md:mx-0">
                 {step.number}
@@ -107,9 +130,9 @@ export default async function HostPage() {
         </div>
       ) : null}
 
-      <GoogleReviewsSection className="flex min-h-screen snap-start snap-always items-center py-12 sm:py-16 lg:min-h-[76vh] lg:pb-0" />
+      <GoogleReviewsSection className="-mt-5 flex min-h-[76vh] snap-start snap-always items-center pb-0 pt-12 sm:mt-0 sm:pt-16" />
 
-      <div data-host-footer className="snap-start snap-normal lg:-mt-16">
+      <div data-host-footer className="-mt-16 snap-start snap-normal">
         <ShopFooter />
       </div>
     </div>

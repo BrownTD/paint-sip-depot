@@ -9,16 +9,11 @@ import {
   sanitizePlainText,
 } from "@/lib/product-catalog";
 
-const canvasImageUrlSchema = z.union([
-  z.string().url(),
-  z.string().regex(/^\/canvas-options\/.+/, "Canvas image must come from canvas-options"),
-  z.literal(""),
-]);
-
 const productImageUrlSchema = z.union([
   z.string().url("Product images must be valid URLs"),
   z.string().regex(/^\/(?!\/).+/, "Product images must be valid URLs"),
 ]);
+const canvasImageUrlSchema = z.union([productImageUrlSchema, z.literal("")]);
 const reviewImageUrlSchema = z.string().url("Review image must be a valid URL");
 
 export const signUpSchema = z.object({
@@ -154,6 +149,19 @@ export const productSchema = z
       .refine((value) => value.length === 3, "Use a 3-letter currency code"),
     categoryId: z.string().trim().min(1, "Category is required"),
     subcategoryId: z.string().trim().min(1).optional().nullable(),
+    couplesGroupId: z
+      .string()
+      .transform((value) => sanitizePlainText(value))
+      .refine((value) => value.length <= 80, "Couples group ID must be 80 characters or less")
+      .optional()
+      .nullable(),
+    couplesSlot: z.coerce.number().int().min(1).max(2).optional().nullable(),
+    couplesBundleName: z
+      .string()
+      .transform((value) => sanitizePlainText(value))
+      .refine((value) => value.length <= 120, "Bundle name must be 120 characters or less")
+      .optional()
+      .nullable(),
     imageUrls: z.array(productImageUrlSchema).min(1, "At least one product image is required").max(8),
     status: z.enum(["ACTIVE", "ARCHIVED"]).default("ACTIVE"),
     basePrice: z.coerce.number().gt(0, "Price must be greater than 0"),

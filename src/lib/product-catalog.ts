@@ -11,8 +11,12 @@ export const PRODUCT_VARIANT_SIZE = {
 export const DEFAULT_PRODUCT_CURRENCY = "usd";
 export const CANVAS_DEFAULT_DESCRIPTION =
   "Everything you need for a complete paint & sip experience, designed for everyone from beginners to pros. Whether you're hosting a group or painting solo, this all-in-one kit comes ready with everything you need-no prep required.\n\nEach kit includes:\n\n* Pre-drawn canvas (11x14 or 12x16)\n* Acrylic paint set\n* 3 paint brushes\n* Paint palette\n* Disposable apron\n* Tabletop easel\n* 9oz water cup\n\nJust open, set up, and start painting.";
+export const COUPLES_CANVAS_DEFAULT_DESCRIPTION =
+  "Everything you need for a complete paint & sip experience, designed for couples to enjoy together. Perfect for date, this all-in-one kit comes ready with everything you both need—no prep required.\n\nThis bundle includes:\n\n* 2 pre-drawn canvases (11x14 or 12x16)\n* Acrylic paint sets (for two)\n* 6 paint brushes (3 per person)\n* 2 paint palettes\n* 2 disposable aprons\n* 2 tabletop easels\n* 2 (9oz) water cups\n\nJust open, set up, and start painting—together.";
 export const CANVAS_DEFAULT_MEDIUM_PRICE = 35;
 export const CANVAS_DEFAULT_LARGE_PRICE = 45;
+export const COUPLES_CANVAS_DEFAULT_MEDIUM_PRICE = CANVAS_DEFAULT_MEDIUM_PRICE;
+export const COUPLES_CANVAS_DEFAULT_LARGE_PRICE = CANVAS_DEFAULT_LARGE_PRICE;
 export const PAINT_KITS_CATEGORY_NAME = "Paint Kits";
 export const PAINT_KIT_BADGE_LABEL = "Paint Kit";
 
@@ -167,6 +171,14 @@ export function sanitizeMultilineText(value: string) {
 
 export function normalizeProductName(value: string) {
   return sanitizePlainText(value).toLowerCase();
+}
+
+export function normalizeCouplesGroupId(value: string) {
+  return sanitizePlainText(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
 }
 
 export function isCouplesSubcategory(slug: string | null | undefined) {

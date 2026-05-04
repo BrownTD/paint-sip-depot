@@ -170,6 +170,9 @@ model Product {
   sku                 String               @unique
   skuSequence         Int
   discountPercent     Int?
+  couplesGroupId      String?
+  couplesSlot         Int?
+  couplesBundleName   String?
   colorOptions        ProductColorOption[]
   reviews             ProductReview[]
   variants            ProductVariant[]
@@ -178,8 +181,10 @@ model Product {
   orderItems          ShopOrderItem[]
 
   @@unique([categoryId, skuSequence])
+  @@unique([couplesGroupId, couplesSlot])
   @@index([categoryId])
   @@index([subcategoryId])
+  @@index([couplesGroupId])
   @@index([status, createdAt])
   @@index([createdAt])
   @@map("products")

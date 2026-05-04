@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getPaidTicketQuantity } from "@/lib/booking";
-import { getCanvasGallerySections } from "@/lib/canvas-gallery";
+import { getPaintKitCanvasGallerySections } from "@/lib/canvas-gallery";
 import { prisma } from "@/lib/prisma";
 import { formatDateInputValue, formatTimeInputValue } from "@/lib/utils";
 import { AlertTriangle, ArrowLeft } from "lucide-react";
@@ -44,7 +44,7 @@ export default async function EventDetailPage({
   const isRelaunchMode = Boolean(sp?.relaunch) || event.status === "CANCELED" || isPastEvent;
 
   const ticketsSold = await getPaidTicketQuantity(prisma, event.id);
-  const canvasSections = await getCanvasGallerySections();
+  const canvasSections = await getPaintKitCanvasGallerySections();
 
   return (
     <div className="space-y-6">

@@ -46,6 +46,31 @@ const FIXED_REFUND_POLICY =
 const DEFAULT_EVENT_DESCRIPTION =
   "Join us for a fun creative Paint experience! Each guest will receive a pre-drawn canvas design, making it easy for anyone to paint — no experience required. Simply follow the outlines, add your own colors, and enjoy the creative process.\n\nAll painting supplies are included. Bring friends, enjoy the atmosphere, and leave with a finished canvas you'll be proud of!";
 
+function CanvasPaintColors({ colors }: { colors?: CanvasGalleryItem["colorOptions"] }) {
+  if (!colors || colors.length === 0) {
+    return null;
+  }
+
+  const visibleColors = colors.slice(0, 5);
+  const remainingCount = colors.length - visibleColors.length;
+
+  return (
+    <div className="mt-2 flex items-center gap-1.5">
+      {visibleColors.map((color) => (
+        <span
+          key={color.id}
+          className="h-4 w-4 rounded-full border border-black/10"
+          style={{ backgroundColor: color.hex }}
+          title={color.label}
+        />
+      ))}
+      {remainingCount > 0 ? (
+        <span className="text-[11px] font-semibold text-muted-foreground">+{remainingCount}</span>
+      ) : null}
+    </div>
+  );
+}
+
 type Mode = "create" | "edit";
 
 export type EventEditFormInitialData = {
@@ -129,6 +154,7 @@ export function EventEditForm({
   const [pendingCanvasId, setPendingCanvasId] = useState<string>(initialSelectedCanvasId);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState<string>(initialData?.canvasImageUrl || "");
+  const selectedCanvasItem = selectedCanvas ? canvasLookup.get(selectedCanvas) : null;
 
   const [formData, setFormData] = useState<EventEditFormInitialData>({
     title: initialData?.title ?? "",
@@ -472,7 +498,7 @@ router.refresh();
           {/* Canvas Selection */}
           <Card>
             <CardHeader>
-              <CardTitle>Canvas</CardTitle>
+              <CardTitle>Choose a Canvas for your Event.</CardTitle>
               <CardDescription>
                 Browse the canvas gallery or upload your own image
               </CardDescription>
@@ -482,7 +508,7 @@ router.refresh();
                 <div className="space-y-3">
                   <Label>Selected Canvas</Label>
                   <div className="max-w-[180px] rounded-2xl border p-3 sm:max-w-[220px]">
-                    <div className="flex aspect-[4/5] items-center justify-center rounded-xl bg-muted/40 p-2 sm:p-3">
+                    <div className="flex aspect-[4/5] items-center justify-center rounded-xl p-2 sm:p-3">
                       <Image
                         src={formData.canvasImageUrl}
                         alt={formData.canvasName || "Selected canvas"}
@@ -493,6 +519,7 @@ router.refresh();
                       />
                     </div>
                     <p className="mt-3 text-sm font-medium">{formData.canvasName || "Selected canvas"}</p>
+                    <CanvasPaintColors colors={selectedCanvasItem?.colorOptions} />
                   </div>
                   <Button type="button" variant="outline" onClick={handleRemoveCanvasSelection}>
                     Remove
@@ -502,12 +529,6 @@ router.refresh();
                 <>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <Label>Preview Canvases</Label>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          Preview a few options, then open the full gallery to confirm your choice.
-                        </p>
-                      </div>
                       <Button type="button" variant="outline" onClick={() => openCanvasGallery()}>
                         <Images className="mr-2 h-4 w-4" />
                         View More
@@ -530,7 +551,7 @@ router.refresh();
                                   : "border-border hover:border-primary/40"
                               }`}
                             >
-                              <div className="flex aspect-[4/5] items-center justify-center rounded-xl bg-muted/40 p-2">
+                              <div className="flex aspect-[4/5] items-center justify-center rounded-xl p-2">
                                 <Image
                                   src={canvas.imageUrl}
                                   alt={canvas.name}
@@ -541,6 +562,7 @@ router.refresh();
                                 />
                               </div>
                               <p className="mt-2 line-clamp-2 text-xs font-medium sm:mt-3 sm:text-sm">{canvas.name}</p>
+                              <CanvasPaintColors colors={canvas.colorOptions} />
                             </button>
                           );
                         })}
@@ -554,7 +576,7 @@ router.refresh();
                     <Label>Or Upload Custom Image</Label>
                     <div className="mt-2">
                       {imagePreview && !selectedCanvas ? (
-                        <div className="relative flex w-32 aspect-square items-center justify-center rounded-lg border bg-muted/40 p-2 sm:w-40 sm:p-3">
+                        <div className="relative flex w-32 aspect-square items-center justify-center rounded-lg border p-2 sm:w-40 sm:p-3">
                           <Image
                             src={imagePreview}
                             alt="Preview"

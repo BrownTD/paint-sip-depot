@@ -35,6 +35,29 @@ export type StorefrontProductCardData = {
   subcategoryName: string | null;
   imageUrls: string[];
   isCouples: boolean;
+  couplesBundleName: string | null;
+  couplesSlot: number | null;
+  couplesPairProduct: {
+    id: string;
+    name: string;
+    imageUrls: string[];
+    priceCents: number;
+    currency: string;
+    colorOptions: Array<{
+      id: string;
+      label: string;
+      hex: string;
+    }>;
+    variants: Array<{
+      id: string;
+      size: "MEDIUM" | "LARGE";
+      label: string;
+      priceCents: number;
+      currency: string;
+      stripePriceId: string | null;
+      isDefault: boolean;
+    }>;
+  } | null;
   priceDisplay: string;
   priceCents: number;
   compareAtCents: number | null;
@@ -172,16 +195,32 @@ export function ShopProductCard({
     () => product.variants.find((variant) => variant.id === selectedVariantId) ?? defaultVariant,
     [defaultVariant, product.variants, selectedVariantId],
   );
+  const pairedVariant = useMemo(() => {
+    if (!product.couplesPairProduct || !selectedVariant) {
+      return null;
+    }
+
+    return (
+      product.couplesPairProduct.variants.find((variant) => variant.size === selectedVariant.size) ??
+      product.couplesPairProduct.variants.find((variant) => variant.isDefault) ??
+      product.couplesPairProduct.variants[0] ??
+      null
+    );
+  }, [product.couplesPairProduct, selectedVariant]);
   const quantityNumber = Math.max(1, Number.parseInt(quantity || "1", 10) || 1);
   const hasVariants = product.variants.length > 0;
   const isPaintProduct = product.categoryId === "cat_paint";
   const hasSelectableColorOptions = isPaintProduct && product.colorOptions.length > 0;
   const unitPriceCents = selectedVariant?.priceCents ?? product.priceCents;
+  const pairedUnitPriceCents = pairedVariant?.priceCents ?? product.couplesPairProduct?.priceCents ?? 0;
   const checkoutCurrency = selectedVariant?.currency ?? product.currency;
-  const lineSubtotalCents = unitPriceCents * quantityNumber;
+  const lineSubtotalCents = (unitPriceCents + (product.couplesPairProduct ? pairedUnitPriceCents : 0)) * quantityNumber;
   const shippingCents = shippingEstimate?.amountCents ?? 0;
   const totalBeforeTaxCents = lineSubtotalCents + shippingCents;
   const selectedImageUrl = product.imageUrls[selectedImageIndex] ?? product.imageUrls[0] ?? null;
+  const couplesPreviewImageUrls = product.couplesPairProduct
+    ? [product.imageUrls[0], product.couplesPairProduct.imageUrls[0]].filter((imageUrl): imageUrl is string => Boolean(imageUrl))
+    : product.imageUrls.slice(0, 2);
   const hasCompleteShippingAddress =
     Boolean(shippingAddress.trim()) &&
     Boolean(shippingCity.trim()) &&
@@ -222,6 +261,16 @@ export function ShopProductCard({
               colorOptionId: hasSelectableColorOptions ? selectedColorOptionId || null : null,
               quantity: quantityNumber,
             },
+            ...(product.couplesPairProduct
+              ? [
+                  {
+                    productId: product.couplesPairProduct.id,
+                    variantId: pairedVariant?.id ?? null,
+                    colorOptionId: null,
+                    quantity: quantityNumber,
+                  },
+                ]
+              : []),
           ],
           shippingName: "Paint & Sip Depot Customer",
           shippingAddress,
@@ -254,7 +303,9 @@ export function ShopProductCard({
     hasSelectableColorOptions,
     isDialogOpen,
     product.id,
+    product.couplesPairProduct,
     quantityNumber,
+    pairedVariant?.id,
     selectedColorOptionId,
     selectedVariant?.id,
     shippingAddress,
@@ -285,6 +336,16 @@ export function ShopProductCard({
       return;
     }
 
+    if (product.couplesPairProduct && !pairedVariant?.stripePriceId) {
+      toast({
+        title: "Checkout unavailable",
+        description:
+          "The paired canvas size is not available for checkout yet. Please contact support.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (hasSelectableColorOptions && !selectedColorOptionId) {
       toast({
         title: "Color required",
@@ -303,10 +364,24 @@ export function ShopProductCard({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          productId: product.id,
-          variantId: selectedVariant?.id ?? null,
-          colorOptionId: hasSelectableColorOptions ? selectedColorOptionId || null : null,
-          quantity: quantityNumber,
+          items: [
+            {
+              productId: product.id,
+              variantId: selectedVariant?.id ?? null,
+              colorOptionId: hasSelectableColorOptions ? selectedColorOptionId || null : null,
+              quantity: quantityNumber,
+            },
+            ...(product.couplesPairProduct
+              ? [
+                  {
+                    productId: product.couplesPairProduct.id,
+                    variantId: pairedVariant?.id ?? null,
+                    colorOptionId: null,
+                    quantity: quantityNumber,
+                  },
+                ]
+              : []),
+          ],
           customerName,
           customerEmail,
           shippingName: customerName,
@@ -339,16 +414,19 @@ export function ShopProductCard({
       <article className="group">
         <Link href={`/shop/${product.id}`} className="block">
           {product.imageUrls.length > 0 ? (
-            product.isCouples && product.imageUrls.length >= 2 ? (
-              <div className="grid aspect-[3/4] grid-cols-2 gap-2">
-                {product.imageUrls.slice(0, 2).map((imageUrl, index) => (
+            product.isCouples && couplesPreviewImageUrls.length >= 2 ? (
+              <div className="grid aspect-[3/4] grid-cols-2 overflow-hidden">
+                {couplesPreviewImageUrls.map((imageUrl, index) => (
                   <Image
                     key={`${product.id}-${index}`}
                     src={imageUrl}
                     alt={product.name}
                     width={600}
                     height={800}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+                    className={cn(
+                      "h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]",
+                      index === 0 ? "object-left" : "object-right",
+                    )}
                     loading="lazy"
                     unoptimized
                   />
@@ -375,7 +453,7 @@ export function ShopProductCard({
         <div className="px-1 pt-4">
           <Link href={`/shop/${product.id}`} className="block">
             <h3 className="text-base font-semibold text-foreground sm:text-lg">
-              {product.name}
+              {product.couplesPairProduct && product.couplesBundleName ? product.couplesBundleName : product.name}
             </h3>
           </Link>
 
@@ -430,12 +508,28 @@ export function ShopProductCard({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-h-[calc(100vh-1.5rem)] max-w-[calc(100vw-1.5rem)] overflow-y-auto p-4 sm:max-h-[85vh] sm:max-w-2xl sm:p-6">
           <DialogHeader>
-            <DialogTitle>{product.name}</DialogTitle>
+            <DialogTitle>
+              {product.couplesPairProduct && product.couplesBundleName ? product.couplesBundleName : product.name}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-4 md:grid-cols-[260px_minmax(0,1fr)] md:gap-6">
             <div className="space-y-3">
-              {selectedImageUrl ? (
+              {product.isCouples && couplesPreviewImageUrls.length >= 2 ? (
+                <div className="grid aspect-[3/4] grid-cols-2 overflow-hidden">
+                  {couplesPreviewImageUrls.map((imageUrl, index) => (
+                    <Image
+                      key={`${product.id}-dialog-couples-${index}`}
+                      src={imageUrl}
+                      alt={product.couplesBundleName ?? product.name}
+                      width={450}
+                      height={600}
+                      className={cn("h-full w-full object-cover", index === 0 ? "object-left" : "object-right")}
+                      unoptimized
+                    />
+                  ))}
+                </div>
+              ) : selectedImageUrl ? (
                 <>
                   <div className="flex aspect-[3/4] items-center justify-center overflow-hidden">
                     <Image
@@ -686,6 +780,7 @@ export function ShopProductCard({
                 disabled={
                   isSubmitting ||
                   (hasVariants && !selectedVariant?.stripePriceId) ||
+                  Boolean(product.couplesPairProduct && !pairedVariant?.stripePriceId) ||
                   !customerName.trim() ||
                   !customerEmail.trim() ||
                   !shippingAddress.trim() ||

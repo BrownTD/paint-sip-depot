@@ -18,11 +18,15 @@ import {
   CANVAS_DEFAULT_DESCRIPTION,
   CANVAS_DEFAULT_LARGE_PRICE,
   CANVAS_DEFAULT_MEDIUM_PRICE,
+  COUPLES_CANVAS_DEFAULT_DESCRIPTION,
+  COUPLES_CANVAS_DEFAULT_LARGE_PRICE,
+  COUPLES_CANVAS_DEFAULT_MEDIUM_PRICE,
   COUPLES_SUBCATEGORY_SLUG,
   PAINT_COLOR_CATEGORIES,
   PAINT_CATEGORY_ID,
   getCategoryBadgeLabel,
   getCategoryDisplayName,
+  normalizeCouplesGroupId,
   PRODUCT_VARIANT_SIZE,
 } from "@/lib/product-catalog";
 import { cn } from "@/lib/utils";
@@ -74,6 +78,9 @@ export type AdminProductFormInitialProduct = {
   description: string;
   categoryId: string;
   subcategoryId: string | null;
+  couplesGroupId: string | null;
+  couplesSlot: number | null;
+  couplesBundleName: string | null;
   imageUrls: string[];
   status: "ACTIVE" | "ARCHIVED";
   priceCents: number;
@@ -124,6 +131,9 @@ export function ProductForm({
     description: initialProduct?.description ?? "",
     categoryId: initialProduct?.categoryId ?? "",
     subcategoryId: initialProduct?.subcategoryId ?? "",
+    couplesGroupId: initialProduct?.couplesGroupId ?? "",
+    couplesSlot: initialProduct?.couplesSlot ? String(initialProduct.couplesSlot) : "",
+    couplesBundleName: initialProduct?.couplesBundleName ?? "",
     imageUrls: initialProduct?.imageUrls ?? [],
     currency:
       mediumVariant?.currency?.toUpperCase() ??
@@ -145,7 +155,7 @@ export function ProductForm({
   const [manualImageUrl, setManualImageUrl] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
-  const [activeColorCategoryBySlot, setActiveColorCategoryBySlot] = useState<Record<number, string>>({});
+  const [activeColorCategoryBySlot, setActiveColorCategoryBySlot] = useState<Record<string, string>>({});
 
   const selectedCategory = useMemo(
     () => categories.find((category) => category.id === form.categoryId) ?? null,
@@ -162,8 +172,7 @@ export function ProductForm({
   );
   const isCanvasProduct = form.categoryId === CANVASES_CATEGORY_ID;
   const isPaintProduct = form.categoryId === PAINT_CATEGORY_ID;
-  const isCouplesLayout =
-    selectedSubcategory?.slug === COUPLES_SUBCATEGORY_SLUG && form.imageUrls.length >= 2;
+  const isCouplesProduct = selectedSubcategory?.slug === COUPLES_SUBCATEGORY_SLUG;
   const hasDiscount = form.discountPercent.trim().length > 0;
   const hasColorOptions = form.colorOptions.length > 0;
 
@@ -183,6 +192,14 @@ export function ProductForm({
     setForm((current) => ({
       ...current,
       [field]: value,
+    }));
+  }
+
+  function updateCouplesBundleName(value: string) {
+    setForm((current) => ({
+      ...current,
+      couplesBundleName: value,
+      couplesGroupId: normalizeCouplesGroupId(value),
     }));
   }
 
@@ -253,6 +270,9 @@ export function ProductForm({
         ...current,
         categoryId,
         subcategoryId: nextSubcategoryIds.has(current.subcategoryId) ? current.subcategoryId : "",
+        couplesGroupId: nextSubcategoryIds.has(current.subcategoryId) ? current.couplesGroupId : "",
+        couplesSlot: nextSubcategoryIds.has(current.subcategoryId) ? current.couplesSlot : "",
+        couplesBundleName: nextSubcategoryIds.has(current.subcategoryId) ? current.couplesBundleName : "",
         description:
           mode === "create" && nextIsCanvas && !current.description.trim()
             ? CANVAS_DEFAULT_DESCRIPTION
@@ -274,6 +294,28 @@ export function ProductForm({
     });
   }
 
+  function handleSubcategoryChange(subcategoryId: string) {
+    const nextSubcategory = availableSubcategories.find((subcategory) => subcategory.id === subcategoryId) ?? null;
+    const nextIsCouples = nextSubcategory?.slug === COUPLES_SUBCATEGORY_SLUG;
+
+    setForm((current) => ({
+      ...current,
+      subcategoryId,
+      description:
+        nextIsCouples && (mode === "create" || current.description === CANVAS_DEFAULT_DESCRIPTION)
+          ? COUPLES_CANVAS_DEFAULT_DESCRIPTION
+          : current.description,
+      mediumPrice:
+        nextIsCouples && (mode === "create" || current.mediumPrice === String(CANVAS_DEFAULT_MEDIUM_PRICE))
+          ? String(COUPLES_CANVAS_DEFAULT_MEDIUM_PRICE)
+          : current.mediumPrice,
+      largePrice:
+        nextIsCouples && (mode === "create" || current.largePrice === String(CANVAS_DEFAULT_LARGE_PRICE))
+          ? String(COUPLES_CANVAS_DEFAULT_LARGE_PRICE)
+          : current.largePrice,
+    }));
+  }
+
   useEffect(() => {
     if (mode !== "create" || !isCanvasProduct) {
       return;
@@ -281,11 +323,19 @@ export function ProductForm({
 
     setForm((current) => ({
       ...current,
-      description: current.description.trim() ? current.description : CANVAS_DEFAULT_DESCRIPTION,
-      mediumPrice: current.mediumPrice.trim() ? current.mediumPrice : String(CANVAS_DEFAULT_MEDIUM_PRICE),
-      largePrice: current.largePrice.trim() ? current.largePrice : String(CANVAS_DEFAULT_LARGE_PRICE),
+      description: current.description.trim()
+        ? current.description
+        : isCouplesProduct
+          ? COUPLES_CANVAS_DEFAULT_DESCRIPTION
+          : CANVAS_DEFAULT_DESCRIPTION,
+      mediumPrice: current.mediumPrice.trim()
+        ? current.mediumPrice
+        : String(isCouplesProduct ? COUPLES_CANVAS_DEFAULT_MEDIUM_PRICE : CANVAS_DEFAULT_MEDIUM_PRICE),
+      largePrice: current.largePrice.trim()
+        ? current.largePrice
+        : String(isCouplesProduct ? COUPLES_CANVAS_DEFAULT_LARGE_PRICE : CANVAS_DEFAULT_LARGE_PRICE),
     }));
-  }, [isCanvasProduct, mode]);
+  }, [isCanvasProduct, isCouplesProduct, mode]);
 
   function addImageUrl(url: string) {
     if (form.imageUrls.includes(url)) {
@@ -428,6 +478,17 @@ export function ProductForm({
       return;
     }
 
+    const couplesGroupId = normalizeCouplesGroupId(form.couplesBundleName);
+
+    if (isCouplesProduct && (!form.couplesBundleName.trim() || !couplesGroupId || !form.couplesSlot)) {
+      toast({
+        title: "Couples pairing required",
+        description: "Add a bundle name and canvas slot for this couples kit.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const basePrice = Number.parseFloat(form.basePrice);
     const mediumPrice = Number.parseFloat(form.mediumPrice);
     const largePrice = Number.parseFloat(form.largePrice);
@@ -497,19 +558,22 @@ export function ProductForm({
             description: form.description,
             currency: form.currency,
             categoryId: form.categoryId,
-              subcategoryId: form.subcategoryId || null,
-              imageUrls: form.imageUrls,
-              status: form.status,
-              discountPercent,
-              colorOptions: isPaintProduct || isCanvasProduct
-                ? form.colorOptions.map((colorOption) => ({
-                    label: colorOption.label,
-                    hex: colorOption.hex,
-                  }))
-                : [],
-              basePrice: isCanvasProduct ? mediumPrice : basePrice,
-              variants: isCanvasProduct
-                ? [
+            subcategoryId: form.subcategoryId || null,
+            couplesGroupId: isCouplesProduct ? couplesGroupId : null,
+            couplesSlot: isCouplesProduct ? Number.parseInt(form.couplesSlot, 10) : null,
+            couplesBundleName: isCouplesProduct ? form.couplesBundleName : null,
+            imageUrls: form.imageUrls,
+            status: form.status,
+            discountPercent,
+            colorOptions: isPaintProduct || isCanvasProduct
+              ? form.colorOptions.map((colorOption) => ({
+                  label: colorOption.label,
+                  hex: colorOption.hex,
+                }))
+              : [],
+            basePrice: isCanvasProduct ? mediumPrice : basePrice,
+            variants: isCanvasProduct
+              ? [
                   {
                     size: "MEDIUM",
                     price: mediumPrice,
@@ -645,7 +709,7 @@ export function ProductForm({
                   <Label>Sub-category</Label>
                   <Select
                     value={form.subcategoryId || undefined}
-                    onValueChange={(value) => updateField("subcategoryId", value)}
+                    onValueChange={handleSubcategoryChange}
                     disabled={isSaving || availableSubcategories.length === 0}
                   >
                     <SelectTrigger>
@@ -667,6 +731,60 @@ export function ProductForm({
                   </Select>
                 </div>
               </div>
+
+              {isCouplesProduct ? (
+                <div className="space-y-4 rounded-lg border bg-muted/15 p-4">
+                  <div>
+                    <Label className="text-base">Couples Bundle Pairing</Label>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Store this canvas as its own kit, then pair it with the matching kit by using the same group ID.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_180px]">
+                    <div className="space-y-2">
+                      <Label htmlFor="couplesBundleName">Bundle Name</Label>
+                      <Input
+                        id="couplesBundleName"
+                        value={form.couplesBundleName}
+                        onChange={(event) => updateCouplesBundleName(event.target.value)}
+                        placeholder="Date Night Sunset Set"
+                        maxLength={120}
+                        disabled={isSaving}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="couplesGroupId">Generated Group ID</Label>
+                      <Input
+                        id="couplesGroupId"
+                        value={normalizeCouplesGroupId(form.couplesBundleName) || form.couplesGroupId}
+                        readOnly
+                        placeholder="date-night-sunset"
+                        maxLength={80}
+                        disabled={isSaving}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Canvas Slot</Label>
+                      <Select
+                        value={form.couplesSlot || undefined}
+                        onValueChange={(value) => updateField("couplesSlot", value)}
+                        disabled={isSaving}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose slot" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">Canvas 1</SelectItem>
+                          <SelectItem value="2">Canvas 2</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
 
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2 md:col-span-1">
@@ -1041,8 +1159,8 @@ export function ProductForm({
             <CardHeader>
               <CardTitle>Product Images</CardTitle>
               <CardDescription>
-                Upload product images to storage or add public image URLs. Paint kit products in
-                Couples &amp; Date Night should include two images for side-by-side display.
+                Upload product images to storage or add public image URLs. Couples kits are stored
+                as individual canvases, so each paired product keeps its own images.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -1183,20 +1301,6 @@ export function ProductForm({
                 {form.imageUrls.length === 0 ? (
                   <div className="flex aspect-[4/4.4] items-center justify-center rounded-[1.2rem] border border-dashed border-black/10 bg-white text-sm text-black/45">
                     Preview image
-                  </div>
-                ) : isCouplesLayout ? (
-                  <div className="grid aspect-[4/4.4] grid-cols-2 gap-2 overflow-hidden rounded-[1.2rem]">
-                    {form.imageUrls.slice(0, 2).map((imageUrl) => (
-                      <Image
-                        key={imageUrl}
-                        src={imageUrl}
-                        alt="Product preview"
-                        width={360}
-                        height={396}
-                        className="h-full w-full object-cover"
-                        unoptimized
-                      />
-                    ))}
                   </div>
                 ) : (
                   <div className="aspect-[4/4.4] overflow-hidden rounded-[1.2rem]">

@@ -11,6 +11,7 @@ import {
   getDiscountCompareAtCents,
   getProductReviewStats,
   getStorefrontProductDetail,
+  shouldRenderCouplesImagePair,
 } from "@/lib/products";
 import { getCategoryBadgeLabel, getCategoryDisplayName } from "@/lib/product-catalog";
 
@@ -103,6 +104,7 @@ export default async function ProductDetailPage({
   const categoryName = getCategoryDisplayName(product.categoryId, product.category.name);
   const badgeCategoryName = getCategoryBadgeLabel(product.categoryId, product.category.name);
   const reviewStats = getProductReviewStats(product.reviews);
+  const pairProduct = product.couplesPairProduct;
   const sizeOptions =
     product.variants.length > 0
       ? product.variants.map((variant) => ({
@@ -132,6 +134,45 @@ export default async function ProductDetailPage({
     description: product.description,
     shortDescription: getShortDescription(product.description),
     imageUrls: product.imageUrls,
+    isCouples: shouldRenderCouplesImagePair(product),
+    couplesBundleName: product.couplesBundleName,
+    couplesSlot: product.couplesSlot,
+    couplesPairProduct: pairProduct
+      ? {
+          id: pairProduct.id,
+          name: pairProduct.name,
+          imageUrls: pairProduct.imageUrls,
+          priceCents: pairProduct.priceCents,
+          currency: pairProduct.currency,
+          colorOptions: pairProduct.colorOptions.map((colorOption) => ({
+            id: colorOption.id,
+            label: colorOption.label,
+            hex: colorOption.hex,
+          })),
+          sizeOptions:
+            pairProduct.variants.length > 0
+              ? pairProduct.variants.map((variant) => ({
+                  id: variant.id,
+                  label: variant.label,
+                  size: variant.size,
+                  priceCents: variant.priceCents,
+                  currency: variant.currency,
+                  stripePriceId: variant.stripePriceId,
+                  isDefault: variant.isDefault,
+                }))
+              : [
+                  {
+                    id: "standard",
+                    label: "Standard",
+                    size: "STANDARD" as const,
+                    priceCents: pairProduct.priceCents,
+                    currency: pairProduct.currency,
+                    stripePriceId: pairProduct.stripePriceId,
+                    isDefault: true,
+                  },
+                ],
+        }
+      : null,
     breadcrumbs: [
       { label: "Shop", href: "/shop" },
       { label: categoryName, href: `/shop/category/${product.category.slug}` },
@@ -143,7 +184,7 @@ export default async function ProductDetailPage({
             },
           ]
         : []),
-      { label: product.name },
+      { label: pairProduct && product.couplesBundleName ? product.couplesBundleName : product.name },
     ],
     rating: reviewStats.averageRating,
     reviewCount: reviewStats.reviewCount,

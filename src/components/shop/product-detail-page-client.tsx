@@ -12,6 +12,13 @@ export function ProductDetailPageClient({ product }: { product: ProductDetailDat
       onAddToCart={async ({ productId, quantity, sizeId, colorId, colorLabel, stripePriceId }) => {
         const selectedSize =
           product.sizeOptions.find((size) => size.id === sizeId) ?? product.sizeOptions[0] ?? null;
+        const pairedSize =
+          product.couplesPairProduct && selectedSize
+            ? product.couplesPairProduct.sizeOptions.find((size) => size.size === selectedSize.size) ??
+              product.couplesPairProduct.sizeOptions.find((size) => size.isDefault) ??
+              product.couplesPairProduct.sizeOptions[0] ??
+              null
+            : null;
 
         addItem({
           productId,
@@ -26,6 +33,22 @@ export function ProductDetailPageClient({ product }: { product: ProductDetailDat
           variantLabel: selectedSize?.label ?? null,
           stripePriceId: stripePriceId ?? selectedSize?.stripePriceId ?? product.stripePriceId,
         });
+
+        if (product.couplesPairProduct) {
+          addItem({
+            productId: product.couplesPairProduct.id,
+            productName: product.couplesPairProduct.name,
+            imageUrl: product.couplesPairProduct.imageUrls[0] ?? null,
+            quantity,
+            unitPriceCents: pairedSize?.priceCents ?? product.couplesPairProduct.priceCents,
+            currency: pairedSize?.currency ?? product.couplesPairProduct.currency,
+            colorOptionId: null,
+            colorLabel: null,
+            variantId: pairedSize?.id ?? null,
+            variantLabel: pairedSize?.label ?? null,
+            stripePriceId: pairedSize?.stripePriceId ?? null,
+          });
+        }
       }}
     />
   );

@@ -77,6 +77,18 @@ export type ProductDetailData = {
   description: string;
   shortDescription: string;
   imageUrls: string[];
+  isCouples: boolean;
+  couplesBundleName: string | null;
+  couplesSlot: number | null;
+  couplesPairProduct: {
+    id: string;
+    name: string;
+    imageUrls: string[];
+    priceCents: number;
+    currency: string;
+    colorOptions: ProductDetailColorOption[];
+    sizeOptions: ProductDetailSizeOption[];
+  } | null;
   breadcrumbs: ProductDetailBreadcrumb[];
   rating: number | null;
   reviewCount: number;
@@ -475,6 +487,18 @@ export function ProductDetailContent({
     () => product.sizeOptions.find((size) => size.id === selectedSizeId) ?? null,
     [product.sizeOptions, selectedSizeId],
   );
+  const pairedSize = useMemo(() => {
+    if (!product.couplesPairProduct || !selectedSize) {
+      return null;
+    }
+
+    return (
+      product.couplesPairProduct.sizeOptions.find((size) => size.size === selectedSize.size) ??
+      product.couplesPairProduct.sizeOptions.find((size) => size.isDefault) ??
+      product.couplesPairProduct.sizeOptions[0] ??
+      null
+    );
+  }, [product.couplesPairProduct, selectedSize]);
   const selectedColor = useMemo(
     () => product.colorOptions.find((color) => color.id === selectedColorId) ?? null,
     [product.colorOptions, selectedColorId],
@@ -484,12 +508,39 @@ export function ProductDetailContent({
     product.categoryId === "cat_canvases" || Boolean(categoryProductSpecs[product.categoryId]?.length);
   const backTarget = [...product.breadcrumbs].reverse().find((item) => item.href);
   const currentPriceCents = selectedSize?.priceCents ?? product.priceCents;
+  const pairedPriceCents = pairedSize?.priceCents ?? product.couplesPairProduct?.priceCents ?? 0;
   const currentCurrency = selectedSize?.currency ?? product.currency;
   const currentStripePriceId = selectedSize?.stripePriceId ?? product.stripePriceId;
   const quantity = Math.max(1, Number.parseInt(quantityInput, 10) || 1);
-  const compareAtCents = getCompareAtCents(currentPriceCents, product.discountPercent);
-  const discountPercent = getDiscountPercent(currentPriceCents, compareAtCents);
+  const displayPriceCents = currentPriceCents + (product.couplesPairProduct ? pairedPriceCents : 0);
+  const compareAtCents = getCompareAtCents(displayPriceCents, product.discountPercent);
+  const discountPercent = getDiscountPercent(displayPriceCents, compareAtCents);
   const selectedImageUrl = product.imageUrls[selectedImageIndex] ?? product.imageUrls[0] ?? null;
+  const couplesCanvasGroups = product.couplesPairProduct
+    ? [
+        {
+          title: product.name,
+          images: product.imageUrls,
+          colors: product.colorOptions,
+        },
+        {
+          title: product.couplesPairProduct.name,
+          images: product.couplesPairProduct.imageUrls,
+          colors: product.couplesPairProduct.colorOptions,
+        },
+      ]
+    : [
+        {
+          title: "Canvas 1",
+          images: product.imageUrls.slice(0, Math.ceil(product.imageUrls.length / 2)),
+          colors: product.colorOptions.slice(0, Math.ceil(product.colorOptions.length / 2)),
+        },
+        {
+          title: "Canvas 2",
+          images: product.imageUrls.slice(Math.ceil(product.imageUrls.length / 2)),
+          colors: product.colorOptions.slice(Math.ceil(product.colorOptions.length / 2)),
+        },
+      ];
   const sortedReviews = useMemo(() => {
     const reviews = [...product.reviews];
 
@@ -617,6 +668,15 @@ export function ProductDetailContent({
       return;
     }
 
+    if (product.couplesPairProduct && !pairedSize?.stripePriceId) {
+      toast({
+        title: "Checkout unavailable",
+        description: "The paired canvas size is not available for checkout yet. Please contact support.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const payload: AddToCartPayload = {
       productId: product.id,
       colorId: isPaintProduct ? selectedColorId : null,
@@ -678,47 +738,88 @@ export function ProductDetailContent({
         </nav>
 
         <section className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.02fr)_minmax(0,0.98fr)] lg:gap-12">
-          <div className="grid gap-4 md:grid-cols-[96px_minmax(0,1fr)]">
-            <div className="order-2 flex gap-3 overflow-x-auto pb-1 md:order-1 md:flex-col md:overflow-visible">
-              {product.imageUrls.map((imageUrl, index) => (
-                <button
-                  key={`${product.id}-detail-thumb-${index}`}
-                  type="button"
-                  onClick={() => setSelectedImageIndex(index)}
-                  className={cn("shrink-0 overflow-hidden transition", selectedImageIndex === index ? "opacity-100" : "opacity-60 hover:opacity-100")}
-                >
+          {product.isCouples && couplesCanvasGroups.every((group) => group.images.length > 0) ? (
+            <div className="grid gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                {couplesCanvasGroups.map((canvasGroup) => (
+                  <div key={canvasGroup.title} className="space-y-3">
+                    <div className="grid gap-3">
+                      {canvasGroup.images.map((imageUrl, index) => (
+                        <div
+                          key={`${canvasGroup.title}-${imageUrl}-${index}`}
+                          className="flex min-h-[260px] items-center justify-center sm:min-h-[340px]"
+                        >
+                          <Image
+                            src={imageUrl}
+                            alt={`${product.name} ${canvasGroup.title} image ${index + 1}`}
+                            width={520}
+                            height={650}
+                            className="max-h-full max-w-full object-contain"
+                            unoptimized
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-sm font-semibold text-black/60">{canvasGroup.title}</p>
+                    {canvasGroup.colors.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {canvasGroup.colors.map((color) => (
+                          <span
+                            key={`${canvasGroup.title}-${color.id}`}
+                            className="h-8 w-8 rounded-full border border-black/10"
+                            style={{ backgroundColor: color.hex }}
+                            title={color.label}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-[96px_minmax(0,1fr)]">
+              <div className="order-2 flex gap-3 overflow-x-auto pb-1 md:order-1 md:flex-col md:overflow-visible">
+                {product.imageUrls.map((imageUrl, index) => (
+                  <button
+                    key={`${product.id}-detail-thumb-${index}`}
+                    type="button"
+                    onClick={() => setSelectedImageIndex(index)}
+                    className={cn("shrink-0 overflow-hidden transition", selectedImageIndex === index ? "opacity-100" : "opacity-60 hover:opacity-100")}
+                  >
+                    <Image
+                      src={imageUrl}
+                      alt={`${product.name} thumbnail ${index + 1}`}
+                      width={112}
+                      height={112}
+                      className="h-24 w-24 object-cover md:h-28 md:w-28"
+                      unoptimized
+                    />
+                  </button>
+                ))}
+              </div>
+
+              <div className="order-1 flex min-h-[420px] items-center justify-center md:order-2 md:min-h-[620px]">
+                {selectedImageUrl ? (
                   <Image
-                    src={imageUrl}
-                    alt={`${product.name} thumbnail ${index + 1}`}
-                    width={112}
-                    height={112}
-                    className="h-24 w-24 object-cover md:h-28 md:w-28"
+                    src={selectedImageUrl}
+                    alt={product.name}
+                    width={1000}
+                    height={1000}
+                    className="max-h-full max-w-full object-contain"
                     unoptimized
                   />
-                </button>
-              ))}
+                ) : (
+                  <div className="text-sm text-black/40">No image</div>
+                )}
+              </div>
             </div>
+          )}
 
-            <div className="order-1 flex min-h-[420px] items-center justify-center md:order-2 md:min-h-[620px]">
-              {selectedImageUrl ? (
-                <Image
-                  src={selectedImageUrl}
-                  alt={product.name}
-                  width={1000}
-                  height={1000}
-                  className="max-h-full max-w-full object-contain"
-                  unoptimized
-                />
-              ) : (
-                <div className="text-sm text-black/40">No image</div>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <h1 className="font-display text-[2.4rem] uppercase leading-[0.92] tracking-tight text-black sm:text-[3.15rem]">
-              {product.name}
-            </h1>
+            <div>
+              <h1 className="font-display text-[2.4rem] uppercase leading-[0.92] tracking-tight text-black sm:text-[3.15rem]">
+              {product.couplesPairProduct && product.couplesBundleName ? product.couplesBundleName : product.name}
+              </h1>
 
             <div className="mt-4 flex items-center gap-3">
               <RatingStars rating={product.rating} />
@@ -729,7 +830,7 @@ export function ProductDetailContent({
 
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <span className="text-[2.05rem] font-bold text-black">
-                {formatCurrencyAmount(currentPriceCents, currentCurrency)}
+                {formatCurrencyAmount(displayPriceCents, currentCurrency)}
               </span>
               {compareAtCents ? (
                 <span className="text-[1.9rem] text-black/30 line-through">
@@ -747,7 +848,7 @@ export function ProductDetailContent({
               {product.shortDescription}
             </p>
 
-            {product.colorOptions.length > 0 ? (
+            {product.colorOptions.length > 0 && !product.isCouples ? (
               <div className="border-b border-black/10 py-6">
                 <p className="text-sm font-medium text-black/55">
                   {isPaintProduct ? "Select Colors" : "Paint Colors"}

@@ -1,11 +1,21 @@
 import { readdir } from "fs/promises";
+import { ProductStatus } from "@prisma/client";
 import path from "path";
+import { CANVASES_CATEGORY_ID } from "@/lib/product-catalog";
+import { prisma } from "@/lib/prisma";
 
 export type CanvasGalleryItem = {
   id: string;
   name: string;
   imageUrl: string;
+  imageUrls?: string[];
+  description?: string;
   category: string;
+  colorOptions?: Array<{
+    id: string;
+    label: string;
+    hex: string;
+  }>;
 };
 
 export type CanvasGallerySection = {
@@ -59,6 +69,7 @@ export async function getCanvasGallerySections(): Promise<CanvasGallerySection[]
             id: `${toSlug(category)}:${toSlug(fileEntry.name)}`,
             name: toDisplayName(fileEntry.name),
             imageUrl: toPublicImageUrl(category, fileEntry.name),
+            imageUrls: [toPublicImageUrl(category, fileEntry.name)],
             category,
           }));
 
@@ -71,6 +82,72 @@ export async function getCanvasGallerySections(): Promise<CanvasGallerySection[]
   );
 
   return sections;
+}
+
+export async function getPaintKitCanvasGallerySections(): Promise<CanvasGallerySection[]> {
+  const subcategories = await prisma.productSubcategory.findMany({
+    where: {
+      categoryId: CANVASES_CATEGORY_ID,
+      products: {
+        some: {
+          status: ProductStatus.ACTIVE,
+        },
+      },
+    },
+    include: {
+      products: {
+        where: {
+          status: ProductStatus.ACTIVE,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          imageUrls: true,
+          colorOptions: {
+            orderBy: {
+              sortOrder: "asc",
+            },
+            select: {
+              id: true,
+              label: true,
+              hex: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+
+  return subcategories
+    .map((subcategory) => ({
+      id: subcategory.id,
+      title: subcategory.name,
+      items: subcategory.products
+        .flatMap((product) => {
+          const imageUrl = product.imageUrls[0];
+          if (!imageUrl) {
+            return [];
+          }
+
+          return [{
+            id: product.id,
+            name: product.name,
+            imageUrl,
+            imageUrls: product.imageUrls,
+            description: product.description,
+            category: subcategory.name,
+            colorOptions: product.colorOptions,
+          }];
+        }),
+    }))
+    .filter((section) => section.items.length > 0);
 }
 
 export function getCanvasPreviewItems(

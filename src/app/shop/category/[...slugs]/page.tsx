@@ -28,6 +28,7 @@ export const dynamic = "force-dynamic";
 
 function mapProduct(product: Awaited<ReturnType<typeof getStorefrontCategoryProducts>>["products"][number]) {
   const reviewStats = getProductReviewStats(product.reviews);
+  const pairProduct = product.couplesPairProduct;
 
   return {
     id: product.id,
@@ -39,9 +40,34 @@ function mapProduct(product: Awaited<ReturnType<typeof getStorefrontCategoryProd
     subcategoryName: product.subcategory?.name ?? null,
     imageUrls: product.imageUrls,
     isCouples: shouldRenderCouplesImagePair(product),
+    couplesBundleName: product.couplesBundleName,
+    couplesSlot: product.couplesSlot,
+    couplesPairProduct: pairProduct
+      ? {
+          id: pairProduct.id,
+          name: pairProduct.name,
+          imageUrls: pairProduct.imageUrls,
+          priceCents: pairProduct.priceCents,
+          currency: pairProduct.currency,
+          colorOptions: pairProduct.colorOptions.map((colorOption) => ({
+            id: colorOption.id,
+            label: colorOption.label,
+            hex: colorOption.hex,
+          })),
+          variants: pairProduct.variants.map((variant) => ({
+            id: variant.id,
+            size: variant.size,
+            label: variant.label,
+            priceCents: variant.priceCents,
+            currency: variant.currency,
+            stripePriceId: variant.stripePriceId,
+            isDefault: variant.isDefault,
+          })),
+        }
+      : null,
     priceDisplay: formatProductPriceRange(product),
-    priceCents: product.priceCents,
-    compareAtCents: getDiscountCompareAtCents(product.priceCents, product.discountPercent),
+    priceCents: product.priceCents + (pairProduct?.priceCents ?? 0),
+    compareAtCents: getDiscountCompareAtCents(product.priceCents + (pairProduct?.priceCents ?? 0), product.discountPercent),
     currency: product.currency,
     rating: reviewStats.averageRating,
     reviewCount: reviewStats.reviewCount,

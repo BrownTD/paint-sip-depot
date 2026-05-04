@@ -11,6 +11,7 @@ import {
   formatSkuSequence,
   getCategorySkuCode,
   getVariantSkuCode,
+  normalizeCouplesGroupId,
   normalizeCurrency,
   normalizeProductName,
   sanitizeColorHex,
@@ -155,6 +156,87 @@ export type AdminProductRecord = Prisma.ProductGetPayload<{
 export type StorefrontProductRecord = Prisma.ProductGetPayload<{
   include: typeof storefrontProductInclude;
 }>;
+
+export type StorefrontProductWithCouplesPair = StorefrontProductRecord & {
+  couplesPairProduct: StorefrontProductRecord | null;
+};
+
+function isCouplesProductRecord(product: {
+  subcategory: { slug: string } | null;
+  couplesGroupId: string | null;
+  couplesSlot: number | null;
+}) {
+  return isCouplesSubcategory(product.subcategory) && Boolean(product.couplesGroupId) && Boolean(product.couplesSlot);
+}
+
+function getCouplesPrimaryAndPair(
+  product: StorefrontProductRecord,
+  productsByGroupId: Map<string, StorefrontProductRecord[]>,
+) {
+  if (!isCouplesProductRecord(product) || !product.couplesGroupId) {
+    return {
+      primaryProduct: product,
+      pairProduct: null,
+    };
+  }
+
+  const groupProducts = productsByGroupId.get(product.couplesGroupId) ?? [];
+  const slotOne = groupProducts.find((item) => item.couplesSlot === 1) ?? null;
+  const slotTwo = groupProducts.find((item) => item.couplesSlot === 2) ?? null;
+
+  if (!slotOne || !slotTwo) {
+    return {
+      primaryProduct: product,
+      pairProduct: null,
+    };
+  }
+
+  return product.couplesSlot === 2
+    ? { primaryProduct: slotOne, pairProduct: slotTwo }
+    : { primaryProduct: slotOne, pairProduct: slotTwo };
+}
+
+function attachCouplesPairProducts(products: StorefrontProductRecord[]): StorefrontProductWithCouplesPair[] {
+  const productsByGroupId = new Map<string, StorefrontProductRecord[]>();
+
+  for (const product of products) {
+    if (!isCouplesProductRecord(product) || !product.couplesGroupId) {
+      continue;
+    }
+
+    productsByGroupId.set(product.couplesGroupId, [
+      ...(productsByGroupId.get(product.couplesGroupId) ?? []),
+      product,
+    ]);
+  }
+
+  const displayedProducts: StorefrontProductWithCouplesPair[] = [];
+  const displayedCouplesGroups = new Set<string>();
+
+  for (const product of products) {
+    const { primaryProduct, pairProduct } = getCouplesPrimaryAndPair(product, productsByGroupId);
+
+    if (pairProduct && primaryProduct.couplesGroupId) {
+      if (displayedCouplesGroups.has(primaryProduct.couplesGroupId)) {
+        continue;
+      }
+
+      displayedCouplesGroups.add(primaryProduct.couplesGroupId);
+      displayedProducts.push({
+        ...primaryProduct,
+        couplesPairProduct: pairProduct,
+      });
+      continue;
+    }
+
+    displayedProducts.push({
+      ...product,
+      couplesPairProduct: null,
+    });
+  }
+
+  return displayedProducts;
+}
 
 export function getProductReviewStats(
   reviews: Array<{
@@ -376,6 +458,42 @@ function prepareColorOptions(categoryId: string, colorOptions: ProductColorOptio
     hex: sanitizeColorHex(colorOption.hex),
     sortOrder: index,
   }));
+}
+
+function isCouplesSubcategory(subcategory: { slug: string } | null | undefined) {
+  return subcategory?.slug === COUPLES_SUBCATEGORY_SLUG;
+}
+
+function prepareCouplesPairing(input: ProductInput, subcategory: { slug: string } | null) {
+  if (!isCouplesSubcategory(subcategory)) {
+    return {
+      couplesGroupId: null,
+      couplesSlot: null,
+      couplesBundleName: null,
+    };
+  }
+
+  const couplesBundleName = sanitizePlainText(input.couplesBundleName ?? "");
+  const couplesGroupId = sanitizePlainText(input.couplesGroupId ?? "") || normalizeCouplesGroupId(couplesBundleName);
+  const couplesSlot = input.couplesSlot ?? null;
+
+  if (!couplesBundleName) {
+    throw new ProductServiceError("Bundle name is required for couples kits.");
+  }
+
+  if (couplesSlot !== 1 && couplesSlot !== 2) {
+    throw new ProductServiceError("Choose Canvas 1 or Canvas 2 for couples kits.");
+  }
+
+  if (!couplesGroupId) {
+    throw new ProductServiceError("Bundle name must include letters or numbers for couples kits.");
+  }
+
+  return {
+    couplesGroupId,
+    couplesSlot,
+    couplesBundleName,
+  };
 }
 
 function serializeColorOptionsMetadata(colorOptions: PreparedColorOption[]) {
@@ -700,12 +818,14 @@ export async function getStorefrontProducts() {
     soldByProductId.set(item.productId, (soldByProductId.get(item.productId) ?? 0) + item.quantity);
   }
 
-  const newArrivals = activeProducts.slice(0, 8);
+  const displayProducts = attachCouplesPairProducts(activeProducts);
 
-  const topSelling = [...activeProducts]
+  const newArrivals = displayProducts.slice(0, 8);
+
+  const topSelling = [...displayProducts]
     .sort((a, b) => {
-      const soldA = soldByProductId.get(a.id) ?? 0;
-      const soldB = soldByProductId.get(b.id) ?? 0;
+      const soldA = (soldByProductId.get(a.id) ?? 0) + (a.couplesPairProduct ? soldByProductId.get(a.couplesPairProduct.id) ?? 0 : 0);
+      const soldB = (soldByProductId.get(b.id) ?? 0) + (b.couplesPairProduct ? soldByProductId.get(b.couplesPairProduct.id) ?? 0 : 0);
       if (soldA === soldB) {
         return b.createdAt.getTime() - a.createdAt.getTime();
       }
@@ -814,7 +934,7 @@ export async function getStorefrontCategoryProducts({
     };
   }
 
-  const products = activeProducts.filter((product) => {
+  const products = attachCouplesPairProducts(activeProducts).filter((product) => {
     if (product.categoryId !== category.id) {
       return false;
     }
@@ -875,18 +995,31 @@ export async function getStorefrontProductDetail(productId: string) {
     };
   }
 
-  const relatedProducts = activeProducts
-    .filter((item) => item.id !== selectedProduct.id)
+  const productGroups = new Map<string, StorefrontProductRecord[]>();
+  for (const item of activeProducts) {
+    if (isCouplesProductRecord(item) && item.couplesGroupId) {
+      productGroups.set(item.couplesGroupId, [...(productGroups.get(item.couplesGroupId) ?? []), item]);
+    }
+  }
+
+  const { primaryProduct, pairProduct } = getCouplesPrimaryAndPair(selectedProduct, productGroups);
+  const displayedSelectedProduct: StorefrontProductWithCouplesPair = {
+    ...primaryProduct,
+    couplesPairProduct: pairProduct,
+  };
+
+  const relatedProducts = attachCouplesPairProducts(activeProducts)
+    .filter((item) => item.id !== displayedSelectedProduct.id && item.id !== displayedSelectedProduct.couplesPairProduct?.id)
     .sort((a, b) => {
-      const sameCategoryA = a.categoryId === selectedProduct.categoryId ? 1 : 0;
-      const sameCategoryB = b.categoryId === selectedProduct.categoryId ? 1 : 0;
+      const sameCategoryA = a.categoryId === displayedSelectedProduct.categoryId ? 1 : 0;
+      const sameCategoryB = b.categoryId === displayedSelectedProduct.categoryId ? 1 : 0;
 
       if (sameCategoryA !== sameCategoryB) {
         return sameCategoryB - sameCategoryA;
       }
 
-      const sameSubcategoryA = a.subcategoryId === selectedProduct.subcategoryId ? 1 : 0;
-      const sameSubcategoryB = b.subcategoryId === selectedProduct.subcategoryId ? 1 : 0;
+      const sameSubcategoryA = a.subcategoryId === displayedSelectedProduct.subcategoryId ? 1 : 0;
+      const sameSubcategoryB = b.subcategoryId === displayedSelectedProduct.subcategoryId ? 1 : 0;
 
       if (sameSubcategoryA !== sameSubcategoryB) {
         return sameSubcategoryB - sameSubcategoryA;
@@ -897,7 +1030,7 @@ export async function getStorefrontProductDetail(productId: string) {
     .slice(0, 4);
 
   return {
-    product: selectedProduct,
+    product: displayedSelectedProduct,
     relatedProducts,
     categories,
   };
@@ -915,6 +1048,7 @@ export async function createProductWithStripe(input: ProductInput) {
 
   await ensureUniqueProductName(normalizedName);
   const { subcategory } = await validateCategorySelection(input.categoryId, input.subcategoryId);
+  const couplesPairing = prepareCouplesPairing(input, subcategory);
 
   const preparedVariants = prepareVariants(input.categoryId, input.variants, skuSequence);
   const preparedColorOptions = prepareColorOptions(input.categoryId, input.colorOptions);
@@ -1005,6 +1139,9 @@ export async function createProductWithStripe(input: ProductInput) {
         archivedAt: status === PRODUCT_STATUS.archived ? new Date() : null,
         categoryId: input.categoryId,
         subcategoryId: subcategory?.id ?? null,
+        couplesGroupId: couplesPairing.couplesGroupId,
+        couplesSlot: couplesPairing.couplesSlot,
+        couplesBundleName: couplesPairing.couplesBundleName,
         variants: {
           create: stripePrices.map((variant) => ({
             size: variant.size,
@@ -1074,6 +1211,7 @@ export async function updateProductWithStripe(productId: string, input: ProductI
 
   await ensureUniqueProductName(normalizedName, productId);
   const { subcategory } = await validateCategorySelection(input.categoryId, input.subcategoryId);
+  const couplesPairing = prepareCouplesPairing(input, subcategory);
 
   const preparedVariants = prepareVariants(input.categoryId, input.variants, skuSequence);
   const preparedColorOptions = prepareColorOptions(input.categoryId, input.colorOptions);
@@ -1259,6 +1397,9 @@ export async function updateProductWithStripe(productId: string, input: ProductI
           archivedAt: status === PRODUCT_STATUS.archived ? new Date() : null,
           categoryId: input.categoryId,
           subcategoryId: subcategory?.id ?? null,
+          couplesGroupId: couplesPairing.couplesGroupId,
+          couplesSlot: couplesPairing.couplesSlot,
+          couplesBundleName: couplesPairing.couplesBundleName,
         },
       });
 
@@ -1432,18 +1573,32 @@ export function formatProductPriceRange(product: {
   priceCents: number;
   currency: string;
   variants: Array<{ priceCents: number; currency: string; size: ProductVariantSize }>;
+  couplesPairProduct?: {
+    priceCents: number;
+    variants: Array<{ priceCents: number; currency: string; size: ProductVariantSize }>;
+  } | null;
 }) {
   const formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: product.currency.toUpperCase(),
   });
 
-  const ordered = [...product.variants].sort((a, b) => a.priceCents - b.priceCents);
+  const variants = product.couplesPairProduct
+    ? product.variants.map((variant) => {
+        const pairedVariant = product.couplesPairProduct?.variants.find((item) => item.size === variant.size);
+        return {
+          ...variant,
+          priceCents: variant.priceCents + (pairedVariant?.priceCents ?? product.couplesPairProduct?.priceCents ?? 0),
+        };
+      })
+    : product.variants;
+  const ordered = [...variants].sort((a, b) => a.priceCents - b.priceCents);
   const first = ordered[0];
   const last = ordered[ordered.length - 1];
 
   if (!first || !last) {
-    return formatter.format(product.priceCents / 100);
+    const priceCents = product.priceCents + (product.couplesPairProduct?.priceCents ?? 0);
+    return formatter.format(priceCents / 100);
   }
 
   if (first.priceCents === last.priceCents) {
@@ -1474,6 +1629,10 @@ export function getPrimaryProductImage(product: { imageUrls: string[] }) {
 export function shouldRenderCouplesImagePair(product: {
   subcategory: { slug: string } | null;
   imageUrls: string[];
+  couplesPairProduct?: { imageUrls: string[] } | null;
 }) {
-  return product.imageUrls.length >= 2 && product.subcategory?.slug === COUPLES_SUBCATEGORY_SLUG;
+  return (
+    product.subcategory?.slug === COUPLES_SUBCATEGORY_SLUG &&
+    (Boolean(product.couplesPairProduct?.imageUrls.length) || product.imageUrls.length >= 2)
+  );
 }

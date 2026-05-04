@@ -463,11 +463,15 @@ export function ProductDetailContent({
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedCouplesImageIndexes, setSelectedCouplesImageIndexes] = useState<[number, number]>([0, 0]);
   const [selectedColorId, setSelectedColorId] = useState<string | null>(
     product.categoryId === "cat_paint" ? product.colorOptions[0]?.id ?? null : null,
   );
   const [selectedSizeId, setSelectedSizeId] = useState<string | null>(
-    product.sizeOptions.find((size) => size.isDefault)?.id ?? product.sizeOptions[0]?.id ?? null,
+    product.sizeOptions.find((size) => size.size === "MEDIUM")?.id ??
+      product.sizeOptions.find((size) => size.isDefault)?.id ??
+      product.sizeOptions[0]?.id ??
+      null,
   );
   const [quantityInput, setQuantityInput] = useState("1");
   const [activeTab, setActiveTab] = useState<"details" | "reviews" | "faqs" | "shipping">("reviews");
@@ -483,9 +487,17 @@ export function ProductDetailContent({
   const [isUploadingReviewImage, setIsUploadingReviewImage] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
+  const orderedSizeOptions = useMemo(
+    () =>
+      [...product.sizeOptions].sort((first, second) => {
+        const order = { MEDIUM: 0, LARGE: 1, STANDARD: 2 } as Record<string, number>;
+        return (order[first.size] ?? 99) - (order[second.size] ?? 99);
+      }),
+    [product.sizeOptions],
+  );
   const selectedSize = useMemo(
-    () => product.sizeOptions.find((size) => size.id === selectedSizeId) ?? null,
-    [product.sizeOptions, selectedSizeId],
+    () => orderedSizeOptions.find((size) => size.id === selectedSizeId) ?? null,
+    [orderedSizeOptions, selectedSizeId],
   );
   const pairedSize = useMemo(() => {
     if (!product.couplesPairProduct || !selectedSize) {
@@ -741,25 +753,60 @@ export function ProductDetailContent({
           {product.isCouples && couplesCanvasGroups.every((group) => group.images.length > 0) ? (
             <div className="grid gap-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                {couplesCanvasGroups.map((canvasGroup) => (
+                {couplesCanvasGroups.map((canvasGroup, canvasIndex) => {
+                  const selectedCanvasImageIndex = Math.min(
+                    selectedCouplesImageIndexes[canvasIndex] ?? 0,
+                    Math.max(canvasGroup.images.length - 1, 0),
+                  );
+                  const selectedCanvasImage = canvasGroup.images[selectedCanvasImageIndex] ?? canvasGroup.images[0];
+
+                  return (
                   <div key={canvasGroup.title} className="space-y-3">
-                    <div className="grid gap-3">
-                      {canvasGroup.images.map((imageUrl, index) => (
-                        <div
-                          key={`${canvasGroup.title}-${imageUrl}-${index}`}
-                          className="flex min-h-[260px] items-center justify-center sm:min-h-[340px]"
-                        >
-                          <Image
-                            src={imageUrl}
-                            alt={`${product.name} ${canvasGroup.title} image ${index + 1}`}
-                            width={520}
-                            height={650}
-                            className="max-h-full max-w-full object-contain"
-                            unoptimized
-                          />
-                        </div>
-                      ))}
+                    <div className="flex min-h-[260px] items-center justify-center sm:min-h-[340px]">
+                      {selectedCanvasImage ? (
+                        <Image
+                          src={selectedCanvasImage}
+                          alt={`${product.name} ${canvasGroup.title} image ${selectedCanvasImageIndex + 1}`}
+                          width={520}
+                          height={650}
+                          className="max-h-full max-w-full object-contain"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="text-sm text-black/40">No image</div>
+                      )}
                     </div>
+                    {canvasGroup.images.length > 1 ? (
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {canvasGroup.images.map((imageUrl, imageIndex) => (
+                          <button
+                            key={`${canvasGroup.title}-${imageUrl}-${imageIndex}`}
+                            type="button"
+                            onClick={() =>
+                              setSelectedCouplesImageIndexes((current) => {
+                                const next: [number, number] = [...current];
+                                next[canvasIndex] = imageIndex;
+                                return next;
+                              })
+                            }
+                            className={cn(
+                              "shrink-0 overflow-hidden transition",
+                              selectedCanvasImageIndex === imageIndex ? "opacity-100" : "opacity-60 hover:opacity-100",
+                            )}
+                            aria-label={`View ${canvasGroup.title} image ${imageIndex + 1}`}
+                          >
+                            <Image
+                              src={imageUrl}
+                              alt={`${canvasGroup.title} thumbnail ${imageIndex + 1}`}
+                              width={88}
+                              height={88}
+                              className="h-20 w-20 object-cover"
+                              unoptimized
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                     <p className="text-sm font-semibold text-black/60">{canvasGroup.title}</p>
                     {canvasGroup.colors.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
@@ -774,7 +821,8 @@ export function ProductDetailContent({
                       </div>
                     ) : null}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ) : (
@@ -889,7 +937,7 @@ export function ProductDetailContent({
             <div className="border-b border-black/10 py-6">
               <p className="text-sm font-medium text-black/55">Choose Size</p>
               <div className="mt-4 flex flex-wrap gap-3">
-                {product.sizeOptions.map((size) => (
+                {orderedSizeOptions.map((size) => (
                   <button
                     key={size.id}
                     type="button"

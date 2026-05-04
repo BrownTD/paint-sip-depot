@@ -221,6 +221,9 @@ export function ShopProductCard({
   const couplesPreviewImageUrls = product.couplesPairProduct
     ? [product.imageUrls[0], product.couplesPairProduct.imageUrls[0]].filter((imageUrl): imageUrl is string => Boolean(imageUrl))
     : product.imageUrls.slice(0, 2);
+  const couplesColorGroups = product.couplesPairProduct
+    ? [product.colorOptions, product.couplesPairProduct.colorOptions]
+    : [product.colorOptions];
   const hasCompleteShippingAddress =
     Boolean(shippingAddress.trim()) &&
     Boolean(shippingCity.trim()) &&
@@ -415,18 +418,15 @@ export function ShopProductCard({
         <Link href={`/shop/${product.id}`} className="block">
           {product.imageUrls.length > 0 ? (
             product.isCouples && couplesPreviewImageUrls.length >= 2 ? (
-              <div className="grid aspect-[3/4] grid-cols-2 overflow-hidden">
+              <div className="grid aspect-[3/4] grid-cols-2 gap-[3px] overflow-hidden">
                 {couplesPreviewImageUrls.map((imageUrl, index) => (
                   <Image
-                    key={`${product.id}-${index}`}
+                    key={`${product.id}-couples-preview-${index}`}
                     src={imageUrl}
-                    alt={product.name}
-                    width={600}
-                    height={800}
-                    className={cn(
-                      "h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]",
-                      index === 0 ? "object-left" : "object-right",
-                    )}
+                    alt={index === 0 ? product.name : product.couplesPairProduct?.name ?? `${product.name} canvas 2`}
+                    width={450}
+                    height={1200}
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
                     loading="lazy"
                     unoptimized
                   />
@@ -457,7 +457,27 @@ export function ShopProductCard({
             </h3>
           </Link>
 
-          {product.colorOptions.length > 0 ? (
+          {product.isCouples && product.couplesPairProduct ? (
+            <div className="mt-2 grid grid-cols-2 gap-[3px]">
+              {couplesColorGroups.map((colorOptions, groupIndex) => (
+                <div key={`${product.id}-color-group-${groupIndex}`} className="flex min-w-0 items-center gap-1.5">
+                  {colorOptions.slice(0, 3).map((colorOption) => (
+                    <span
+                      key={colorOption.id}
+                      className="h-5 w-5 shrink-0 rounded-full border border-black/10"
+                      style={{ backgroundColor: colorOption.hex }}
+                      title={colorOption.label}
+                    />
+                  ))}
+                  {colorOptions.length > 3 ? (
+                    <span className="truncate text-xs font-semibold text-black/55">
+                      +{colorOptions.length - 3}
+                    </span>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : product.colorOptions.length > 0 ? (
             <div className="mt-2 flex items-center gap-1.5">
               {product.colorOptions.slice(0, 3).map((colorOption) => (
                 <span
@@ -516,18 +536,23 @@ export function ShopProductCard({
           <div className="grid gap-4 md:grid-cols-[260px_minmax(0,1fr)] md:gap-6">
             <div className="space-y-3">
               {product.isCouples && couplesPreviewImageUrls.length >= 2 ? (
-                <div className="grid aspect-[3/4] grid-cols-2 overflow-hidden">
-                  {couplesPreviewImageUrls.map((imageUrl, index) => (
-                    <Image
-                      key={`${product.id}-dialog-couples-${index}`}
-                      src={imageUrl}
-                      alt={product.couplesBundleName ?? product.name}
-                      width={450}
-                      height={600}
-                      className={cn("h-full w-full object-cover", index === 0 ? "object-left" : "object-right")}
-                      unoptimized
-                    />
-                  ))}
+                <div className="relative aspect-[3/4] overflow-hidden">
+                  <Image
+                    src={couplesPreviewImageUrls[1]}
+                    alt={product.couplesPairProduct?.name ?? `${product.name} canvas 2`}
+                    width={900}
+                    height={1200}
+                    className="absolute left-[17%] top-[7%] h-[86%] w-[76%] object-cover shadow-sm"
+                    unoptimized
+                  />
+                  <Image
+                    src={couplesPreviewImageUrls[0]}
+                    alt={product.name}
+                    width={900}
+                    height={1200}
+                    className="absolute left-[7%] top-[3%] z-10 h-[86%] w-[76%] object-cover shadow-md"
+                    unoptimized
+                  />
                 </div>
               ) : selectedImageUrl ? (
                 <>

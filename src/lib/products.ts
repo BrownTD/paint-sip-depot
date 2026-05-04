@@ -157,21 +157,29 @@ export type StorefrontProductRecord = Prisma.ProductGetPayload<{
   include: typeof storefrontProductInclude;
 }>;
 
-export type StorefrontProductWithCouplesPair = StorefrontProductRecord & {
-  couplesPairProduct: StorefrontProductRecord | null;
+type CouplesPairingFields = {
+  couplesGroupId?: string | null;
+  couplesSlot?: number | null;
+  couplesBundleName?: string | null;
+};
+
+type StorefrontCouplesProductRecord = StorefrontProductRecord & CouplesPairingFields;
+
+export type StorefrontProductWithCouplesPair = StorefrontCouplesProductRecord & {
+  couplesPairProduct: StorefrontCouplesProductRecord | null;
 };
 
 function isCouplesProductRecord(product: {
   subcategory: { slug: string } | null;
-  couplesGroupId: string | null;
-  couplesSlot: number | null;
+  couplesGroupId?: string | null;
+  couplesSlot?: number | null;
 }) {
   return isCouplesSubcategory(product.subcategory) && Boolean(product.couplesGroupId) && Boolean(product.couplesSlot);
 }
 
 function getCouplesPrimaryAndPair(
-  product: StorefrontProductRecord,
-  productsByGroupId: Map<string, StorefrontProductRecord[]>,
+  product: StorefrontCouplesProductRecord,
+  productsByGroupId: Map<string, StorefrontCouplesProductRecord[]>,
 ) {
   if (!isCouplesProductRecord(product) || !product.couplesGroupId) {
     return {
@@ -197,9 +205,10 @@ function getCouplesPrimaryAndPair(
 }
 
 function attachCouplesPairProducts(products: StorefrontProductRecord[]): StorefrontProductWithCouplesPair[] {
-  const productsByGroupId = new Map<string, StorefrontProductRecord[]>();
+  const couplesProducts = products as StorefrontCouplesProductRecord[];
+  const productsByGroupId = new Map<string, StorefrontCouplesProductRecord[]>();
 
-  for (const product of products) {
+  for (const product of couplesProducts) {
     if (!isCouplesProductRecord(product) || !product.couplesGroupId) {
       continue;
     }
@@ -213,7 +222,7 @@ function attachCouplesPairProducts(products: StorefrontProductRecord[]): Storefr
   const displayedProducts: StorefrontProductWithCouplesPair[] = [];
   const displayedCouplesGroups = new Set<string>();
 
-  for (const product of products) {
+  for (const product of couplesProducts) {
     const { primaryProduct, pairProduct } = getCouplesPrimaryAndPair(product, productsByGroupId);
 
     if (pairProduct && primaryProduct.couplesGroupId) {
@@ -995,14 +1004,14 @@ export async function getStorefrontProductDetail(productId: string) {
     };
   }
 
-  const productGroups = new Map<string, StorefrontProductRecord[]>();
-  for (const item of activeProducts) {
+  const productGroups = new Map<string, StorefrontCouplesProductRecord[]>();
+  for (const item of activeProducts as StorefrontCouplesProductRecord[]) {
     if (isCouplesProductRecord(item) && item.couplesGroupId) {
       productGroups.set(item.couplesGroupId, [...(productGroups.get(item.couplesGroupId) ?? []), item]);
     }
   }
 
-  const { primaryProduct, pairProduct } = getCouplesPrimaryAndPair(selectedProduct, productGroups);
+  const { primaryProduct, pairProduct } = getCouplesPrimaryAndPair(selectedProduct as StorefrontCouplesProductRecord, productGroups);
   const displayedSelectedProduct: StorefrontProductWithCouplesPair = {
     ...primaryProduct,
     couplesPairProduct: pairProduct,
@@ -1594,18 +1603,13 @@ export function formatProductPriceRange(product: {
     : product.variants;
   const ordered = [...variants].sort((a, b) => a.priceCents - b.priceCents);
   const first = ordered[0];
-  const last = ordered[ordered.length - 1];
 
-  if (!first || !last) {
+  if (!first) {
     const priceCents = product.priceCents + (product.couplesPairProduct?.priceCents ?? 0);
     return formatter.format(priceCents / 100);
   }
 
-  if (first.priceCents === last.priceCents) {
-    return formatter.format(first.priceCents / 100);
-  }
-
-  return `${formatter.format(first.priceCents / 100)} - ${formatter.format(last.priceCents / 100)}`;
+  return formatter.format(first.priceCents / 100);
 }
 
 export function getDiscountCompareAtCents(priceCents: number, discountPercent: number | null | undefined) {

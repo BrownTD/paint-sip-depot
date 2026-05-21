@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { signUpSchema } from "@/lib/validations";
 import { normalizeEmail } from "@/lib/utils";
 import { sendEmailVerification } from "@/lib/email-verification";
-import { verifyRecaptchaToken } from "@/lib/recaptcha";
+import { getRecaptchaRequestContext, verifyRecaptchaToken } from "@/lib/recaptcha";
 import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
@@ -20,7 +20,10 @@ export async function POST(request: Request) {
 
     const { name, password, recaptchaToken } = parsed.data;
     const email = normalizeEmail(parsed.data.email);
-    const recaptchaResult = await verifyRecaptchaToken(recaptchaToken);
+    const recaptchaResult = await verifyRecaptchaToken(
+      recaptchaToken,
+      getRecaptchaRequestContext(request)
+    );
 
     if (!recaptchaResult.ok) {
       return NextResponse.json(
